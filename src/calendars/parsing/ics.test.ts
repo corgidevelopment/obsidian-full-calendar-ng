@@ -1,8 +1,8 @@
 import { getEventsFromICS } from "./ics";
 
 describe("ics tests", () => {
-    it("parses all day event", () => {
-        const ics = `BEGIN:VCALENDAR
+  it("parses all day event", () => {
+    const ics = `BEGIN:VCALENDAR
 PRODID:blah
 X-WR-CALNAME:Test calendar
 X-WR-TIMEZONE:Etc/UTC
@@ -26,12 +26,12 @@ SUMMARY:EVENT TITLE
 TRANSP:TRANSPARENT
 END:VEVENT
 END:VCALENDAR`;
-        const events = getEventsFromICS(ics);
-        expect(events).toMatchSnapshot(ics);
-    });
+    const events = getEventsFromICS(ics);
+    expect(events).toMatchSnapshot(ics);
+  });
 
-    it("parses gcal ics file", () => {
-        const ics = `BEGIN:VCALENDAR
+  it("parses gcal ics file", () => {
+    const ics = `BEGIN:VCALENDAR
 PRODID:-//Google Inc//Google Calendar 70.9054//EN
 VERSION:2.0
 CALSCALE:GREGORIAN
@@ -134,7 +134,7 @@ TRANSP:TRANSPARENT
 END:VEVENT
 END:VCALENDAR
         `;
-        const events = getEventsFromICS(ics);
-        expect(events).toMatchSnapshot(ics);
-    });
+    const events = getEventsFromICS(ics);
+    expect(events).toMatchSnapshot(ics);
+  });
 });

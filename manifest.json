@@ -1,11 +1,9 @@
 {
-	"id": "obsidian-full-calendar",
-	"name": "Full Calendar",
-	"version": "0.10.7",
-	"minAppVersion": "0.16.3",
-	"description": "Obsidian integration with Full Calendar (fullcalendar.io)",
-	"author": "Davis Haupt",
-	"authorUrl": "https://davi.sh",
-	"isDesktopOnly": false,
-	"fundingUrl": "https://ko-fi.com/davish"
+  "id": "obsidian-full-calendar-ng",
+  "name": "Full Calendar NG",
+  "version": "0.10.3",
+  "minAppVersion": "0.16.3",
+  "description": "Obsidian 2-Way integration with Full Calendar (fullcalendar.io)",
+  "author": "Corgi.Devs",
+  "isDesktopOnly": false
 }
