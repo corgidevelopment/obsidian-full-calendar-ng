@@ -23,5 +23,6 @@ main.css
 # obsidian
 data.json
 .obsidian
+obsidian-dev-vault/
 
 .DS_Store

@@ -16,6 +16,8 @@ import interactionPlugin from "@fullcalendar/interaction";
 import googleCalendarPlugin from "@fullcalendar/google-calendar";
 import iCalendarPlugin from "@fullcalendar/icalendar";
 
+import { TFolder, Notice } from "obsidian";
+
 // There is an issue with FullCalendar RRule support around DST boundaries which is fixed by this monkeypatch:
 // https://github.com/fullcalendar/fullcalendar/issues/5273#issuecomment-1360459342
 rrulePlugin.recurringTypes[0].expand = function (errd, fr, de) {
@@ -89,6 +91,36 @@ export function renderCalendar(
         });
 
     const cal = new Calendar(containerEl, {
+        customButtons: {
+            // Added by JK
+            analysis: {
+                text: "Analysis",
+                click: async () => {
+                    const target = app.vault.getAbstractFileByPath("Calender");
+                    if (!target || !(target instanceof TFolder)) {
+                        new Notice("Folder “Calender” not found");
+                        return;
+                    }
+                    let leaf =
+                        app.workspace.getLeavesOfType("file-explorer")[0];
+                    if (!leaf) {
+                        leaf = app.workspace.getLeftLeaf(false);
+                        await leaf.setViewState({ type: "file-explorer" });
+                    }
+                    app.workspace.revealLeaf(leaf);
+                    const view = leaf.view;
+                    if (typeof view.revealInFolder === "function") {
+                        view.revealInFolder(target);
+                    } else if (typeof view.reveal === "function") {
+                        view.reveal(target);
+                    } else {
+                        new Notice(
+                            "Unable to reveal folder in this version of Obsidian."
+                        );
+                    }
+                },
+            },
+        },
         plugins: [
             // View plugins
             dayGridPlugin,
@@ -113,7 +145,7 @@ export function renderCalendar(
             ? {
                   left: "prev,next today",
                   center: "title",
-                  right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+                  right: "analysis dayGridMonth,timeGridWeek,timeGridDay,listWeek",
               }
             : !isMobile
             ? {
