@@ -220,9 +220,9 @@ export default class EventCache {
     if (!calendar) {
       throw new Error(`Calendar ID ${calendarId} is not registered.`);
     }
-    if (!(calendar instanceof EditableCalendar)) {
+    if (!("modifyEvent" in calendar)) {
       // console.warn("Cannot modify event of type " + calendar.type);
-      throw new Error(`Read-only events cannot be modified.`);
+      throw new Error(`Calendar event cannot be modified`);
     }
     if (!location) {
       throw new Error(

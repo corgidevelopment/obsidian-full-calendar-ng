@@ -1,6 +1,7 @@
 import { OFCEvent, validateEvent } from "../types";
-import { CachedMetadata, ListItemCache, Loc, Pos } from "obsidian";
+import { CachedMetadata, ListItemCache, Loc, parseYaml, Pos } from "obsidian";
 import { AddToHeadingProps, Line } from "./tmpTypes";
+import { rrulestr } from "rrule";
 
 export const listRegex = /^(\s*)-\s+(\[(.)]\s+)?/;
 export const checkboxRegex = /^\s*-\s+\[(.)]\s+/;
@@ -189,4 +190,143 @@ export function addToHeading({
     lines.push(listItem);
     return { page: lines.join("\n"), lineNumber: lines.length - 1 };
   }
+}
+
+export function basenameFromEvent(event: OFCEvent): string {
+  switch (event.type) {
+    case undefined:
+    case "single":
+      return `${event.date} ${event.title}`;
+    case "recurring":
+      return `(Every ${event.daysOfWeek.join(",")}) ${event.title}`;
+    case "rrule":
+      return `(${rrulestr(event.rrule).toText()}) ${event.title}`;
+  }
+}
+
+export function filenameForEvent(event: OFCEvent): string {
+  return `${basenameFromEvent(event)}.md`;
+}
+
+/**
+ * @param page Contents of a markdown file.
+ * @returns Whether or not this page has a frontmatter section.
+ */
+function hasFrontmatter(page: string): boolean {
+  return (
+    page.indexOf(FRONTMATTER_SEPARATOR) === 0 &&
+    page.slice(3).indexOf(FRONTMATTER_SEPARATOR) !== -1
+  );
+}
+
+/**
+ * Return only frontmatter from a page.
+ * @param page Contents of a markdown file.
+ * @returns Frontmatter section of a page.
+ */
+export function extractFrontmatter(page: string): string | null {
+  if (hasFrontmatter(page)) {
+    return page.split(FRONTMATTER_SEPARATOR)[1];
+  }
+  return null;
+}
+
+/**
+ * Remove frontmatter from a page.
+ * @param page Contents of markdown file.
+ * @returns Contents of a page without frontmatter.
+ */
+export function extractPageContents(page: string): string {
+  if (hasFrontmatter(page)) {
+    // Frontmatter lives between the first two --- linebreaks.
+    return page.split("---").slice(2).join("---");
+  } else {
+    return page;
+  }
+}
+
+export function replaceFrontmatter(
+  page: string,
+  newFrontmatter: string
+): string {
+  return `---\n${newFrontmatter}---${extractPageContents(page)}`;
+}
+
+export function stringifyYamlAtom(v: PrintableAtom): string {
+  let result = "";
+  if (Array.isArray(v)) {
+    result += "[";
+    result += v.map(stringifyYamlAtom).join(",");
+    result += "]";
+  } else {
+    result += `${v}`;
+  }
+  return result;
+}
+
+export function stringifyYamlLine(
+  k: string | number | symbol,
+  v: PrintableAtom
+): string {
+  return `${String(k)}: ${stringifyYamlAtom(v)}`;
+}
+
+export function newFrontmatter(fields: Partial<OFCEvent>): string {
+  return (
+    "---\n" +
+    Object.entries(fields)
+      .filter(([_, v]) => v !== undefined)
+      .map(([k, v]) => stringifyYamlLine(k, v))
+      .join("\n") +
+    "\n---\n"
+  );
+}
+
+const FRONTMATTER_SEPARATOR = "---";
+
+export function modifyFrontmatterString(
+  page: string,
+  modifications: Partial<OFCEvent>
+): string {
+  const frontmatter = extractFrontmatter(page)?.split("\n");
+  let newFrontmatter: string[] = [];
+  if (!frontmatter) {
+    newFrontmatter = Object.entries(modifications)
+      .filter(([k, v]) => v !== undefined)
+      .map(([k, v]) => stringifyYamlLine(k, v));
+    page = "\n" + page;
+  } else {
+    const linesAdded: Set<string | number | symbol> = new Set();
+    // Modify rows in-place.
+    for (let i = 0; i < frontmatter.length; i++) {
+      const line: string = frontmatter[i];
+      const obj: Record<any, any> | null = parseYaml(line);
+      if (!obj) {
+        continue;
+      }
+
+      const keys = Object.keys(obj) as [keyof OFCEvent];
+      if (keys.length !== 1) {
+        throw new Error("One YAML line parsed to multiple keys.");
+      }
+      const key = keys[0];
+      linesAdded.add(key);
+      const newVal: PrintableAtom | undefined = modifications[key];
+      if (newVal !== undefined) {
+        newFrontmatter.push(stringifyYamlLine(key, newVal));
+      } else {
+        // Just push the old line if we don't have a modification.
+        newFrontmatter.push(line);
+      }
+    }
+
+    // Add all rows that were not originally in the frontmatter.
+    newFrontmatter.push(
+      ...(Object.keys(modifications) as [keyof OFCEvent])
+        .filter((k) => !linesAdded.has(k))
+        .filter((k) => modifications[k] !== undefined)
+        .map((k) => stringifyYamlLine(k, modifications[k] as PrintableAtom))
+    );
+  }
+  return replaceFrontmatter(page, newFrontmatter.join("\n") + "\n");
 }

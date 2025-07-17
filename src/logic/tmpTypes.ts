@@ -12,3 +12,5 @@ export type Line = {
   text: string;
   lineNumber: number;
 };
+
+export type PrintableAtom = Array<number | string> | number | string | boolean;
