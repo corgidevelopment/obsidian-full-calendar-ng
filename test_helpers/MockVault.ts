@@ -53,6 +53,19 @@ export class MockVault implements Vault {
             ) || null
         );
     }
+    
+    getFileByPath(path: string): TFile | null {
+        console.warn(`MockVault.getFileByPath called with: ${path}`);
+        // You'd typically return a mock TFile based on 'path' if needed for specific tests.
+        // For now, returning null is acceptable for type compatibility.
+        return null;
+    }
+
+    getFolderByPath(path: string): TFolder | null {
+        console.warn(`MockVault.getFolderByPath called with: ${path}`);
+        // Similar to getFileByPath, return a mock TFolder or null.
+        return null;
+    }
     getRoot(): TFolder {
         return this.root;
     }
@@ -104,21 +117,31 @@ export class MockVault implements Vault {
         this.contents.set(path, data);
         return file;
     }
-    async createFolder(path: string): Promise<void> {
+    async createFolder(path: string): Promise<TFolder> {
         let folder = new TFolder();
         folder.name = basename(path);
         this.setParent(path, folder);
+        return folder;
     }
+
     async delete(
         file: TAbstractFile,
         force?: boolean | undefined
     ): Promise<void> {
-        file.parent.children.remove(file);
+        if (file.parent) {
+            file.parent.children.remove(file);
+        }
     }
     trash(file: TAbstractFile, system: boolean): Promise<void> {
         return this.delete(file);
     }
+    process(...args: any[]): any {
+        throw new Error("Method not implemented.");
+    }
 
+    getAllFolders(): TFolder[] {
+        return this.getAllLoadedFiles().filter((f): f is TFolder => f instanceof TFolder);
+    }
     async rename(file: TAbstractFile, newPath: string): Promise<void> {
         const newParentPath = dirname(newPath);
         const newParent = this.getAbstractFileByPath(newParentPath);
@@ -180,11 +203,23 @@ export class MockVault implements Vault {
     ): Promise<void> {
         this.contents.set(file.path, data);
     }
-
-    async copy(file: TFile, newPath: string): Promise<TFile> {
-        const data = await this.read(file);
-        return await this.create(newPath, data);
+    loadLocalStorage(): void {
+        // No-op mock
     }
+
+    saveLocalStorage(): void {
+        // No-op mock
+    }
+
+    async copy<T extends TAbstractFile>(file: T, newPath: string): Promise<T> {
+        if (!(file instanceof TFile)) {
+            throw new Error("MockVault.copy only supports TFile in this mock.");
+        }
+        const data = await this.read(file);
+        const newFile = await this.create(newPath, data);
+        return newFile as unknown as T;
+    }
+
 
     // TODO: Implement callbacks.
     on(

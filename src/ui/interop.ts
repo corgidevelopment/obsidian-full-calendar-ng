@@ -1,3 +1,14 @@
+/**
+ * @file interop.ts
+ * @description Provides utility functions for converting between
+ *              Obsidian Full Calendar event objects (OFCEvent)
+ *              and FullCalendar's event format (EventInput). Also
+ *              handles formatting, ID mapping, and dirty tracking.
+ *
+ * @exports toEventInput
+ * @exports toOFCEvent
+ */
+
 import { EventApi, EventInput } from "@fullcalendar/core";
 import { OFCEvent } from "../types";
 
@@ -24,12 +35,18 @@ const parseTime = (time: string): Duration | null => {
         return null;
     }
 
-    return Duration.fromISOTime(
-        parsed.toISOTime({
-            includeOffset: false,
-            includePrefix: false,
-        }),
-    );
+    const isoTime = parsed.toISOTime({
+        includeOffset: false,
+        includePrefix: false,
+    });
+
+    if (!isoTime) {
+        console.error(`FC: Could not convert parsed time to ISO for '${time}'`);
+        return null;
+    }
+
+    return Duration.fromISOTime(isoTime);
+
 };
 
 const normalizeTimeString = (time: string): string | null => {
@@ -50,14 +67,20 @@ const add = (date: DateTime, time: Duration): DateTime => {
     return date.set({ hour: hours, minute: minutes });
 };
 
-const getTime = (date: Date): string =>
-    DateTime.fromJSDate(date).toISOTime({
+const getTime = (date: Date): string => {
+    const isoTime = DateTime.fromJSDate(date).toISOTime({
         suppressMilliseconds: true,
         includeOffset: false,
         suppressSeconds: true,
     });
+    if (!isoTime) {
+        console.error("FC: Invalid time conversion from date:", date);
+        return "";
+    }
+    return isoTime;
+};
 
-const getDate = (date: Date): string => DateTime.fromJSDate(date).toISODate();
+const getDate = (date: Date): string => DateTime.fromJSDate(date).toISODate() ?? "";
 
 const combineDateTimeStrings = (date: string, time: string): string | null => {
     const parsedDate = DateTime.fromISO(date);

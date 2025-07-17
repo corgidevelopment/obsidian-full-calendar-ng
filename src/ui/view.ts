@@ -1,3 +1,13 @@
+/**
+ * @file view.ts
+ * @description Defines the `CalendarView` class, which integrates with
+ *      Obsidian's workspace system to provide a tabbed or sidebar view for
+ *      the Full Calendar plugin. Responsible for mounting and unmounting
+ *      the calendar UI using FullCalendar.
+ *
+ * @exports CalendarView
+ */
+
 import "./overrides.css";
 import { ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
 import { Calendar, EventSourceInput } from "@fullcalendar/core";

@@ -87,7 +87,13 @@ export class MockApp implements App {
     fileManager: FileManager = {} as FileManager;
     metadataCache: MetadataCache;
     vault: MockVault;
+    loadLocalStorage(): void {
+        // mock implementation
+    }
 
+    saveLocalStorage(): void {
+        // mock implementation
+    }
     constructor(vault: MockVault, cache: MockCache) {
         this.vault = vault;
         this.metadataCache = cache;

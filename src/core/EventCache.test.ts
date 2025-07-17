@@ -647,7 +647,7 @@ describe("editable calendars", () => {
                 });
 
                 if (callback) {
-                    expect(callbackMock).toBeCalled();
+                    expect(callbackMock).toHaveBeenCalled();
                     const { toRemoveLength, eventsToAdd } = callback;
                     const callbackInvocation: {
                         toRemove: string[];

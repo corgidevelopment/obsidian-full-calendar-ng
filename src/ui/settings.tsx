@@ -1,3 +1,13 @@
+/**
+ * @file settings.tsx
+ * @description Implements the plugin’s settings tab UI using Obsidian's
+ *              PluginSettingTab API. Allows users to configure
+ *              calendar sources, appearance, and behavior.
+ *
+ * @exports FullCalendarSettingTab
+ * @exports DEFAULT_SETTINGS
+ */
+
 import FullCalendarPlugin from "../main";
 import {
     App,
@@ -9,10 +19,13 @@ import {
     TFolder,
 } from "obsidian";
 import { makeDefaultPartialCalendarSource, CalendarInfo } from "../types";
-import { CalendarSettings } from "./components/CalendarSetting";
+import {
+    CalendarSettings,
+    CalendarSettingsRef,
+} from "./components/CalendarSetting";
 import { AddCalendarSource } from "./components/AddCalendarSource";
 import * as ReactDOM from "react-dom/client";
-import { createElement } from "react";
+import { createElement, createRef } from "react";
 import { getDailyNoteSettings } from "obsidian-daily-notes-interface";
 import ReactModal from "./ReactModal";
 import { importCalendars } from "src/calendars/parsing/caldav/import";
@@ -247,30 +260,31 @@ export class FullCalendarSettingTab extends PluginSettingTab {
             });
 
         containerEl.createEl("h2", { text: "Manage Calendars" });
+
+        const sourcesDiv = containerEl.createDiv();
+        sourcesDiv.style.display = "block";
+
+        const calendarSettingsRef = createRef<CalendarSettings>();
+        const root = ReactDOM.createRoot(sourcesDiv);
+        root.render(
+            <CalendarSettings
+                ref={calendarSettingsRef}
+                sources={this.plugin.settings.calendarSources}
+                submit={async (settings: CalendarInfo[]) => {
+                    this.plugin.settings.calendarSources = settings;
+                    await this.plugin.saveSettings();
+                }}
+            />,
+        );
+
         addCalendarButton(
             this.app,
             this.plugin,
             containerEl,
             async (source: CalendarInfo) => {
-                sourceList.addSource(source);
+                calendarSettingsRef.current?.addSource(source);
             },
-            () =>
-                sourceList.state.sources
-                    .map((s) => s.type === "local" && s.directory)
-                    .filter((s): s is string => !!s),
-        );
-
-        const sourcesDiv = containerEl.createDiv();
-        sourcesDiv.style.display = "block";
-        let root = ReactDOM.createRoot(sourcesDiv);
-        let sourceList = root.render(
-            createElement(CalendarSettings, {
-                sources: this.plugin.settings.calendarSources,
-                submit: async (settings: CalendarInfo[]) => {
-                    this.plugin.settings.calendarSources = settings;
-                    await this.plugin.saveSettings();
-                },
-            }),
+            () => calendarSettingsRef.current?.getUsedDirectories() ?? [],
         );
     }
 }

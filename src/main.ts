@@ -24,6 +24,8 @@ import CalDAVCalendar from "./calendars/CalDAVCalendar";
 
 export default class FullCalendarPlugin extends Plugin {
     settings: FullCalendarSettings = DEFAULT_SETTINGS;
+
+    // To parse `data.json` file.`
     cache: EventCache = new EventCache({
         local: (info) =>
             info.type === "local"
@@ -68,12 +70,14 @@ export default class FullCalendarPlugin extends Plugin {
             .getLeavesOfType(FULL_CALENDAR_VIEW_TYPE)
             .filter((l) => (l.view as CalendarView).inSidebar === false);
         if (leaves.length === 0) {
+            // if not open in main view, open a new one
             const leaf = this.app.workspace.getLeaf("tab");
             await leaf.setViewState({
                 type: FULL_CALENDAR_VIEW_TYPE,
                 active: true,
             });
         } else {
+            // if already open, just focus it
             await Promise.all(
                 leaves.map((l) => (l.view as CalendarView).onOpen()),
             );
@@ -84,12 +88,12 @@ export default class FullCalendarPlugin extends Plugin {
 
         this.cache.reset(this.settings.calendarSources);
 
+        // Respond to obsidian events
         this.registerEvent(
             this.app.metadataCache.on("changed", (file) => {
                 this.cache.fileUpdated(file);
             }),
         );
-
         this.registerEvent(
             this.app.vault.on("rename", (file, oldPath) => {
                 if (file instanceof TFile) {
@@ -98,7 +102,6 @@ export default class FullCalendarPlugin extends Plugin {
                 }
             }),
         );
-
         this.registerEvent(
             this.app.vault.on("delete", (file) => {
                 if (file instanceof TFile) {
@@ -121,6 +124,7 @@ export default class FullCalendarPlugin extends Plugin {
             (leaf) => new CalendarView(leaf, this, true),
         );
 
+        // Register the calendar icon on left-side bar
         this.addRibbonIcon(
             "calendar-glyph",
             "Open Full Calendar",
@@ -131,6 +135,7 @@ export default class FullCalendarPlugin extends Plugin {
 
         this.addSettingTab(new FullCalendarSettingTab(this.app, this));
 
+        // Commands visible in the command palette
         this.addCommand({
             id: "full-calendar-new-event",
             name: "New Event",
@@ -138,7 +143,6 @@ export default class FullCalendarPlugin extends Plugin {
                 launchCreateModal(this, {});
             },
         });
-
         this.addCommand({
             id: "full-calendar-reset",
             name: "Reset Event Cache",
@@ -151,7 +155,6 @@ export default class FullCalendarPlugin extends Plugin {
                 new Notice("Full Calendar has been reset.");
             },
         });
-
         this.addCommand({
             id: "full-calendar-revalidate",
             name: "Revalidate remote calendars",
@@ -159,7 +162,6 @@ export default class FullCalendarPlugin extends Plugin {
                 this.cache.revalidateRemoteCalendars(true);
             },
         });
-
         this.addCommand({
             id: "full-calendar-open",
             name: "Open Calendar",
@@ -167,7 +169,6 @@ export default class FullCalendarPlugin extends Plugin {
                 this.activateView();
             },
         });
-
         this.addCommand({
             id: "full-calendar-open-sidebar",
             name: "Open in sidebar",
@@ -179,12 +180,19 @@ export default class FullCalendarPlugin extends Plugin {
                 ) {
                     return;
                 }
-                this.app.workspace.getRightLeaf(false).setViewState({
-                    type: FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
-                });
+                const targetLeaf = this.app.workspace.getRightLeaf(false);
+                if (targetLeaf) {
+                    targetLeaf.setViewState({
+                        type: FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
+                    });
+                    this.app.workspace.revealLeaf(targetLeaf);
+                } else {
+                    console.warn("Right leaf not found for calendar view!");
+                }
             },
         });
 
+        // Register view content on hover
         (this.app.workspace as any).registerHoverLinkSource(PLUGIN_SLUG, {
             display: "Full Calendar",
             defaultMod: true,

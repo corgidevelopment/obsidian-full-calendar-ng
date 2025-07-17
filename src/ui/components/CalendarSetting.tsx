@@ -1,7 +1,5 @@
 import { Notice } from "obsidian";
 import * as React from "react";
-import { SetStateAction, useState } from "react";
-
 import { CalendarInfo } from "../../types";
 
 type SourceWith<T extends Partial<CalendarInfo>, K> = T extends K ? T : never;
@@ -20,11 +18,7 @@ function DirectorySetting<T extends Partial<CalendarInfo>>({
                 disabled
                 type="text"
                 value={sourceWithDirectory.directory}
-                style={{
-                    width: "100%",
-                    marginLeft: 4,
-                    marginRight: 4,
-                }}
+                style={{ width: "100%", marginLeft: 4, marginRight: 4 }}
             />
         </div>
     );
@@ -44,10 +38,7 @@ function HeadingSetting<T extends Partial<CalendarInfo>>({
                 disabled
                 type="text"
                 value={sourceWithHeading.heading}
-                style={{
-                    marginLeft: 4,
-                    marginRight: 4,
-                }}
+                style={{ marginLeft: 4, marginRight: 4 }}
             />{" "}
             <span style={{ paddingRight: ".5rem" }}>in daily notes</span>
         </div>
@@ -64,11 +55,7 @@ function UrlSetting<T extends Partial<CalendarInfo>>({
                 disabled
                 type="text"
                 value={sourceWithUrl.url}
-                style={{
-                    width: "100%",
-                    marginLeft: 4,
-                    marginRight: 4,
-                }}
+                style={{ width: "100%", marginLeft: 4, marginRight: 4 }}
             />
         </div>
     );
@@ -84,11 +71,7 @@ function NameSetting<T extends Partial<CalendarInfo>>({
                 disabled
                 type="text"
                 value={sourceWithName.name}
-                style={{
-                    width: "100%",
-                    marginLeft: 4,
-                    marginRight: 4,
-                }}
+                style={{ width: "100%", marginLeft: 4, marginRight: 4 }}
             />
         </div>
     );
@@ -102,79 +85,49 @@ function Username<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
                 disabled
                 type="text"
                 value={sourceWithUsername.username}
-                style={{
-                    width: "100%",
-                    marginLeft: 4,
-                    marginRight: 4,
-                }}
+                style={{ width: "100%", marginLeft: 4, marginRight: 4 }}
             />
         </div>
     );
 }
 
 interface CalendarSettingsProps {
-    setting: Partial<CalendarInfo>;
-    onColorChange: (s: string) => void;
-    deleteCalendar: () => void;
-}
-
-export const CalendarSettingRow = ({
-    setting,
-    onColorChange,
-    deleteCalendar,
-}: CalendarSettingsProps) => {
-    const isCalDAV = setting.type === "caldav";
-    return (
-        <div className="setting-item">
-            <button
-                type="button"
-                onClick={deleteCalendar}
-                style={{ maxWidth: "15%" }}
-            >
-                ✕
-            </button>
-            {setting.type === "local" ? (
-                <DirectorySetting source={setting} />
-            ) : setting.type === "dailynote" ? (
-                <HeadingSetting source={setting} />
-            ) : (
-                <UrlSetting source={setting} />
-            )}
-            {isCalDAV && <NameSetting source={setting} />}
-            {isCalDAV && <Username source={setting} />}
-            <input
-                style={{ maxWidth: "25%", minWidth: "3rem" }}
-                type="color"
-                value={setting.color}
-                onChange={(e) => onColorChange(e.target.value)}
-            />
-        </div>
-    );
-};
-
-interface CalendarSettingProps {
     sources: CalendarInfo[];
     submit: (payload: CalendarInfo[]) => void;
 }
+
+// ✅ Expose this type in `settings.tsx`
+export interface CalendarSettingsRef {
+    addSource: (source: CalendarInfo) => void;
+    getUsedDirectories: () => string[];
+}
+
 type CalendarSettingState = {
     sources: CalendarInfo[];
     dirty: boolean;
 };
-export class CalendarSettings extends React.Component<
-    CalendarSettingProps,
-    CalendarSettingState
-> {
-    constructor(props: CalendarSettingProps) {
+
+export class CalendarSettings
+    extends React.Component<CalendarSettingsProps, CalendarSettingState>
+    implements CalendarSettingsRef
+{
+    constructor(props: CalendarSettingsProps) {
         super(props);
         this.state = { sources: props.sources, dirty: false };
     }
 
-    addSource(source: CalendarInfo) {
-        this.setState((state, props) => ({
+    addSource = (source: CalendarInfo) => {
+        this.setState((state) => ({
             sources: [...state.sources, source],
             dirty: true,
         }));
-    }
+    };
+
+    getUsedDirectories = () => {
+        return this.state.sources
+            .map((s) => s.type === "local" && s.directory)
+            .filter((s): s is string => !!s);
+    };
 
     render() {
         return (
@@ -184,7 +137,7 @@ export class CalendarSettings extends React.Component<
                         key={idx}
                         setting={s}
                         onColorChange={(color) =>
-                            this.setState((state, props) => ({
+                            this.setState((state) => ({
                                 sources: [
                                     ...state.sources.slice(0, idx),
                                     { ...state.sources[idx], color },
@@ -194,7 +147,7 @@ export class CalendarSettings extends React.Component<
                             }))
                         }
                         deleteCalendar={() =>
-                            this.setState((state, props) => ({
+                            this.setState((state) => ({
                                 sources: [
                                     ...state.sources.slice(0, idx),
                                     ...state.sources.slice(idx + 1),
@@ -242,3 +195,43 @@ export class CalendarSettings extends React.Component<
         );
     }
 }
+
+interface CalendarSettingsRowProps {
+    setting: Partial<CalendarInfo>;
+    onColorChange: (s: string) => void;
+    deleteCalendar: () => void;
+}
+
+export const CalendarSettingRow = ({
+    setting,
+    onColorChange,
+    deleteCalendar,
+}: CalendarSettingsRowProps) => {
+    const isCalDAV = setting.type === "caldav";
+    return (
+        <div className="setting-item">
+            <button
+                type="button"
+                onClick={deleteCalendar}
+                style={{ maxWidth: "15%" }}
+            >
+                ✕
+            </button>
+            {setting.type === "local" ? (
+                <DirectorySetting source={setting} />
+            ) : setting.type === "dailynote" ? (
+                <HeadingSetting source={setting} />
+            ) : (
+                <UrlSetting source={setting} />
+            )}
+            {isCalDAV && <NameSetting source={setting} />}
+            {isCalDAV && <Username source={setting} />}
+            <input
+                style={{ maxWidth: "25%", minWidth: "3rem" }}
+                type="color"
+                value={setting.color}
+                onChange={(e) => onColorChange(e.target.value)}
+            />
+        </div>
+    );
+};

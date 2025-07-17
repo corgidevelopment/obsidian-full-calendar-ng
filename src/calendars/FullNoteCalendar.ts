@@ -239,7 +239,8 @@ export default class FullNoteCalendar extends EditableCalendar {
             );
         }
 
-        const updatedPath = `${file.parent.path}/${filenameForEvent(event)}`;
+        const parentPath = file.parent?.path ?? ""; // If file.parent is null, parentPath becomes an empty string.
+        const updatedPath = `${parentPath}/${filenameForEvent(event)}`;
         return { file: { path: updatedPath }, lineNumber: undefined };
     }
 

@@ -1,6 +1,11 @@
 /**
- * Handles rendering the calendar given a container element, eventSources, and interaction callbacks.
+ * @file calendar.ts
+ * @description Handles rendering the calendar given a container element,
+ *              eventSources, and interaction callbacks.
+ *
+ * @exports renderCalendar
  */
+
 import {
     Calendar,
     EventApi,

@@ -1,3 +1,13 @@
+/**
+ * @file event_modal.ts
+ * @description Provides functions to launch modal dialogs (using React)
+ *              for creating or editing events. Integrates with the event
+ *              cache and calendar UI to persist and update events.
+ *
+ * @exports launchCreateModal
+ * @exports launchEditModal
+ */
+
 import { Notice } from "obsidian";
 import * as React from "react";
 import { EditableCalendar } from "src/calendars/EditableCalendar";
