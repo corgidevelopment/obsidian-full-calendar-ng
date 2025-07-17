@@ -1,13 +1,4 @@
-import {
-  App,
-  CachedMetadata,
-  EventRef,
-  FileManager,
-  MetadataCache,
-  TAbstractFile,
-  TFile,
-  Vault,
-} from "obsidian";
+import { App, type CachedMetadata, type EventRef, FileManager, MetadataCache, TAbstractFile, TFile, Vault } from "obsidian";
 
 /**
  * A stripped-down interface into the Obsidian API that only exposes the necessary
@@ -63,28 +54,19 @@ export interface ObsidianInterface {
    * @param file file to rewrite
    * @param rewriteFunc callback function that performs the rewrite.
    */
-  rewrite(
-    file: TFile,
-    rewriteFunc: (contents: string) => string
-  ): Promise<void>;
-  rewrite(
-    file: TFile,
-    rewriteFunc: (contents: string) => Promise<string>
-  ): Promise<void>;
+  rewrite(file: TFile, rewriteFunc: (contents: string) => string): Promise<void>;
+
+  rewrite(file: TFile, rewriteFunc: (contents: string) => Promise<string>): Promise<void>;
+
   /**
    * Rewrite the given file and return some auxilliary info to the caller.
    *
    * @param file file to rewrite
    * @param rewriteFunc callback function that performs the rewrite.
    */
-  rewrite<T>(
-    file: TFile,
-    rewriteFunc: (contents: string) => [string, T]
-  ): Promise<T>;
-  rewrite<T>(
-    file: TFile,
-    rewriteFunc: (contents: string) => Promise<[string, T]>
-  ): Promise<T>;
+  rewrite<T>(file: TFile, rewriteFunc: (contents: string) => [string, T]): Promise<T>;
+
+  rewrite<T>(file: TFile, rewriteFunc: (contents: string) => Promise<[string, T]>): Promise<T>;
 
   /**
    * Rename a file.
@@ -96,7 +78,6 @@ export interface ObsidianInterface {
   /**
    * Delete a file.
    * @param file file to delete
-   * @param system set to true to send to system trash, otherwise Vault trash.
    */
   delete(file: TFile): Promise<void>;
 }
@@ -126,12 +107,7 @@ export class ObsidianIO implements ObsidianInterface {
     return this.fileManager.renameFile(file, newPath);
   }
 
-  async rewrite<T>(
-    file: TFile,
-    rewriteFunc: (
-      contents: string
-    ) => string | [string, T] | Promise<string> | Promise<[string, T]>
-  ): Promise<T | void> {
+  async rewrite<T>(file: TFile, rewriteFunc: (contents: string) => string | [string, T] | Promise<string> | Promise<[string, T]>): Promise<T | void> {
     const page = await this.vault.read(file);
     let result = rewriteFunc(page);
 
@@ -172,18 +148,16 @@ export class ObsidianIO implements ObsidianInterface {
   }
 
   waitForMetadata(file: TFile): Promise<CachedMetadata> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const cache = this.metadataCache.getFileCache(file);
       let ref: EventRef | null = null;
       if (cache) {
         resolve(cache);
         return;
       }
-      ref = this.metadataCache.on("changed", (changedFile, data, cache) => {
+      ref = this.metadataCache.on("changed", (changedFile, _, cache) => {
         if (changedFile.path !== file.path) {
-          console.debug(
-            "waitForMetadata(): a different file has changed. continue listening..."
-          );
+          console.debug("waitForMetadata(): a different file has changed. continue listening...");
           return;
         }
         resolve(cache);

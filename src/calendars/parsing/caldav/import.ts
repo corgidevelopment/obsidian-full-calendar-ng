@@ -1,29 +1,26 @@
 import Color from "color";
 import dav from "dav";
 import * as transport from "./transport";
-import { Authentication, CalDAVSource } from "src/types";
+import type { Authentication, CalDAVSource } from "src/types";
 
-export async function importCalendars(
-  auth: Authentication,
-  url: string
-): Promise<CalDAVSource[]> {
+export async function importCalendars(auth: Authentication, url: string): Promise<CalDAVSource[]> {
   try {
     let xhr = new transport.Basic(
       new dav.Credentials({
         username: auth.username,
-        password: auth.password,
+        password: auth.password
       })
     );
     let account = await dav.createAccount({
       xhr: xhr,
       server: url,
       loadObjects: false,
-      loadCollections: true,
+      loadCollections: true
     });
 
     let colorRequest = dav.request.propfind({
       props: [{ name: "calendar-color", namespace: dav.ns.CALDAV_APPLE }],
-      depth: "0",
+      depth: "0"
     });
 
     const calendars = await Promise.all(
@@ -36,7 +33,7 @@ export async function importCalendars(
         return {
           name: calendar.displayName,
           url: calendar.url,
-          color: color ? (Color(color).hex() as string) : null,
+          color: color ? (Color(color).hex() as string) : null
         };
       })
     );
@@ -49,7 +46,7 @@ export async function importCalendars(
         homeUrl: c.url,
         color: c.color || (null as any), // TODO: handle null colors in the type system.
         username: auth.username,
-        password: auth.password,
+        password: auth.password
       }));
   } catch (e) {
     console.error(`Error importing calendars from ${url}`, e);

@@ -1,6 +1,6 @@
-import { OFCEvent, validateEvent } from "../types";
-import { CachedMetadata, ListItemCache, Loc, parseYaml, Pos } from "obsidian";
-import { AddToHeadingProps, Line } from "./tmpTypes";
+import { type OFCEvent, validateEvent } from "../types";
+import { type CachedMetadata, type ListItemCache, type Loc, parseYaml, type Pos } from "obsidian";
+import { type AddToHeadingProps, type Line, type PrintableAtom } from "./tmpTypes";
 import { rrulestr } from "rrule";
 
 export const listRegex = /^(\s*)-\s+(\[(.)]\s+)?/;
@@ -29,25 +29,20 @@ export function getAllInlineEventsFromFile(
   fileGlobalAttrs: Partial<OFCEvent>
 ): { lineNumber: number; event: OFCEvent }[] {
   const lines = fileText.split("\n");
-  const listItemText: Line[] = listItems
-    .map((i) => i.position.start.line)
-    .map((idx) => ({ lineNumber: idx, text: lines[idx] }));
+  const listItemText: Line[] = listItems.map((i) => i.position.start.line).map((idx) => ({ lineNumber: idx, text: lines[idx] }));
 
   return listItemText
     .map((l) => ({
       lineNumber: l.lineNumber,
       event: getInlineEventFromLine(l.text, {
         ...fileGlobalAttrs,
-        type: "single",
-      }),
+        type: "single"
+      })
     }))
     .flatMap(({ event, lineNumber }) => (event ? [{ event, lineNumber }] : []));
 }
 
-export function getInlineEventFromLine(
-  text: string,
-  globalAttrs: Partial<OFCEvent>
-): OFCEvent | null {
+export function getInlineEventFromLine(text: string, globalAttrs: Partial<OFCEvent>): OFCEvent | null {
   const attrs = getInlineAttributes(text);
   // Shortcut validation if there are no inline attributes.
   if (Object.keys(attrs).length === 0) {
@@ -58,27 +53,15 @@ export function getInlineEventFromLine(
     title: text.replace(listRegex, "").replace(fieldRegex, "").trim(),
     completed: checkboxTodo(text),
     ...globalAttrs,
-    ...attrs,
+    ...attrs
   });
 }
 
-export function getInlineAttributes(
-  s: string
-): Record<string, string | boolean> {
-  return Object.fromEntries(
-    Array.from(s.matchAll(fieldRegex)).map((m) => [m[1], parseBool(m[2])])
-  );
+export function getInlineAttributes(s: string): Record<string, string | boolean> {
+  return Object.fromEntries(Array.from(s.matchAll(fieldRegex)).map((m) => [m[1], parseBool(m[2])]));
 }
 
-export function getHeadingPosition({
-  headingText,
-  metadata,
-  endOfDoc,
-}: {
-  headingText: string;
-  metadata: CachedMetadata;
-  endOfDoc: Loc;
-}) {
+export function getHeadingPosition({ headingText, metadata, endOfDoc }: { headingText: string; metadata: CachedMetadata; endOfDoc: Loc }) {
   if (!metadata.headings) {
     return null;
   }
@@ -110,13 +93,7 @@ export function generateInlineAttributes(attrs: Record<string, any>): string {
     .join("  ");
 }
 
-export function getListsUnderHeading({
-  headingText,
-  metadata,
-}: {
-  headingText: string;
-  metadata: CachedMetadata;
-}): ListItemCache[] {
+export function getListsUnderHeading({ headingText, metadata }: { headingText: string; metadata: CachedMetadata }): ListItemCache[] {
   if (!metadata.listItems) {
     return [];
   }
@@ -128,17 +105,10 @@ export function getListsUnderHeading({
   if (!headingPos) {
     return [];
   }
-  return metadata.listItems?.filter(
-    (l) =>
-      headingPos.start.offset < l.position.start.offset &&
-      l.position.end.offset <= headingPos.end.offset
-  );
+  return metadata.listItems?.filter((l) => headingPos.start.offset < l.position.start.offset && l.position.end.offset <= headingPos.end.offset);
 }
 
-const makeListItem = (
-  data: OFCEvent,
-  whitespacePrefix: string = ""
-): string => {
+const makeListItem = (data: OFCEvent, whitespacePrefix: string = ""): string => {
   if (data.type !== "single") {
     throw new Error("Can only pass in single event.");
   }
@@ -166,17 +136,10 @@ const makeListItem = (
     delete attrs["allDay"];
   }
 
-  return `${whitespacePrefix}- ${
-    checkbox || ""
-  } ${title} ${generateInlineAttributes(attrs)}`;
+  return `${whitespacePrefix}- ${checkbox || ""} ${title} ${generateInlineAttributes(attrs)}`;
 };
 
-export function addToHeading({
-  page,
-  heading,
-  headingText,
-  item,
-}: AddToHeadingProps): { page: string; lineNumber: number } {
+export function addToHeading({ page, heading, headingText, item }: AddToHeadingProps): { page: string; lineNumber: number } {
   let lines = page.split("\n");
 
   const listItem = makeListItem(item);
@@ -213,10 +176,7 @@ export function filenameForEvent(event: OFCEvent): string {
  * @returns Whether or not this page has a frontmatter section.
  */
 function hasFrontmatter(page: string): boolean {
-  return (
-    page.indexOf(FRONTMATTER_SEPARATOR) === 0 &&
-    page.slice(3).indexOf(FRONTMATTER_SEPARATOR) !== -1
-  );
+  return page.indexOf(FRONTMATTER_SEPARATOR) === 0 && page.slice(3).indexOf(FRONTMATTER_SEPARATOR) !== -1;
 }
 
 /**
@@ -245,10 +205,7 @@ export function extractPageContents(page: string): string {
   }
 }
 
-export function replaceFrontmatter(
-  page: string,
-  newFrontmatter: string
-): string {
+export function replaceFrontmatter(page: string, newFrontmatter: string): string {
   return `---\n${newFrontmatter}---${extractPageContents(page)}`;
 }
 
@@ -264,10 +221,7 @@ export function stringifyYamlAtom(v: PrintableAtom): string {
   return result;
 }
 
-export function stringifyYamlLine(
-  k: string | number | symbol,
-  v: PrintableAtom
-): string {
+export function stringifyYamlLine(k: string | number | symbol, v: PrintableAtom): string {
   return `${String(k)}: ${stringifyYamlAtom(v)}`;
 }
 
@@ -282,17 +236,24 @@ export function newFrontmatter(fields: Partial<OFCEvent>): string {
   );
 }
 
+export function modifyListItem(line: string, data: OFCEvent): string | null {
+  const listMatch = line.match(listRegex);
+  if (!listMatch) {
+    console.warn("Tried modifying a list item with a position that wasn't a list item", { line });
+    return null;
+  }
+
+  return makeListItem(data, listMatch[1]);
+}
+
 const FRONTMATTER_SEPARATOR = "---";
 
-export function modifyFrontmatterString(
-  page: string,
-  modifications: Partial<OFCEvent>
-): string {
+export function modifyFrontmatterString(page: string, modifications: Partial<OFCEvent>): string {
   const frontmatter = extractFrontmatter(page)?.split("\n");
   let newFrontmatter: string[] = [];
   if (!frontmatter) {
     newFrontmatter = Object.entries(modifications)
-      .filter(([k, v]) => v !== undefined)
+      .filter(([, v]) => v !== undefined)
       .map(([k, v]) => stringifyYamlLine(k, v));
     page = "\n" + page;
   } else {

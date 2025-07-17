@@ -1,26 +1,24 @@
-import { TFile, TFolder, parseYaml } from "obsidian";
-import { rrulestr } from "rrule";
-import { EventPathLocation } from "../core/EventStore";
-import { ObsidianInterface } from "../ObsidianAdapter";
-import { OFCEvent, EventLocation, validateEvent } from "../types";
-import { EditableCalendar, EditableEventResponse } from "./EditableCalendar";
-import { IEditableCalendar } from "./IEditableCalendar";
-import { FileBasedCalendar } from "./FileBasedCalendar";
-import { ICalendar } from "./ICalendar";
+import { TFile, TFolder } from "obsidian";
+import type { EventPathLocation } from "../core/EventStore";
+import type { ObsidianInterface } from "../ObsidianAdapter";
+import { type EventLocation, type OFCEvent, validateEvent } from "../types";
+import { type EditableEventResponse } from "./EditableCalendar";
+import type { IEditableCalendar } from "./IEditableCalendar";
+import type { FileBasedCalendar } from "./FileBasedCalendar";
+import type { ICalendar } from "./ICalendar";
+import { filenameForEvent, modifyFrontmatterString, newFrontmatter } from "../logic/tmpUtils";
+import { ID_SEPARATOR } from "./Calendar";
 
-export default class FullNoteCalendar
-  implements IEditableCalendar, FileBasedCalendar, ICalendar
-{
-  app: ObsidianInterface;
-  private _directory: string;
+export default class FullNoteCalendar implements IEditableCalendar, FileBasedCalendar, ICalendar {
+  color: string;
+  obsidianInterface: ObsidianInterface;
+  directory: string;
+  id: string = `${this.type}${ID_SEPARATOR}${this.identifier}`;
 
-  constructor(app: ObsidianInterface, color: string, directory: string) {
-    super(color);
-    this.app = app;
-    this._directory = directory;
-  }
-  get directory(): string {
-    return this._directory;
+  constructor({ obsidianInterface, color, directory }: { obsidianInterface: ObsidianInterface; color: string; directory: string }) {
+    this.obsidianInterface = obsidianInterface;
+    this.color = color;
+    this.directory = directory;
   }
 
   get type(): "local" {
@@ -36,7 +34,7 @@ export default class FullNoteCalendar
   }
 
   async getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {
-    const metadata = this.app.getMetadata(file);
+    const metadata = this.obsidianInterface.getMetadata(file);
     let event = validateEvent(metadata?.frontmatter);
     if (!event) {
       return [];
@@ -47,25 +45,8 @@ export default class FullNoteCalendar
     return [[event, { file, lineNumber: undefined }]];
   }
 
-  private async getEventsInFolderRecursive(
-    folder: TFolder
-  ): Promise<EditableEventResponse[]> {
-    const events = await Promise.all(
-      folder.children.map(async (file) => {
-        if (file instanceof TFile) {
-          return await this.getEventsInFile(file);
-        } else if (file instanceof TFolder) {
-          return await this.getEventsInFolderRecursive(file);
-        } else {
-          return [];
-        }
-      })
-    );
-    return events.flat();
-  }
-
   async getEvents(): Promise<EditableEventResponse[]> {
-    const eventFolder = this.app.getAbstractFileByPath(this.directory);
+    const eventFolder = this.obsidianInterface.getAbstractFileByPath(this.directory);
     if (!eventFolder) {
       throw new Error(`Cannot get folder ${this.directory}`);
     }
@@ -84,10 +65,10 @@ export default class FullNoteCalendar
 
   async createEvent(event: OFCEvent): Promise<EventLocation> {
     const path = `${this.directory}/${filenameForEvent(event)}`;
-    if (this.app.getAbstractFileByPath(path)) {
+    if (this.obsidianInterface.getAbstractFileByPath(path)) {
       throw new Error(`Event at ${path} already exists.`);
     }
-    const file = await this.app.create(path, newFrontmatter(event));
+    const file = await this.obsidianInterface.create(path, newFrontmatter(event));
     return { file, lineNumber: undefined };
   }
 
@@ -96,7 +77,7 @@ export default class FullNoteCalendar
     if (lineNumber !== undefined) {
       throw new Error("Note calendar cannot handle inline events.");
     }
-    const file = this.app.getFileByPath(path);
+    const file = this.obsidianInterface.getFileByPath(path);
     if (!file) {
       throw new Error(`File ${path} either doesn't exist or is a folder.`);
     }
@@ -105,13 +86,9 @@ export default class FullNoteCalendar
     return { file: { path: updatedPath }, lineNumber: undefined };
   }
 
-  async modifyEvent(
-    location: EventPathLocation,
-    event: OFCEvent,
-    updateCacheWithLocation: (loc: EventLocation) => void
-  ): Promise<void> {
+  async modifyEvent(location: EventPathLocation, event: OFCEvent, updateCacheWithLocation: (loc: EventLocation) => void): Promise<void> {
     const { path } = location;
-    const file = this.app.getFileByPath(path);
+    const file = this.obsidianInterface.getFileByPath(path);
     if (!file) {
       throw new Error(`File ${path} either doesn't exist or is a folder.`);
     }
@@ -120,18 +97,16 @@ export default class FullNoteCalendar
     updateCacheWithLocation(newLocation);
 
     if (file.path !== newLocation.file.path) {
-      await this.app.rename(file, newLocation.file.path);
+      await this.obsidianInterface.rename(file, newLocation.file.path);
     }
-    await this.app.rewrite(file, (page) =>
-      modifyFrontmatterString(page, event)
-    );
+    await this.obsidianInterface.rewrite(file, (page) => modifyFrontmatterString(page, event));
 
     return;
   }
 
   async move(
     fromLocation: EventPathLocation,
-    toCalendar: EditableCalendar,
+    toCalendar: IEditableCalendar & ICalendar,
     updateCacheWithLocation: (loc: EventLocation) => void
   ): Promise<void> {
     const { path, lineNumber } = fromLocation;
@@ -139,11 +114,9 @@ export default class FullNoteCalendar
       throw new Error("Note calendar cannot handle inline events.");
     }
     if (!(toCalendar instanceof FullNoteCalendar)) {
-      throw new Error(
-        `Event cannot be moved to a note calendar from a calendar of type ${toCalendar.type}.`
-      );
+      throw new Error(`Event cannot be moved to a note calendar from a calendar of type ${toCalendar.type}.`);
     }
-    const file = this.app.getFileByPath(path);
+    const file = this.obsidianInterface.getFileByPath(path);
     if (!file) {
       throw new Error(`File ${path} not found.`);
     }
@@ -151,19 +124,19 @@ export default class FullNoteCalendar
     const newPath = `${destDir}/${file.name}`;
     updateCacheWithLocation({
       file: { path: newPath },
-      lineNumber: undefined,
+      lineNumber: undefined
     });
-    await this.app.rename(file, newPath);
+    await this.obsidianInterface.rename(file, newPath);
   }
 
   deleteEvent({ path, lineNumber }: EventPathLocation): Promise<void> {
     if (lineNumber !== undefined) {
       throw new Error("Note calendar cannot handle inline events.");
     }
-    const file = this.app.getFileByPath(path);
+    const file = this.obsidianInterface.getFileByPath(path);
     if (!file) {
       throw new Error(`File ${path} not found.`);
     }
-    return this.app.delete(file);
+    return this.obsidianInterface.delete(file);
   }
 }

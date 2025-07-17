@@ -1,6 +1,6 @@
 import { TFile } from "obsidian";
-import { EventPathLocation } from "src/core/EventStore";
-import { EventLocation, OFCEvent } from "src/types";
+import type { EventPathLocation } from "src/core/EventStore";
+import type { EventLocation, OFCEvent } from "src/types";
 import { Calendar } from "./Calendar";
 
 export type EditableEventResponse = [OFCEvent, EventLocation];
@@ -57,9 +57,5 @@ export abstract class EditableCalendar extends Calendar {
    *        of the event. In order to avoid race conditions with file I/O, make sure this
    *        is called before any files are changed on disk.
    */
-  abstract modifyEvent(
-    location: EventPathLocation,
-    newEvent: OFCEvent,
-    updateCacheWithLocation: (loc: EventLocation) => void
-  ): Promise<void>;
+  abstract modifyEvent(location: EventPathLocation, newEvent: OFCEvent, updateCacheWithLocation: (loc: EventLocation) => void): Promise<void>;
 }

@@ -1,5 +1,5 @@
-import { EventApi, EventInput } from "@fullcalendar/core";
-import { OFCEvent } from "../types";
+import type { EventApi, EventInput } from "@fullcalendar/core";
+import type { OFCEvent } from "../types";
 
 import { DateTime, Duration } from "luxon";
 import { rrulestr } from "rrule";
@@ -18,16 +18,14 @@ const parseTime = (time: string): Duration | null => {
   }
 
   if (parsed.invalidReason) {
-    console.error(
-      `FC: Error parsing time string '${time}': ${parsed.invalidReason}'`
-    );
+    console.error(`FC: Error parsing time string '${time}': ${parsed.invalidReason}'`);
     return null;
   }
 
   return Duration.fromISOTime(
     parsed.toISOTime({
       includeOffset: false,
-      includePrefix: false,
+      includePrefix: false
     })
   );
 };
@@ -40,7 +38,7 @@ const normalizeTimeString = (time: string): string | null => {
   return parsed.toISOTime({
     suppressMilliseconds: true,
     includePrefix: false,
-    suppressSeconds: true,
+    suppressSeconds: true
   });
 };
 
@@ -54,7 +52,7 @@ const getTime = (date: Date): string =>
   DateTime.fromJSDate(date).toISOTime({
     suppressMilliseconds: true,
     includeOffset: false,
-    suppressSeconds: true,
+    suppressSeconds: true
   });
 
 const getDate = (date: Date): string => DateTime.fromJSDate(date).toISODate();
@@ -62,9 +60,7 @@ const getDate = (date: Date): string => DateTime.fromJSDate(date).toISODate();
 const combineDateTimeStrings = (date: string, time: string): string | null => {
   const parsedDate = DateTime.fromISO(date);
   if (parsedDate.invalidReason) {
-    console.error(
-      `FC: Error parsing time string '${date}': ${parsedDate.invalidReason}`
-    );
+    console.error(`FC: Error parsing time string '${date}': ${parsedDate.invalidReason}`);
     return null;
   }
 
@@ -75,17 +71,13 @@ const combineDateTimeStrings = (date: string, time: string): string | null => {
 
   return add(parsedDate, parsedTime).toISO({
     includeOffset: false,
-    suppressMilliseconds: true,
+    suppressMilliseconds: true
   });
 };
 
 const DAYS = "UMTWRFS";
 
-export function dateEndpointsToFrontmatter(
-  start: Date,
-  end: Date,
-  allDay: boolean
-): Partial<OFCEvent> {
+export function dateEndpointsToFrontmatter(start: Date, end: Date, allDay: boolean): Partial<OFCEvent> {
   const date = getDate(start);
   const endDate = getDate(end);
   return {
@@ -97,19 +89,16 @@ export function dateEndpointsToFrontmatter(
       ? {}
       : {
           startTime: getTime(start),
-          endTime: getTime(end),
-        }),
+          endTime: getTime(end)
+        })
   };
 }
 
-export function toEventInput(
-  id: string,
-  frontmatter: OFCEvent
-): EventInput | null {
+export function toEventInput(id: string, frontmatter: OFCEvent): EventInput | null {
   let event: EventInput = {
     id,
     title: frontmatter.title,
-    allDay: frontmatter.allDay,
+    allDay: frontmatter.allDay
   };
   if (frontmatter.type === "recurring") {
     event = {
@@ -117,15 +106,13 @@ export function toEventInput(
       daysOfWeek: frontmatter.daysOfWeek.map((c) => DAYS.indexOf(c)),
       startRecur: frontmatter.startRecur,
       endRecur: frontmatter.endRecur,
-      extendedProps: { isTask: false },
+      extendedProps: { isTask: false }
     };
     if (!frontmatter.allDay) {
       event = {
         ...event,
         startTime: normalizeTimeString(frontmatter.startTime || ""),
-        endTime: frontmatter.endTime
-          ? normalizeTimeString(frontmatter.endTime)
-          : undefined,
+        endTime: frontmatter.endTime ? normalizeTimeString(frontmatter.endTime) : undefined
       };
     }
   } else if (frontmatter.type === "rrule") {
@@ -133,10 +120,7 @@ export function toEventInput(
       if (frontmatter.allDay) {
         return DateTime.fromISO(frontmatter.startDate);
       } else {
-        const dtstartStr = combineDateTimeStrings(
-          frontmatter.startDate,
-          frontmatter.startTime
-        );
+        const dtstartStr = combineDateTimeStrings(frontmatter.startDate, frontmatter.startTime);
 
         if (!dtstartStr) {
           return null;
@@ -165,9 +149,9 @@ export function toEventInput(
       title: frontmatter.title,
       allDay: frontmatter.allDay,
       rrule: rrulestr(frontmatter.rrule, {
-        dtstart: dtstart.toJSDate(),
+        dtstart: dtstart.toJSDate()
       }).toString(),
-      exdate,
+      exdate
     };
 
     if (!frontmatter.allDay) {
@@ -179,26 +163,20 @@ export function toEventInput(
           event.duration = duration.toISOTime({
             includePrefix: false,
             suppressMilliseconds: true,
-            suppressSeconds: true,
+            suppressSeconds: true
           });
         }
       }
     }
   } else if (frontmatter.type === "single") {
     if (!frontmatter.allDay) {
-      const start = combineDateTimeStrings(
-        frontmatter.date,
-        frontmatter.startTime
-      );
+      const start = combineDateTimeStrings(frontmatter.date, frontmatter.startTime);
       if (!start) {
         return null;
       }
       let end = undefined;
       if (frontmatter.endTime) {
-        end = combineDateTimeStrings(
-          frontmatter.endDate || frontmatter.date,
-          frontmatter.endTime
-        );
+        end = combineDateTimeStrings(frontmatter.endDate || frontmatter.date, frontmatter.endTime);
         if (!end) {
           return null;
         }
@@ -209,11 +187,9 @@ export function toEventInput(
         start,
         end,
         extendedProps: {
-          isTask:
-            frontmatter.completed !== undefined &&
-            frontmatter.completed !== null,
-          taskCompleted: frontmatter.completed,
-        },
+          isTask: frontmatter.completed !== undefined && frontmatter.completed !== null,
+          taskCompleted: frontmatter.completed
+        }
       };
     } else {
       event = {
@@ -221,11 +197,9 @@ export function toEventInput(
         start: frontmatter.date,
         end: frontmatter.endDate || undefined,
         extendedProps: {
-          isTask:
-            frontmatter.completed !== undefined &&
-            frontmatter.completed !== null,
-          taskCompleted: frontmatter.completed,
-        },
+          isTask: frontmatter.completed !== undefined && frontmatter.completed !== null,
+          taskCompleted: frontmatter.completed
+        }
       };
     }
   }
@@ -244,27 +218,21 @@ export function fromEventApi(event: EventApi): OFCEvent {
       : {
           allDay: false,
           startTime: getTime(event.start as Date),
-          endTime: getTime(event.end as Date),
+          endTime: getTime(event.end as Date)
         }),
 
     ...(isRecurring
       ? {
           type: "recurring",
-          daysOfWeek: event.extendedProps.daysOfWeek.map(
-            (i: number) => DAYS[i]
-          ),
-          startRecur:
-            event.extendedProps.startRecur &&
-            getDate(event.extendedProps.startRecur),
-          endRecur:
-            event.extendedProps.endRecur &&
-            getDate(event.extendedProps.endRecur),
+          daysOfWeek: event.extendedProps.daysOfWeek.map((i: number) => DAYS[i]),
+          startRecur: event.extendedProps.startRecur && getDate(event.extendedProps.startRecur),
+          endRecur: event.extendedProps.endRecur && getDate(event.extendedProps.endRecur)
         }
       : {
           type: "single",
           date: startDate,
           ...(startDate !== endDate ? { endDate } : { endDate: null }),
-          completed: event.extendedProps.taskCompleted,
-        }),
+          completed: event.extendedProps.taskCompleted
+        })
   };
 }

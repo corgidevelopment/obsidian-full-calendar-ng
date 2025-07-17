@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState } from "react";
-import { CalendarInfo } from "../../types";
+import type { CalendarInfo } from "../../types";
 
 type ChangeListener = <T extends Partial<CalendarInfo>>(
   fromString: (val: string) => T
@@ -13,11 +13,7 @@ interface DirectorySelectProps<T extends Partial<CalendarInfo>> {
   directories: string[];
 }
 
-function DirectorySelect<T extends Partial<CalendarInfo>>({
-  source,
-  changeListener,
-  directories,
-}: DirectorySelectProps<T>) {
+function DirectorySelect<T extends Partial<CalendarInfo>>({ source, changeListener, directories }: DirectorySelectProps<T>) {
   const dirOptions = [...directories];
   dirOptions.sort();
 
@@ -26,9 +22,7 @@ function DirectorySelect<T extends Partial<CalendarInfo>>({
     <div className="setting-item">
       <div className="setting-item-info">
         <div className="setting-item-name">Directory</div>
-        <div className="setting-item-description">
-          Directory to store events
-        </div>
+        <div className="setting-item-description">Directory to store events</div>
       </div>
       <div className="setting-item-control">
         <select
@@ -36,7 +30,7 @@ function DirectorySelect<T extends Partial<CalendarInfo>>({
           value={sourceWithDirectory.directory || ""}
           onChange={changeListener((x) => ({
             ...sourceWithDirectory,
-            directory: x,
+            directory: x
           }))}
         >
           <option value="" disabled hidden>
@@ -58,17 +52,12 @@ interface BasicProps<T extends Partial<CalendarInfo>> {
   changeListener: ChangeListener;
 }
 
-function ColorPicker<T extends Partial<CalendarInfo>>({
-  source,
-  changeListener,
-}: BasicProps<T>) {
+function ColorPicker<T extends Partial<CalendarInfo>>({ source, changeListener }: BasicProps<T>) {
   return (
     <div className="setting-item">
       <div className="setting-item-info">
         <div className="setting-item-name">Color</div>
-        <div className="setting-item-description">
-          The color of events on the calendar
-        </div>
+        <div className="setting-item-description">The color of events on the calendar</div>
       </div>
       <div className="setting-item-control">
         <input
@@ -83,10 +72,7 @@ function ColorPicker<T extends Partial<CalendarInfo>>({
   );
 }
 
-function UrlInput<T extends Partial<CalendarInfo>>({
-  source,
-  changeListener,
-}: BasicProps<T>) {
+function UrlInput<T extends Partial<CalendarInfo>>({ source, changeListener }: BasicProps<T>) {
   let sourceWithUrl = source as SourceWith<T, { url: undefined }>;
   return (
     <div className="setting-item">
@@ -101,7 +87,7 @@ function UrlInput<T extends Partial<CalendarInfo>>({
           value={sourceWithUrl.url || ""}
           onChange={changeListener((x) => ({
             ...sourceWithUrl,
-            url: x,
+            url: x
           }))}
         />
       </div>
@@ -109,10 +95,7 @@ function UrlInput<T extends Partial<CalendarInfo>>({
   );
 }
 
-function UsernameInput<T extends Partial<CalendarInfo>>({
-  source,
-  changeListener,
-}: BasicProps<T>) {
+function UsernameInput<T extends Partial<CalendarInfo>>({ source, changeListener }: BasicProps<T>) {
   let sourceWithUsername = source as SourceWith<T, { username: undefined }>;
   return (
     <div className="setting-item">
@@ -127,7 +110,7 @@ function UsernameInput<T extends Partial<CalendarInfo>>({
           value={sourceWithUsername.username || ""}
           onChange={changeListener((x) => ({
             ...sourceWithUsername,
-            username: x,
+            username: x
           }))}
         />
       </div>
@@ -135,19 +118,13 @@ function UsernameInput<T extends Partial<CalendarInfo>>({
   );
 }
 
-function HeadingInput<T extends Partial<CalendarInfo>>({
-  source,
-  changeListener,
-  headings,
-}: BasicProps<T> & { headings: string[] }) {
+function HeadingInput<T extends Partial<CalendarInfo>>({ source, changeListener, headings }: BasicProps<T> & { headings: string[] }) {
   let sourceWithHeading = source as SourceWith<T, { heading: undefined }>;
   return (
     <div className="setting-item">
       <div className="setting-item-info">
         <div className="setting-item-name">Heading</div>
-        <div className="setting-item-description">
-          Heading to store events under in the daily note.
-        </div>
+        <div className="setting-item-description">Heading to store events under in the daily note.</div>
       </div>
       <div className="setting-item-control">
         {headings.length > 0 ? (
@@ -156,7 +133,7 @@ function HeadingInput<T extends Partial<CalendarInfo>>({
             value={sourceWithHeading.heading || ""}
             onChange={changeListener((x) => ({
               ...sourceWithHeading,
-              heading: x,
+              heading: x
             }))}
           >
             <option value="" disabled hidden>
@@ -175,7 +152,7 @@ function HeadingInput<T extends Partial<CalendarInfo>>({
             value={sourceWithHeading.heading || ""}
             onChange={changeListener((x) => ({
               ...sourceWithHeading,
-              heading: x,
+              heading: x
             }))}
           />
         )}
@@ -184,10 +161,7 @@ function HeadingInput<T extends Partial<CalendarInfo>>({
   );
 }
 
-function PasswordInput<T extends Partial<CalendarInfo>>({
-  source,
-  changeListener,
-}: BasicProps<T>) {
+function PasswordInput<T extends Partial<CalendarInfo>>({ source, changeListener }: BasicProps<T>) {
   let sourceWithPassword = source as SourceWith<T, { password: undefined }>;
   return (
     <div className="setting-item">
@@ -202,7 +176,7 @@ function PasswordInput<T extends Partial<CalendarInfo>>({
           value={sourceWithPassword.password || ""}
           onChange={changeListener((x) => ({
             ...sourceWithPassword,
-            password: x,
+            password: x
           }))}
         />
       </div>
@@ -217,19 +191,12 @@ interface AddCalendarProps {
   submit: (source: CalendarInfo) => Promise<void>;
 }
 
-export const AddCalendarSource = ({
-  source,
-  directories,
-  headings,
-  submit,
-}: AddCalendarProps) => {
+export const AddCalendarSource = ({ source, directories, headings, submit }: AddCalendarProps) => {
   const isCalDAV = source.type === "caldav";
 
   const [setting, setSettingState] = useState(source);
   const [submitting, setSubmitingState] = useState(false);
-  const [submitText, setSubmitText] = useState(
-    isCalDAV ? "Import Calendars" : "Add Calendar"
-  );
+  const [submitText, setSubmitText] = useState(isCalDAV ? "Import Calendars" : "Add Calendar");
 
   function makeChangeListener<T extends Partial<CalendarInfo>>(
     fromString: (val: string) => T
@@ -256,29 +223,11 @@ export const AddCalendarSource = ({
           // if they wish.
           <ColorPicker source={setting} changeListener={makeChangeListener} />
         )}
-        {source.type === "local" && (
-          <DirectorySelect
-            source={setting}
-            changeListener={makeChangeListener}
-            directories={directories}
-          />
-        )}
-        {source.type === "dailynote" && (
-          <HeadingInput
-            source={setting}
-            changeListener={makeChangeListener}
-            headings={headings}
-          />
-        )}
-        {source.type === "ical" || source.type === "caldav" ? (
-          <UrlInput source={setting} changeListener={makeChangeListener} />
-        ) : null}
-        {isCalDAV && (
-          <UsernameInput source={setting} changeListener={makeChangeListener} />
-        )}
-        {isCalDAV && (
-          <PasswordInput source={setting} changeListener={makeChangeListener} />
-        )}
+        {source.type === "local" && <DirectorySelect source={setting} changeListener={makeChangeListener} directories={directories} />}
+        {source.type === "dailynote" && <HeadingInput source={setting} changeListener={makeChangeListener} headings={headings} />}
+        {source.type === "ical" || source.type === "caldav" ? <UrlInput source={setting} changeListener={makeChangeListener} /> : null}
+        {isCalDAV && <UsernameInput source={setting} changeListener={makeChangeListener} />}
+        {isCalDAV && <PasswordInput source={setting} changeListener={makeChangeListener} />}
         <div className="setting-item">
           <div className="setting-item-info" />
           <div className="setting-control">

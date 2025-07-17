@@ -1,5 +1,5 @@
 import { Calendar } from "../calendars/Calendar";
-import { EventLocation, OFCEvent } from "../types";
+import type { EventLocation, OFCEvent } from "../types";
 
 interface Identifier {
   id: string;
@@ -49,9 +49,7 @@ class OneToMany<T extends Identifier, FK extends Identifier> {
     this.foreign.delete(many.id);
     const related = this.related.get(oneId);
     if (!related) {
-      throw new Error(
-        `Unreachable: state: relation <${oneId}> exists in the foreign map but not the related map.`
-      );
+      throw new Error(`Unreachable: state: relation <${oneId}> exists in the foreign map but not the related map.`);
     }
     related.delete(many.id);
   }
@@ -183,9 +181,7 @@ export default class EventStore {
       const location = path ? { path, lineNumber } : null;
       const calendarId = this.calendarIndex.getRelated(new EventID(id));
       if (!calendarId) {
-        throw new Error(
-          `Event with id ${id} does not have an associated calendar.`
-        );
+        throw new Error(`Event with id ${id} does not have an associated calendar.`);
       }
       result.push({ id, event, location, calendarId });
     });
@@ -202,9 +198,7 @@ export default class EventStore {
       throw new Error(
         `Event with given ID "${id}" that was supposed to be added to calendar "${
           calendar.id
-        }" already exists in the EventStore within calendar "${this.calendarIndex.getRelated(
-          new EventID(id)
-        )}".`
+        }" already exists in the EventStore within calendar "${this.calendarIndex.getRelated(new EventID(id))}".`
       );
     }
 

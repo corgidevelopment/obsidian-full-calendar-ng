@@ -1,6 +1,5 @@
 import type { Story } from "@ladle/react";
-import React from "react";
-import { OFCEvent } from "../../types";
+import { type OFCEvent } from "../../types";
 
 import { EditEvent } from "./EditEvent";
 
@@ -9,43 +8,29 @@ const calendars = [
   {
     id: "local::calendar2",
     name: "second calendar",
-    type: "local" as "local",
+    type: "local" as "local"
   },
   {
     id: "dailynote::calendar",
     name: "Daily Note Calendar",
-    type: "dailynote" as "dailynote",
-  },
+    type: "dailynote" as "dailynote"
+  }
 ];
 
-const submit = async function (
-  event: OFCEvent,
-  calendarIndex: number
-): Promise<void> {
+const submit = async function (event: OFCEvent, calendarIndex: number): Promise<void> {
   alert("Event submitted, see console for details");
   console.log({ event, calendarIndex });
 };
 
-const EventModal = ({
-  initialEvent,
-}: {
-  initialEvent: Partial<OFCEvent> | undefined;
-}) => (
+const EventModal = ({ initialEvent }: { initialEvent: Partial<OFCEvent> | undefined }) => (
   <div className="modal">
     <div className="modal-content">
-      <EditEvent
-        submit={submit}
-        calendars={calendars}
-        defaultCalendarIndex={0}
-        initialEvent={initialEvent}
-      ></EditEvent>
+      <EditEvent submit={submit} calendars={calendars} defaultCalendarIndex={0} initialEvent={initialEvent}></EditEvent>
     </div>
   </div>
 );
 
-export const NewEvent: Story = () => (
-  <EventModal initialEvent={undefined}></EventModal>
-);
+export const NewEvent: Story = () => <EventModal initialEvent={undefined}></EventModal>;
 
 export const SingleEventWithTime: Story = () => (
   <EventModal
@@ -55,7 +40,7 @@ export const SingleEventWithTime: Story = () => (
       date: new Date().toISOString().slice(0, 10),
       allDay: false,
       startTime: "12:00",
-      endTime: "13:30",
+      endTime: "13:30"
     }}
   ></EventModal>
 );
@@ -67,7 +52,7 @@ export const SingleEventAllDay: Story = () => (
       title: "Event title",
       type: "single",
       date: new Date().toISOString().slice(0, 10),
-      allDay: true,
+      allDay: true
     }}
   ></EventModal>
 );
@@ -82,7 +67,7 @@ export const RecurringEvent: Story = () => (
       allDay: false,
       startTime: "12:00",
       endTime: "13:30",
-      daysOfWeek: ["M", "R"],
+      daysOfWeek: ["M", "R"]
     }}
   ></EventModal>
 );

@@ -1,5 +1,5 @@
-import { HeadingCache } from "obsidian";
-import { OFCEvent } from "../types";
+import type { HeadingCache } from "obsidian";
+import type { OFCEvent } from "../types";
 
 export type AddToHeadingProps = {
   page: string;

@@ -1,7 +1,7 @@
 import dav from "dav";
 import * as transport from "./parsing/caldav/transport";
-import { Authentication, CalendarInfo, OFCEvent } from "src/types";
-import { EventResponse } from "./Calendar";
+import type { Authentication, CalendarInfo, OFCEvent } from "src/types";
+import type { EventResponse } from "./Calendar";
 import RemoteCalendar from "./RemoteCalendar";
 import { getEventsFromICS } from "src/calendars/parsing/ics";
 
@@ -13,13 +13,7 @@ export default class CalDAVCalendar extends RemoteCalendar {
 
   events: OFCEvent[] = [];
 
-  constructor(
-    color: string,
-    name: string,
-    credentials: Authentication,
-    serverUrl: string,
-    calendarUrl: string
-  ) {
+  constructor(color: string, name: string, credentials: Authentication, serverUrl: string, calendarUrl: string) {
     super(color);
     this._name = name;
     this.credentials = credentials;
@@ -31,23 +25,19 @@ export default class CalDAVCalendar extends RemoteCalendar {
     let xhr = new transport.Basic(
       new dav.Credentials({
         username: this.credentials.username,
-        password: this.credentials.password,
+        password: this.credentials.password
       })
     );
     let account = await dav.createAccount({
       xhr: xhr,
-      server: this.serverUrl,
+      server: this.serverUrl
     });
-    let calendar = account.calendars.find(
-      (calendar) => calendar.url === this.calendarUrl
-    );
+    let calendar = account.calendars.find((calendar) => calendar.url === this.calendarUrl);
     if (!calendar) {
       return;
     }
     let caldavEvents = await dav.listCalendarObjects(calendar, { xhr });
-    this.events = caldavEvents
-      .filter((vevent) => vevent.calendarData)
-      .flatMap((vevent) => getEventsFromICS(vevent.calendarData));
+    this.events = caldavEvents.filter((vevent) => vevent.calendarData).flatMap((vevent) => getEventsFromICS(vevent.calendarData));
   }
 
   get type(): CalendarInfo["type"] {

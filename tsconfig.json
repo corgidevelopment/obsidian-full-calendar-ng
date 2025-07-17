@@ -1,19 +1,39 @@
 {
-	"compilerOptions": {
-		"baseUrl": ".",
-		"inlineSourceMap": true,
-		"inlineSources": true,
-		"module": "ESNext",
-		"target": "ES6",
-		"allowJs": true,
-		"noImplicitAny": true,
-		"strict": true,
-		"moduleResolution": "node",
-        "esModuleInterop": true,
-		"importHelpers": true,
-		"isolatedModules": true,
-		"lib": ["DOM", "ES5", "ES6", "ES7"],
-		"jsx": "react"
-	},
-	"include": ["**/*.ts"]
+  "compilerOptions": {
+    "downlevelIteration": true,
+    "importHelpers": true,
+    "inlineSourceMap": true,
+    "inlineSources": true,
+    "allowJs": true,
+    "noImplicitAny": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "moduleResolution": "node",
+    "module": "ESNext",
+    "target": "ES6",
+    "lib": [
+      "DOM",
+      "ES5",
+      "ES6",
+      "ES7"
+    ]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "declarations.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

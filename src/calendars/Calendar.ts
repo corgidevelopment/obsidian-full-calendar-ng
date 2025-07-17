@@ -1,4 +1,4 @@
-import { CalendarInfo, EventLocation, OFCEvent } from "src/types";
+import type { CalendarInfo, EventLocation, OFCEvent } from "src/types";
 
 export const ID_SEPARATOR = "::";
 

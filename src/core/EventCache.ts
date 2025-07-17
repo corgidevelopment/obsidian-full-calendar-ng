@@ -3,17 +3,13 @@ import equal from "deep-equal";
 
 import { Calendar } from "../calendars/Calendar";
 import { EditableCalendar } from "../calendars/EditableCalendar";
-import EventStore, { StoredEvent } from "./EventStore";
-import { CalendarInfo, OFCEvent, validateEvent } from "../types";
+import EventStore, { type StoredEvent } from "./EventStore";
+import { type CalendarInfo, type EventLocation, type OFCEvent, validateEvent } from "../types";
 import RemoteCalendar from "../calendars/RemoteCalendar";
 import FullNoteCalendar from "../calendars/FullNoteCalendar";
-import { IEditableCalendar } from "../calendars/IEditableCalendar";
 import DailyNoteCalendar from "../calendars/DailyNoteCalendar";
 
-export type CalendarInitializerMap = Record<
-  CalendarInfo["type"],
-  (info: CalendarInfo) => Calendar | null
->;
+export type CalendarInitializerMap = Record<CalendarInfo["type"], (info: CalendarInfo) => Calendar | null>;
 
 export type CacheEntry = { event: OFCEvent; id: string; calendarId: string };
 
@@ -34,10 +30,7 @@ const MINUTE = 60 * SECOND;
 const MILLICONDS_BETWEEN_REVALIDATIONS = 5 * MINUTE;
 
 // TODO: Write tests for this function.
-export const eventsAreDifferent = (
-  oldEvents: OFCEvent[],
-  newEvents: OFCEvent[]
-): boolean => {
+export const eventsAreDifferent = (oldEvents: OFCEvent[], newEvents: OFCEvent[]): boolean => {
   oldEvents.sort((a, b) => a.title.localeCompare(b.title));
   newEvents.sort((a, b) => a.title.localeCompare(b.title));
 
@@ -149,7 +142,7 @@ export default class EventCache {
           calendar,
           location,
           id: event.id || this.generateId(),
-          event,
+          event
         })
       );
     }
@@ -176,7 +169,7 @@ export default class EventCache {
         editable: calendar instanceof EditableCalendar,
         events: events.map(({ event, id }) => ({ event, id })), // make sure not to leak location data past the cache.
         color: calendar.color,
-        id: calId,
+        id: calId
       });
     }
     return result;
@@ -225,9 +218,7 @@ export default class EventCache {
       throw new Error(`Calendar event cannot be modified`);
     }
     if (!location) {
-      throw new Error(
-        `Event with ID ${eventId} does not have a location in the Vault.`
-      );
+      throw new Error(`Event with ID ${eventId} does not have a location in the Vault.`);
     }
     return { calendar, location };
   }
@@ -272,7 +263,7 @@ export default class EventCache {
   private updateViews(toRemove: string[], toAdd: CacheEntry[]) {
     const payload = {
       toRemove,
-      toAdd,
+      toAdd
     };
 
     for (const callback of this.updateViewCallbacks) {
@@ -302,9 +293,7 @@ export default class EventCache {
       throw new Error(`Calendar ID ${calendarId} is not registered.`);
     }
     if (!("createEvent" in calendar)) {
-      console.error(
-        `Event cannot be added to non-editable calendar of type ${calendar.type}`
-      );
+      console.error(`Event cannot be added to non-editable calendar of type ${calendar.type}`);
       throw new Error(`Cannot add event to a read-only calendar`);
     }
     const location = await calendar.createEvent(event);
@@ -312,7 +301,7 @@ export default class EventCache {
       calendar,
       location,
       id: event.id || this.generateId(),
-      event,
+      event
     });
 
     this.updateViews([], [{ event, id, calendarId: calendar.id }]);
@@ -336,33 +325,22 @@ export default class EventCache {
    * @param newEvent new event contents
    * @returns true if update was successful, false otherwise.
    */
-  async updateEventWithId(
-    eventId: string,
-    newEvent: OFCEvent
-  ): Promise<boolean> {
-    const { calendar, location: oldLocation } =
-      this.getInfoForEditableEvent(eventId);
+  async updateEventWithId(eventId: string, newEvent: OFCEvent): Promise<boolean> {
+    const { calendar, location: oldLocation } = this.getInfoForEditableEvent(eventId);
     const { path, lineNumber } = oldLocation;
     console.debug("updating event with ID", eventId);
 
-    await calendar.modifyEvent(
-      { path, lineNumber },
-      newEvent,
-      (newLocation) => {
-        this.store.delete(eventId);
-        this.store.add({
-          calendar,
-          location: newLocation,
-          id: eventId,
-          event: newEvent,
-        });
-      }
-    );
+    await calendar.modifyEvent({ path, lineNumber }, newEvent, (newLocation: EventLocation) => {
+      this.store.delete(eventId);
+      this.store.add({
+        calendar,
+        location: newLocation,
+        id: eventId,
+        event: newEvent
+      });
+    });
 
-    this.updateViews(
-      [eventId],
-      [{ id: eventId, calendarId: calendar.id, event: newEvent }]
-    );
+    this.updateViews([eventId], [{ id: eventId, calendarId: calendar.id, event: newEvent }]);
     return true;
   }
 
@@ -376,10 +354,7 @@ export default class EventCache {
    * @param process function to transform the event.
    * @returns true if the update was successful.
    */
-  processEvent(
-    id: string,
-    process: (e: OFCEvent) => OFCEvent
-  ): Promise<boolean> {
+  processEvent(id: string, process: (e: OFCEvent) => OFCEvent): Promise<boolean> {
     const event = this.store.getEventById(id);
     if (!event) {
       throw new Error("Event does not exist");
@@ -389,16 +364,11 @@ export default class EventCache {
     return this.updateEventWithId(id, newEvent);
   }
 
-  async moveEventToCalendar(
-    eventId: string,
-    newCalendarId: string
-  ): Promise<void> {
+  async moveEventToCalendar(eventId: string, newCalendarId: string): Promise<void> {
     const event = this.store.getEventById(eventId);
     const details = this.store.getEventDetails(eventId);
     if (!details || !event) {
-      throw new Error(
-        `Tried moving unknown event ID ${eventId} to calendar ${newCalendarId}`
-      );
+      throw new Error(`Tried moving unknown event ID ${eventId} to calendar ${newCalendarId}`);
     }
     const { calendarId: oldCalendarId, location } = details;
 
@@ -412,16 +382,8 @@ export default class EventCache {
     }
 
     // TODO: Support moving around events between all sorts of editable calendars.
-    if (
-      !(
-        oldCalendar instanceof FullNoteCalendar &&
-        newCalendar instanceof FullNoteCalendar &&
-        location
-      )
-    ) {
-      throw new Error(
-        `Both calendars must be Full Note Calendars to move events between them.`
-      );
+    if (!(oldCalendar instanceof FullNoteCalendar && newCalendar instanceof FullNoteCalendar && location)) {
+      throw new Error(`Both calendars must be Full Note Calendars to move events between them.`);
     }
 
     await oldCalendar.move(location, newCalendar, (newLocation) => {
@@ -430,7 +392,7 @@ export default class EventCache {
         calendar: newCalendar,
         location: newLocation,
         id: eventId,
-        event,
+        event
       });
     });
   }
@@ -457,9 +419,7 @@ export default class EventCache {
     console.debug("fileUpdated() called for file", file.path);
 
     // Get all calendars that contain events stored in this file.
-    const calendars = [...this.calendars.values()].flatMap((c) =>
-      c instanceof EditableCalendar && c.containsPath(file.path) ? c : []
-    );
+    const calendars = [...this.calendars.values()].flatMap((c) => (c instanceof EditableCalendar && c.containsPath(file.path) ? c : []));
 
     // If no calendars exist, return early.
     if (calendars.length === 0) {
@@ -481,27 +441,20 @@ export default class EventCache {
       const newEventsMapped = newEvents.map(([event, _]) => event);
       console.debug("comparing events", file.path, oldEvents, newEvents);
       // TODO: It's possible events are not different, but the location has changed.
-      const eventsHaveChanged = eventsAreDifferent(
-        oldEventsMapped,
-        newEventsMapped
-      );
+      const eventsHaveChanged = eventsAreDifferent(oldEventsMapped, newEventsMapped);
 
       // If no events have changed from what's in the cache, then there's no need to update the event store.
       if (!eventsHaveChanged) {
         console.debug("events have not changed, do not update store or view.");
         return;
       }
-      console.debug(
-        "events have changed, updating store and views...",
-        oldEvents,
-        newEvents
-      );
+      console.debug("events have changed, updating store and views...", oldEvents, newEvents);
 
       const newEventsWithIds = newEvents.map(([event, location]) => ({
         event,
         id: event.id || this.generateId(),
         location,
-        calendarId: calendar.id,
+        calendarId: calendar.id
       }));
 
       // If events have changed in the calendar, then remove all the old events from the store and add in new ones.
@@ -514,7 +467,7 @@ export default class EventCache {
           calendar,
           location,
           id,
-          event,
+          event
         });
       });
 
@@ -536,17 +489,12 @@ export default class EventCache {
     }
     const now = Date.now();
 
-    if (
-      !force &&
-      now - this.lastRevalidation < MILLICONDS_BETWEEN_REVALIDATIONS
-    ) {
+    if (!force && now - this.lastRevalidation < MILLICONDS_BETWEEN_REVALIDATIONS) {
       console.debug("Last revalidation was too soon.");
       return;
     }
 
-    const remoteCalendars = [...this.calendars.values()].flatMap((c) =>
-      c instanceof RemoteCalendar ? c : []
-    );
+    const remoteCalendars = [...this.calendars.values()].flatMap((c) => (c instanceof RemoteCalendar ? c : []));
 
     console.warn("Revalidating remote calendars...");
     this.revalidating = true;
@@ -555,28 +503,25 @@ export default class EventCache {
         .revalidate()
         .then(() => calendar.getEvents())
         .then((events) => {
-          const deletedEvents = [
-            ...this.store.deleteEventsInCalendar(calendar),
-          ];
           const newEvents = events.map(([event, location]) => ({
             event,
             id: event.id || this.generateId(),
             location,
-            calendarId: calendar.id,
+            calendarId: calendar.id
           }));
           newEvents.forEach(({ event, id, location }) => {
             this.store.add({
               calendar,
               location,
               id,
-              event,
+              event
             });
           });
           this.updateCalendar({
             id: calendar.id,
             editable: false,
             color: calendar.color,
-            events: newEvents,
+            events: newEvents
           });
         });
     });
@@ -584,13 +529,9 @@ export default class EventCache {
       this.revalidating = false;
       this.lastRevalidation = Date.now();
       console.debug("All remote calendars have been fetched.");
-      const errors = results.flatMap((result) =>
-        result.status === "rejected" ? result.reason : []
-      );
+      const errors = results.flatMap((result) => (result.status === "rejected" ? result.reason : []));
       if (errors.length > 0) {
-        new Notice(
-          "A remote calendar failed to load. Check the console for more details."
-        );
+        new Notice("A remote calendar failed to load. Check the console for more details.");
         errors.forEach((reason) => {
           console.error(`Revalidation failed with reason: ${reason}`);
         });

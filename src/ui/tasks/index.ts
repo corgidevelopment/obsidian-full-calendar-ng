@@ -1,8 +1,7 @@
 import { DateTime } from "luxon";
-import { OFCEvent } from "src/types";
+import type { OFCEvent } from "src/types";
 
-export const isTask = (e: OFCEvent) =>
-  e.type === "single" && e.completed !== undefined && e.completed !== null;
+export const isTask = (e: OFCEvent) => e.type === "single" && e.completed !== undefined && e.completed !== null;
 
 export const unmakeTask = (event: OFCEvent): OFCEvent => {
   if (event.type !== "single") {

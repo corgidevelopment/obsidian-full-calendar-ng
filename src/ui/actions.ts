@@ -8,17 +8,13 @@ import EventCache from "src/core/EventCache";
  * @param id event ID
  * @returns
  */
-export async function openFileForEvent(
-  cache: EventCache,
-  { workspace, vault }: { workspace: Workspace; vault: Vault },
-  id: string
-) {
+export async function openFileForEvent(cache: EventCache, { workspace, vault }: { workspace: Workspace; vault: Vault }, id: string) {
   const details = cache.getInfoForEditableEvent(id);
   if (!details) {
     throw new Error("Event does not have local representation.");
   }
   const {
-    location: { path, lineNumber },
+    location: { path, lineNumber }
   } = details;
   let leaf = workspace.getMostRecentLeaf();
   const file = vault.getAbstractFileByPath(path);

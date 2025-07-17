@@ -1,8 +1,6 @@
 import { Notice } from "obsidian";
 import * as React from "react";
-import { SetStateAction, useState } from "react";
-
-import { CalendarInfo } from "../../types";
+import type { CalendarInfo } from "../../types";
 
 type SourceWith<T extends Partial<CalendarInfo>, K> = T extends K ? T : never;
 
@@ -10,9 +8,7 @@ interface BasicProps<T extends Partial<CalendarInfo>> {
   source: T;
 }
 
-function DirectorySetting<T extends Partial<CalendarInfo>>({
-  source,
-}: BasicProps<T>) {
+function DirectorySetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
   let sourceWithDirectory = source as SourceWith<T, { directory: undefined }>;
   return (
     <div className="setting-item-control">
@@ -23,22 +19,17 @@ function DirectorySetting<T extends Partial<CalendarInfo>>({
         style={{
           width: "100%",
           marginLeft: 4,
-          marginRight: 4,
+          marginRight: 4
         }}
       />
     </div>
   );
 }
 
-function HeadingSetting<T extends Partial<CalendarInfo>>({
-  source,
-}: BasicProps<T>) {
+function HeadingSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
   let sourceWithHeading = source as SourceWith<T, { heading: undefined }>;
   return (
-    <div
-      className="setting-item-control"
-      style={{ display: "block", textAlign: "center" }}
-    >
+    <div className="setting-item-control" style={{ display: "block", textAlign: "center" }}>
       <span>Under heading</span>{" "}
       <input
         disabled
@@ -46,7 +37,7 @@ function HeadingSetting<T extends Partial<CalendarInfo>>({
         value={sourceWithHeading.heading}
         style={{
           marginLeft: 4,
-          marginRight: 4,
+          marginRight: 4
         }}
       />{" "}
       <span style={{ paddingRight: ".5rem" }}>in daily notes</span>
@@ -54,9 +45,7 @@ function HeadingSetting<T extends Partial<CalendarInfo>>({
   );
 }
 
-function UrlSetting<T extends Partial<CalendarInfo>>({
-  source,
-}: BasicProps<T>) {
+function UrlSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
   let sourceWithUrl = source as SourceWith<T, { url: undefined }>;
   return (
     <div className="setting-item-control">
@@ -67,16 +56,14 @@ function UrlSetting<T extends Partial<CalendarInfo>>({
         style={{
           width: "100%",
           marginLeft: 4,
-          marginRight: 4,
+          marginRight: 4
         }}
       />
     </div>
   );
 }
 
-function NameSetting<T extends Partial<CalendarInfo>>({
-  source,
-}: BasicProps<T>) {
+function NameSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
   let sourceWithName = source as SourceWith<T, { name: undefined }>;
   return (
     <div className="setting-item-control">
@@ -87,7 +74,7 @@ function NameSetting<T extends Partial<CalendarInfo>>({
         style={{
           width: "100%",
           marginLeft: 4,
-          marginRight: 4,
+          marginRight: 4
         }}
       />
     </div>
@@ -105,7 +92,7 @@ function Username<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
         style={{
           width: "100%",
           marginLeft: 4,
-          marginRight: 4,
+          marginRight: 4
         }}
       />
     </div>
@@ -118,19 +105,11 @@ interface CalendarSettingsProps {
   deleteCalendar: () => void;
 }
 
-export const CalendarSettingRow = ({
-  setting,
-  onColorChange,
-  deleteCalendar,
-}: CalendarSettingsProps) => {
+export const CalendarSettingRow = ({ setting, onColorChange, deleteCalendar }: CalendarSettingsProps) => {
   const isCalDAV = setting.type === "caldav";
   return (
     <div className="setting-item">
-      <button
-        type="button"
-        onClick={deleteCalendar}
-        style={{ maxWidth: "15%" }}
-      >
+      <button type="button" onClick={deleteCalendar} style={{ maxWidth: "15%" }}>
         ✕
       </button>
       {setting.type === "local" ? (
@@ -142,12 +121,7 @@ export const CalendarSettingRow = ({
       )}
       {isCalDAV && <NameSetting source={setting} />}
       {isCalDAV && <Username source={setting} />}
-      <input
-        style={{ maxWidth: "25%", minWidth: "3rem" }}
-        type="color"
-        value={setting.color}
-        onChange={(e) => onColorChange(e.target.value)}
-      />
+      <input style={{ maxWidth: "25%", minWidth: "3rem" }} type="color" value={setting.color} onChange={(e) => onColorChange(e.target.value)} />
     </div>
   );
 };
@@ -156,23 +130,22 @@ interface CalendarSettingProps {
   sources: CalendarInfo[];
   submit: (payload: CalendarInfo[]) => void;
 }
+
 type CalendarSettingState = {
   sources: CalendarInfo[];
   dirty: boolean;
 };
-export class CalendarSettings extends React.Component<
-  CalendarSettingProps,
-  CalendarSettingState
-> {
+
+export class CalendarSettings extends React.Component<CalendarSettingProps, CalendarSettingState> {
   constructor(props: CalendarSettingProps) {
     super(props);
     this.state = { sources: props.sources, dirty: false };
   }
 
   addSource(source: CalendarInfo) {
-    this.setState((state, props) => ({
+    this.setState((state, _) => ({
       sources: [...state.sources, source],
-      dirty: true,
+      dirty: true
     }));
   }
 
@@ -184,22 +157,15 @@ export class CalendarSettings extends React.Component<
             key={idx}
             setting={s}
             onColorChange={(color) =>
-              this.setState((state, props) => ({
-                sources: [
-                  ...state.sources.slice(0, idx),
-                  { ...state.sources[idx], color },
-                  ...state.sources.slice(idx + 1),
-                ],
-                dirty: true,
+              this.setState((state, _) => ({
+                sources: [...state.sources.slice(0, idx), { ...state.sources[idx], color }, ...state.sources.slice(idx + 1)],
+                dirty: true
               }))
             }
             deleteCalendar={() =>
-              this.setState((state, props) => ({
-                sources: [
-                  ...state.sources.slice(0, idx),
-                  ...state.sources.slice(idx + 1),
-                ],
-                dirty: true,
+              this.setState((state, _) => ({
+                sources: [...state.sources.slice(0, idx), ...state.sources.slice(idx + 1)],
+                dirty: true
               }))
             }
           />
@@ -208,23 +174,16 @@ export class CalendarSettings extends React.Component<
           {this.state.dirty && (
             <button
               onClick={() => {
-                if (
-                  this.state.sources.filter((s) => s.type === "dailynote")
-                    .length > 1
-                ) {
+                if (this.state.sources.filter((s) => s.type === "dailynote").length > 1) {
                   new Notice("Only one daily note calendar is allowed.");
                   return;
                 }
-                this.props.submit(
-                  this.state.sources.map((elt) => elt as CalendarInfo)
-                );
+                this.props.submit(this.state.sources.map((elt) => elt as CalendarInfo));
                 this.setState({ dirty: false });
               }}
               style={{
-                backgroundColor: this.state.dirty
-                  ? "var(--interactive-accent)"
-                  : undefined,
-                color: this.state.dirty ? "var(--text-on-accent)" : undefined,
+                backgroundColor: this.state.dirty ? "var(--interactive-accent)" : undefined,
+                color: this.state.dirty ? "var(--text-on-accent)" : undefined
               }}
             >
               {this.state.dirty ? "Save" : "Settings Saved"}

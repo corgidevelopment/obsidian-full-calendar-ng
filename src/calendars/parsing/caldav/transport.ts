@@ -13,10 +13,7 @@ export class RequestBridge {
 
   constructor(credentials?: Credentials) {
     if (credentials) {
-      this.setRequestHeader(
-        "Authorization",
-        "Basic " + this.encode(credentials)
-      );
+      this.setRequestHeader("Authorization", "Basic " + this.encode(credentials));
     }
   }
 
@@ -34,21 +31,12 @@ export class RequestBridge {
 }
 
 export class Basic extends transport.Transport {
-  /**
-   * @param {dav.Credentials} credentials user authorization.
-   */
-
   credentials?: Credentials;
-
   constructor(credentials: Credentials) {
     super(credentials);
   }
 
-  send(
-    request: Request,
-    url: string,
-    options?: transport.TransportOptions
-  ): Promise<any> {
+  send(request: Request, url: string, options?: transport.TransportOptions): Promise<any> {
     return co(
       function* (this: Basic) {
         let sandbox = options && options.sandbox;
@@ -67,12 +55,10 @@ export class Basic extends transport.Transport {
             method: request.method,
             contentType: requestBridge.contentType,
             body: request.requestData,
-            headers: requestBridge.headers,
+            headers: requestBridge.headers
           });
           requestBridge.responseText = yield Promise.resolve(response);
-          result = transformResponse
-            ? transformResponse(requestBridge)
-            : requestBridge.responseText;
+          result = transformResponse ? transformResponse(requestBridge) : requestBridge.responseText;
         } catch (error) {
           if (onerror) onerror(error as Error);
           throw error;

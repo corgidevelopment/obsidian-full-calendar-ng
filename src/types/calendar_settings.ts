@@ -1,5 +1,5 @@
 import { ZodError, z } from "zod";
-import { OFCEvent } from "./schema";
+import { type OFCEvent } from "./schema";
 
 const calendarOptionsSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("local"), directory: z.string() }),
@@ -11,8 +11,8 @@ const calendarOptionsSchema = z.discriminatedUnion("type", [
     url: z.string().url(),
     homeUrl: z.string().url(),
     username: z.string(),
-    password: z.string(),
-  }),
+    password: z.string()
+  })
 ]);
 
 const colorValidator = z.object({ color: z.string() });
@@ -23,11 +23,7 @@ export type TestSource = {
   events?: OFCEvent[];
 };
 
-export type CalendarInfo = (
-  | z.infer<typeof calendarOptionsSchema>
-  | TestSource
-) &
-  z.infer<typeof colorValidator>;
+export type CalendarInfo = (z.infer<typeof calendarOptionsSchema> | TestSource) & z.infer<typeof colorValidator>;
 
 export function parseCalendarInfo(obj: unknown): CalendarInfo {
   const options = calendarOptionsSchema.parse(obj);
@@ -43,7 +39,7 @@ export function safeParseCalendarInfo(obj: unknown): CalendarInfo | null {
     if (e instanceof ZodError) {
       console.debug("Parsing calendar info failed with errors", {
         obj,
-        error: e.message,
+        error: e.message
       });
     }
     return null;
@@ -53,23 +49,17 @@ export function safeParseCalendarInfo(obj: unknown): CalendarInfo | null {
 /**
  * Construct a partial calendar source of the specified type
  */
-export function makeDefaultPartialCalendarSource(
-  type: CalendarInfo["type"] | "icloud"
-): Partial<CalendarInfo> {
+export function makeDefaultPartialCalendarSource(type: CalendarInfo["type"] | "icloud"): Partial<CalendarInfo> {
   if (type === "icloud") {
     return {
       type: "caldav",
-      color: getComputedStyle(document.body)
-        .getPropertyValue("--interactive-accent")
-        .trim(),
-      url: "https://caldav.icloud.com",
+      color: getComputedStyle(document.body).getPropertyValue("--interactive-accent").trim(),
+      url: "https://caldav.icloud.com"
     };
   }
 
   return {
     type: type,
-    color: getComputedStyle(document.body)
-      .getPropertyValue("--interactive-accent")
-      .trim(),
+    color: getComputedStyle(document.body).getPropertyValue("--interactive-accent").trim()
   };
 }

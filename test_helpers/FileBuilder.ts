@@ -1,5 +1,4 @@
-import { CachedMetadata, ListItemCache, Loc, Pos } from "obsidian";
-import { start } from "repl";
+import type { CachedMetadata, ListItemCache, Loc, Pos } from "obsidian";
 
 type ListItem = {
     type: "item";
@@ -116,7 +115,7 @@ const makeFile = (
                     heading: block.text,
                     level: block.level,
                 });
-                continue;
+                break;
             }
 
             case "list": {
@@ -146,8 +145,7 @@ const makeFile = (
 
                     meta.listItems.push(listItem);
                 }
-
-                continue;
+                break;
             }
 
             case "text":

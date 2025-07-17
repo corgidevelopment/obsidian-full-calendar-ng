@@ -2,26 +2,20 @@ import { Notice } from "obsidian";
 import * as React from "react";
 import { EditableCalendar } from "src/calendars/EditableCalendar";
 import FullCalendarPlugin from "src/main";
-import { OFCEvent } from "src/types";
+import type { OFCEvent } from "src/types";
 import { openFileForEvent } from "./actions";
 import { EditEvent } from "./components/EditEvent";
 import ReactModal from "./ReactModal";
 import DailyNoteCalendar from "../calendars/DailyNoteCalendar";
 
-export function launchCreateModal(
-  plugin: FullCalendarPlugin,
-  partialEvent: Partial<OFCEvent>
-) {
+export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Partial<OFCEvent>) {
   const calendars = [...plugin.cache.calendars.entries()]
-    .filter(
-      ([_, cal]) =>
-        cal instanceof EditableCalendar || cal instanceof DailyNoteCalendar
-    )
+    .filter(([_, cal]) => cal instanceof EditableCalendar || cal instanceof DailyNoteCalendar)
     .map(([id, cal]) => {
       return {
         id,
         type: cal.type,
-        name: cal.name,
+        name: cal.name
       };
     });
   new ReactModal(plugin.app, async (closeModal) =>
@@ -40,7 +34,7 @@ export function launchCreateModal(
           }
         }
         closeModal();
-      },
+      }
     })
   ).open();
 }
@@ -58,7 +52,7 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
       return {
         id,
         type: cal.type,
-        name: cal.name,
+        name: cal.name
       };
     });
 
@@ -72,10 +66,7 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
       submit: async (data, calendarIndex) => {
         try {
           if (calendarIndex !== calIdx) {
-            await plugin.cache.moveEventToCalendar(
-              eventId,
-              calendars[calendarIndex].id
-            );
+            await plugin.cache.moveEventToCalendar(eventId, calendars[calendarIndex].id);
           }
           await plugin.cache.updateEventWithId(eventId, data);
         } catch (e) {
@@ -99,7 +90,7 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
             console.error(e);
           }
         }
-      },
+      }
     })
   ).open();
 }

@@ -1,10 +1,10 @@
 import { join } from "path";
 import { TFile } from "obsidian";
 
-import { ObsidianInterface } from "src/ObsidianAdapter";
+import type { ObsidianInterface } from "src/ObsidianAdapter";
 import { MockApp, MockAppBuilder } from "../../test_helpers/AppBuilder";
 import { FileBuilder } from "../../test_helpers/FileBuilder";
-import { OFCEvent } from "src/types";
+import type { OFCEvent } from "src/types";
 import FullNoteCalendar from "./FullNoteCalendar";
 import { parseEvent } from "../types/schema";
 
@@ -32,17 +32,16 @@ const makeApp = (app: MockApp): ObsidianInterface => ({
     return f;
   },
   getMetadata: (file) => app.metadataCache.getFileCache(file),
-  waitForMetadata: (file) =>
-    new Promise((resolve) => resolve(app.metadataCache.getFileCache(file)!)),
+  waitForMetadata: (file) => new Promise((resolve) => resolve(app.metadataCache.getFileCache(file)!)),
   read: (file) => app.vault.read(file),
   create: jest.fn(),
   rewrite: jest.fn(),
   rename: jest.fn(),
   delete: jest.fn(),
-  process: jest.fn(),
+  process: jest.fn()
 });
 
-const dirName = "events";
+const directory = "events";
 const color = "#BADA55";
 
 describe("Note Calendar Tests", () => {
@@ -55,10 +54,10 @@ describe("Note Calendar Tests", () => {
           event: {
             title: "Test Event",
             allDay: true,
-            date: "2022-01-01",
-          } as OFCEvent,
-        },
-      ],
+            date: "2022-01-01"
+          } as OFCEvent
+        }
+      ]
     ],
     [
       "Two events",
@@ -68,18 +67,18 @@ describe("Note Calendar Tests", () => {
           event: {
             title: "Test Event",
             allDay: true,
-            date: "2022-01-01",
-          } as OFCEvent,
+            date: "2022-01-01"
+          } as OFCEvent
         },
         {
           title: "2022-01-02 Another Test Event.md",
           event: {
             title: "Another Test Event",
             allDay: true,
-            date: "2022-01-02",
-          } as OFCEvent,
-        },
-      ],
+            date: "2022-01-02"
+          } as OFCEvent
+        }
+      ]
     ],
     [
       "Two events on the same day",
@@ -89,8 +88,8 @@ describe("Note Calendar Tests", () => {
           event: {
             title: "Test Event",
             allDay: true,
-            date: "2022-01-01",
-          } as OFCEvent,
+            date: "2022-01-01"
+          } as OFCEvent
         },
         {
           title: "2022-01-01 Another Test Event.md",
@@ -98,24 +97,24 @@ describe("Note Calendar Tests", () => {
             title: "Another Test Event",
             date: "2022-01-01",
             startTime: "11:00",
-            endTime: "12:00",
-          } as OFCEvent,
-        },
-      ],
-    ],
+            endTime: "12:00"
+          } as OFCEvent
+        }
+      ]
+    ]
   ])("%p", async (_, inputs: { title: string; event: Partial<OFCEvent> }[]) => {
     const obsidian = makeApp(
       MockAppBuilder.make()
         .folder(
-          inputs.reduce(
-            (builder, { title, event }) =>
-              builder.file(title, new FileBuilder().frontmatter(event)),
-            new MockAppBuilder(dirName)
-          )
+          inputs.reduce((builder, { title, event }) => builder.file(title, new FileBuilder().frontmatter(event)), new MockAppBuilder(directory))
         )
         .done()
     );
-    const calendar = new FullNoteCalendar(obsidian, color, dirName);
+    const calendar = new FullNoteCalendar({
+      obsidianInterface: obsidian,
+      color,
+      directory
+    });
     const res = await calendar.getEvents();
     expect(res.length).toBe(inputs.length);
     const events = res.map((e) => e[0]);
@@ -129,18 +128,18 @@ describe("Note Calendar Tests", () => {
         endDate: null,
         allDay: false,
         type: "single",
-        ...i.event,
-      },
+        ...i.event
+      }
     }))) {
       expect(events).toContainEqual(event);
-      expect(paths).toContainEqual(`${dirName}/${title}`);
+      expect(paths).toContainEqual(`${directory}/${title}`);
     }
 
     for (const [
       event,
       {
-        file: { path },
-      },
+        file: { path }
+      }
     ] of res) {
       const file = obsidian.getFileByPath(path)!;
       const eventsFromFile = await calendar.getEventsInFile(file);
@@ -152,18 +151,22 @@ describe("Note Calendar Tests", () => {
 
   it("creates an event", async () => {
     const obsidian = makeApp(MockAppBuilder.make().done());
-    const calendar = new FullNoteCalendar(obsidian, color, dirName);
+    const calendar = new FullNoteCalendar({
+      obsidianInterface: obsidian,
+      color,
+      directory
+    });
     const event = {
       title: "Test Event",
       date: "2022-01-01",
       endDate: null,
       allDay: false,
       startTime: "11:00",
-      endTime: "12:30",
+      endTime: "12:30"
     };
 
     (obsidian.create as jest.Mock).mockReturnValue({
-      path: join(dirName, "2022-01-01 Test Event.md"),
+      path: join(directory, "2022-01-01 Test Event.md")
     });
     const { lineNumber } = await calendar.createEvent(parseEvent(event));
     expect(lineNumber).toBeUndefined();
@@ -191,23 +194,19 @@ describe("Note Calendar Tests", () => {
       title: "Test Event",
       allDay: true,
       date: "2022-01-01",
-      endDate: null,
+      endDate: null
     };
     const obsidian = makeApp(
       MockAppBuilder.make()
-        .folder(
-          new MockAppBuilder("events").file(
-            "2022-01-01 Test Event.md",
-            new FileBuilder().frontmatter(event)
-          )
-        )
+        .folder(new MockAppBuilder("events").file("2022-01-01 Test Event.md", new FileBuilder().frontmatter(event)))
         .done()
     );
-    const calendar = new FullNoteCalendar(obsidian, color, dirName);
-    await assertFailed(
-      () => calendar.createEvent(parseEvent(event)),
-      /already exists/
-    );
+    const calendar = new FullNoteCalendar({
+      obsidianInterface: obsidian,
+      color,
+      directory
+    });
+    await assertFailed(() => calendar.createEvent(parseEvent(event)), /already exists/);
   });
 
   it("modify an existing event and keeping the same day and title", async () => {
@@ -217,24 +216,21 @@ describe("Note Calendar Tests", () => {
       date: "2022-01-01",
       endDate: null,
       startTime: "11:00",
-      endTime: "12:30",
+      endTime: "12:30"
     });
     const filename = "2022-01-01 Test Event.md";
     const obsidian = makeApp(
       MockAppBuilder.make()
-        .folder(
-          new MockAppBuilder("events").file(
-            filename,
-            new FileBuilder().frontmatter(event)
-          )
-        )
+        .folder(new MockAppBuilder("events").file(filename, new FileBuilder().frontmatter(event)))
         .done()
     );
-    const calendar = new FullNoteCalendar(obsidian, color, dirName);
+    const calendar = new FullNoteCalendar({
+      obsidianInterface: obsidian,
+      color,
+      directory
+    });
 
-    const firstFile = obsidian.getAbstractFileByPath(
-      join("events", filename)
-    ) as TFile;
+    const firstFile = obsidian.getAbstractFileByPath(join("events", filename)) as TFile;
 
     const contents = await obsidian.read(firstFile);
 
@@ -251,8 +247,7 @@ describe("Note Calendar Tests", () => {
     expect(newLoc.lineNumber).toBeUndefined();
 
     expect(obsidian.rewrite).toHaveReturnedTimes(1);
-    const [file, rewriteCallback] = (obsidian.rewrite as jest.Mock).mock
-      .calls[0];
+    const [file, rewriteCallback] = (obsidian.rewrite as jest.Mock).mock.calls[0];
     expect(file.path).toBe(join("events", filename));
 
     expect(rewriteCallback(contents)).toMatchInlineSnapshot(`

@@ -1,6 +1,6 @@
 import { request } from "obsidian";
-import { CalendarInfo } from "src/types";
-import { EventResponse } from "./Calendar";
+import type { CalendarInfo } from "src/types";
+import type { EventResponse } from "./Calendar";
 import { getEventsFromICS } from "./parsing/ics";
 import RemoteCalendar from "./RemoteCalendar";
 
@@ -25,6 +25,7 @@ export default class ICSCalendar extends RemoteCalendar {
   get identifier(): string {
     return this.url;
   }
+
   get name(): string {
     return this.url;
   }
@@ -33,7 +34,7 @@ export default class ICSCalendar extends RemoteCalendar {
     console.debug("revalidating ICS calendar " + this.name);
     this.response = await request({
       url: this.url,
-      method: "GET",
+      method: "GET"
     });
   }
 

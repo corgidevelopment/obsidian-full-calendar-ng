@@ -1,19 +1,15 @@
 import "./overrides.css";
 import { ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
-import { Calendar, EventSourceInput } from "@fullcalendar/core";
+import { Calendar, type EventSourceInput } from "@fullcalendar/core";
 import { renderCalendar } from "./calendar";
 import FullCalendarPlugin from "../main";
 import { FCError, PLUGIN_SLUG } from "../types";
-import {
-  dateEndpointsToFrontmatter,
-  fromEventApi,
-  toEventInput,
-} from "./interop";
+import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from "./interop";
 import { renderOnboarding } from "./onboard";
 import { openFileForEvent } from "./actions";
 import { launchCreateModal, launchEditModal } from "./event_modal";
 import { isTask, toggleTask, unmakeTask } from "src/ui/tasks";
-import { UpdateViewCallback } from "src/core/EventCache";
+import { type UpdateViewCallback } from "src/core/EventCache";
 
 export const FULL_CALENDAR_VIEW_TYPE = "full-calendar-view";
 export const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = "full-calendar-sidebar-view";
@@ -22,9 +18,7 @@ function getCalendarColors(color: string | null | undefined): {
   color: string;
   textColor: string;
 } {
-  let textVar = getComputedStyle(document.body).getPropertyValue(
-    "--text-on-accent"
-  );
+  let textVar = getComputedStyle(document.body).getPropertyValue("--text-on-accent");
   if (color) {
     const m = color.slice(1).match(color.length == 7 ? /(\S{2})/g : /(\S{1})/g);
     if (m) {
@@ -39,10 +33,8 @@ function getCalendarColors(color: string | null | undefined): {
   }
 
   return {
-    color:
-      color ||
-      getComputedStyle(document.body).getPropertyValue("--interactive-accent"),
-    textColor: textVar,
+    color: color || getComputedStyle(document.body).getPropertyValue("--interactive-accent"),
+    textColor: textVar
   };
 }
 
@@ -52,11 +44,7 @@ export class CalendarView extends ItemView {
   fullCalendarView: Calendar | null = null;
   callback: UpdateViewCallback | null = null;
 
-  constructor(
-    leaf: WorkspaceLeaf,
-    plugin: FullCalendarPlugin,
-    inSidebar = false
-  ) {
+  constructor(leaf: WorkspaceLeaf, plugin: FullCalendarPlugin, inSidebar = false) {
     super(leaf);
     this.plugin = plugin;
     this.inSidebar = inSidebar;
@@ -67,9 +55,7 @@ export class CalendarView extends ItemView {
   }
 
   getViewType() {
-    return this.inSidebar
-      ? FULL_CALENDAR_SIDEBAR_VIEW_TYPE
-      : FULL_CALENDAR_VIEW_TYPE;
+    return this.inSidebar ? FULL_CALENDAR_SIDEBAR_VIEW_TYPE : FULL_CALENDAR_VIEW_TYPE;
   }
 
   getDisplayText() {
@@ -82,7 +68,7 @@ export class CalendarView extends ItemView {
         id,
         events: events.flatMap((e) => toEventInput(e.id, e.event) || []),
         editable,
-        ...getCalendarColors(color),
+        ...getCalendarColors(color)
       })
     );
   }
@@ -101,11 +87,7 @@ export class CalendarView extends ItemView {
     container.empty();
     let calendarEl = container.createEl("div");
 
-    if (
-      this.plugin.settings.calendarSources.filter(
-        (s) => s.type !== "FOR_TEST_ONLY"
-      ).length === 0
-    ) {
+    if (this.plugin.settings.calendarSources.filter((s) => s.type !== "FOR_TEST_ONLY").length === 0) {
       renderOnboarding(this.app, this.plugin, calendarEl);
       return;
     }
@@ -120,10 +102,7 @@ export class CalendarView extends ItemView {
       forceNarrow: this.inSidebar,
       eventClick: async (info) => {
         try {
-          if (
-            info.jsEvent.getModifierState("Control") ||
-            info.jsEvent.getModifierState("Meta")
-          ) {
+          if (info.jsEvent.getModifierState("Control") || info.jsEvent.getModifierState("Meta")) {
             await openFileForEvent(this.plugin.cache, this.app, info.event.id);
           } else {
             launchEditModal(this.plugin, info.event.id);
@@ -146,10 +125,7 @@ export class CalendarView extends ItemView {
         }
         const partialEvent = dateEndpointsToFrontmatter(start, end, allDay);
         try {
-          if (
-            this.plugin.settings.clickToCreateEventFromMonthView ||
-            viewType !== "dayGridMonth"
-          ) {
+          if (this.plugin.settings.clickToCreateEventFromMonthView || viewType !== "dayGridMonth") {
             launchCreateModal(this.plugin, partialEvent);
           } else {
             this.fullCalendarView?.changeView("timeGridDay");
@@ -164,11 +140,7 @@ export class CalendarView extends ItemView {
       },
       modifyEvent: async (newEvent, oldEvent) => {
         try {
-          const didModify = await this.plugin.cache.updateEventWithId(
-            oldEvent.id,
-            fromEventApi(newEvent)
-          );
-          return !!didModify;
+          return await this.plugin.cache.updateEventWithId(oldEvent.id, fromEventApi(newEvent));
         } catch (e: any) {
           console.error(e);
           new Notice(e.message);
@@ -178,9 +150,7 @@ export class CalendarView extends ItemView {
 
       eventMouseEnter: async (info) => {
         try {
-          const location = this.plugin.cache.getInfoForEditableEvent(
-            info.event.id
-          ).location;
+          const location = this.plugin.cache.getInfoForEditableEvent(info.event.id).location;
           if (location) {
             this.app.workspace.trigger("hover-link", {
               event: info.jsEvent,
@@ -188,7 +158,7 @@ export class CalendarView extends ItemView {
               hoverParent: calendarEl,
               targetEl: info.jsEvent.target,
               linktext: location.path,
-              sourcePath: location.path,
+              sourcePath: location.path
             });
           }
         } catch (e) {}
@@ -210,9 +180,7 @@ export class CalendarView extends ItemView {
           if (!isTask(event)) {
             menu.addItem((item) =>
               item.setTitle("Turn into task").onClick(async () => {
-                await this.plugin.cache.processEvent(e.id, (e) =>
-                  toggleTask(e, false)
-                );
+                await this.plugin.cache.processEvent(e.id, (e) => toggleTask(e, false));
               })
             );
           } else {
@@ -242,9 +210,7 @@ export class CalendarView extends ItemView {
           );
         } else {
           menu.addItem((item) => {
-            item
-              .setTitle("No actions available on remote events")
-              .setDisabled(true);
+            item.setTitle("No actions available on remote events").setDisabled(true);
           });
         }
 
@@ -260,10 +226,7 @@ export class CalendarView extends ItemView {
         }
 
         try {
-          await this.plugin.cache.updateEventWithId(
-            e.id,
-            toggleTask(event, isDone)
-          );
+          await this.plugin.cache.updateEventWithId(e.id, toggleTask(event, isDone));
         } catch (e) {
           if (e instanceof FCError) {
             new Notice(e.message);
@@ -271,7 +234,7 @@ export class CalendarView extends ItemView {
           return false;
         }
         return true;
-      },
+      }
     });
     // @ts-ignore
     window.fc = this.fullCalendarView;
@@ -288,15 +251,13 @@ export class CalendarView extends ItemView {
       if (payload.type === "resync") {
         this.fullCalendarView?.removeAllEventSources();
         const sources = this.translateSources();
-        sources.forEach((source) =>
-          this.fullCalendarView?.addEventSource(source)
-        );
+        sources.forEach((source) => this.fullCalendarView?.addEventSource(source));
         return;
       } else if (payload.type === "events") {
         const { toRemove, toAdd } = payload;
         console.debug("updating view from cache...", {
           toRemove,
-          toAdd,
+          toAdd
         });
         toRemove.forEach((id) => {
           const event = this.fullCalendarView?.getEventById(id);
@@ -304,9 +265,7 @@ export class CalendarView extends ItemView {
             console.debug("removing event", event.toPlainObject());
             event.remove();
           } else {
-            console.warn(
-              `Event with id=${id} was slated to be removed but does not exist in the calendar.`
-            );
+            console.warn(`Event with id=${id} was slated to be removed but does not exist in the calendar.`);
           }
         });
         toAdd.forEach(({ id, event, calendarId }) => {
@@ -315,27 +274,22 @@ export class CalendarView extends ItemView {
             id,
             event,
             eventInput,
-            calendarId,
-          });
-          const addedEvent = this.fullCalendarView?.addEvent(
-            eventInput!,
             calendarId
-          );
+          });
+          const addedEvent = this.fullCalendarView?.addEvent(eventInput!, calendarId);
           console.debug("event that was added", addedEvent);
         });
       } else if (payload.type == "calendar") {
         const {
-          calendar: { id, events, editable, color },
+          calendar: { id, events, editable, color }
         } = payload;
         console.debug("replacing calendar with id", payload.calendar);
         this.fullCalendarView?.getEventSourceById(id)?.remove();
         this.fullCalendarView?.addEventSource({
           id,
-          events: events.flatMap(
-            ({ id, event }) => toEventInput(id, event) || []
-          ),
+          events: events.flatMap(({ id, event }) => toEventInput(id, event) || []),
           editable,
-          ...getCalendarColors(color),
+          ...getCalendarColors(color)
         });
       }
     });

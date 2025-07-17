@@ -1,13 +1,4 @@
-import {
-  CommonSchema,
-  EventSchema,
-  OFCEvent,
-  ParsedDate,
-  ParsedTime,
-  TimeSchema,
-  parseEvent,
-  serializeEvent,
-} from "./schema";
+import { CommonSchema, EventSchema, type OFCEvent, ParsedDate, ParsedTime, TimeSchema, parseEvent, serializeEvent } from "./schema";
 import fc from "fast-check";
 import { ZodFastCheck } from "zod-fast-check";
 
@@ -18,7 +9,7 @@ describe("schema parsing tests", () => {
         parseEvent({
           title: "Test",
           date: "2021-01-01",
-          allDay: true,
+          allDay: true
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -36,7 +27,7 @@ describe("schema parsing tests", () => {
           title: "Test",
           type: "single",
           date: "2021-01-01",
-          allDay: true,
+          allDay: true
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -54,7 +45,7 @@ describe("schema parsing tests", () => {
           title: "Test",
           type: "single",
           date: "2021-01-01",
-          allDay: true,
+          allDay: true
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -74,7 +65,7 @@ describe("schema parsing tests", () => {
           date: "2021-01-01T10:30:00.000Z",
           allDay: false,
           startTime: "10:30",
-          endTime: null,
+          endTime: null
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -96,7 +87,7 @@ describe("schema parsing tests", () => {
           date: "2021-01-01",
           allDay: false,
           startTime: "10:30 pm",
-          endTime: null,
+          endTime: null
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -118,7 +109,7 @@ describe("schema parsing tests", () => {
           date: "2021-01-01",
           allDay: false,
           startTime: "10:30",
-          endTime: "11:45",
+          endTime: "11:45"
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -139,7 +130,7 @@ describe("schema parsing tests", () => {
           type: "single",
           date: "2021-01-01",
           endDate: "2021-01-03",
-          allDay: true,
+          allDay: true
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -158,7 +149,7 @@ describe("schema parsing tests", () => {
           type: "single",
           date: "2021-01-01",
           allDay: true,
-          completed: null,
+          completed: null
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -178,7 +169,7 @@ describe("schema parsing tests", () => {
           type: "single",
           date: "2021-01-01",
           allDay: true,
-          completed: false,
+          completed: false
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -198,7 +189,7 @@ describe("schema parsing tests", () => {
           type: "single",
           date: "2021-01-01",
           allDay: true,
-          completed: "2021-01-01T10:30:00.000Z",
+          completed: "2021-01-01T10:30:00.000Z"
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -219,7 +210,7 @@ describe("schema parsing tests", () => {
           title: "Test",
           allDay: true,
           type: "recurring",
-          daysOfWeek: ["M"],
+          daysOfWeek: ["M"]
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -238,7 +229,7 @@ describe("schema parsing tests", () => {
           title: "Test",
           allDay: true,
           type: "recurring",
-          daysOfWeek: ["M", "W"],
+          daysOfWeek: ["M", "W"]
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -259,7 +250,7 @@ describe("schema parsing tests", () => {
           allDay: true,
           type: "recurring",
           daysOfWeek: ["M"],
-          startRecur: "2023-01-05",
+          startRecur: "2023-01-05"
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -280,7 +271,7 @@ describe("schema parsing tests", () => {
           allDay: true,
           type: "recurring",
           daysOfWeek: ["M"],
-          endRecur: "2023-01-05",
+          endRecur: "2023-01-05"
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -302,7 +293,7 @@ describe("schema parsing tests", () => {
           type: "recurring",
           daysOfWeek: ["M"],
           startRecur: "2023-01-05",
-          endRecur: "2023-05-12",
+          endRecur: "2023-05-12"
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -328,7 +319,7 @@ describe("schema parsing tests", () => {
           id: "hi",
           rrule: "RRULE",
           skipDates: [],
-          startDate: "2023-01-05",
+          startDate: "2023-01-05"
         })
       ).toMatchInlineSnapshot(`
                 {
@@ -351,42 +342,24 @@ describe("schema parsing tests", () => {
         fc
           .date({
             min: new Date(2000, 0, 0),
-            max: new Date(2150, 0, 0),
+            max: new Date(2150, 0, 0)
           })
-          .map(
-            (date) =>
-              `${date.getFullYear()}-${(date.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}-${date
-                .getDate()
-                .toString()
-                .padStart(2, "0")}`
-          )
+          .map((date) => `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`)
       )
       .override(
         ParsedTime,
-        fc
-          .date()
-          .map(
-            (date) =>
-              `${date.getHours().toString().padStart(2, "0")}:${date
-                .getMinutes()
-                .toString()
-                .padStart(2, "0")}`
-          )
+        fc.date().map((date) => `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`)
       );
 
     it("parses", () => {
       const CommonArb = zfc.inputOf(CommonSchema);
       const TimeArb = zfc.inputOf(TimeSchema);
       const EventArb = zfc.inputOf(EventSchema);
-      const EventInputArbitrary = fc
-        .tuple(CommonArb, TimeArb, EventArb)
-        .map(([common, time, event]) => ({
-          ...common,
-          ...time,
-          ...event,
-        }));
+      const EventInputArbitrary = fc.tuple(CommonArb, TimeArb, EventArb).map(([common, time, event]) => ({
+        ...common,
+        ...time,
+        ...event
+      }));
 
       fc.assert(
         fc.property(EventInputArbitrary, (obj) => {
@@ -399,13 +372,11 @@ describe("schema parsing tests", () => {
       const CommonArb = zfc.outputOf(CommonSchema);
       const TimeArb = zfc.outputOf(TimeSchema);
       const EventArb = zfc.outputOf(EventSchema);
-      const OFCEventArbitrary: fc.Arbitrary<OFCEvent> = fc
-        .tuple(CommonArb, TimeArb, EventArb)
-        .map(([common, time, event]) => ({
-          ...common,
-          ...time,
-          ...event,
-        }));
+      const OFCEventArbitrary: fc.Arbitrary<OFCEvent> = fc.tuple(CommonArb, TimeArb, EventArb).map(([common, time, event]) => ({
+        ...common,
+        ...time,
+        ...event
+      }));
 
       fc.assert(
         fc.property(OFCEventArbitrary, (event) => {

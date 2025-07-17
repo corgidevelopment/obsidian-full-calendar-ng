@@ -1,4 +1,4 @@
-import { CalendarInfo } from "./calendar_settings";
+import type { CalendarInfo } from "./calendar_settings";
 
 export type { OFCEvent } from "./schema";
 export { validateEvent } from "./schema";

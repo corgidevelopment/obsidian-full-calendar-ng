@@ -1,16 +1,8 @@
-import { MarkdownView, Notice, Plugin, TFile } from "obsidian";
-import {
-  CalendarView,
-  FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
-  FULL_CALENDAR_VIEW_TYPE,
-} from "./ui/view";
+import { Notice, Plugin, TFile } from "obsidian";
+import { CalendarView, FULL_CALENDAR_SIDEBAR_VIEW_TYPE, FULL_CALENDAR_VIEW_TYPE } from "./ui/view";
 import { renderCalendar } from "./ui/calendar";
 import { toEventInput } from "./ui/interop";
-import {
-  DEFAULT_SETTINGS,
-  FullCalendarSettings,
-  FullCalendarSettingTab,
-} from "./ui/settings";
+import { DEFAULT_SETTINGS, type FullCalendarSettings, FullCalendarSettingTab } from "./ui/settings";
 import { PLUGIN_SLUG } from "./types";
 import EventCache from "./core/EventCache";
 import { ObsidianIO } from "./ObsidianAdapter";
@@ -25,22 +17,21 @@ export default class FullCalendarPlugin extends Plugin {
   cache: EventCache = new EventCache({
     local: (info) =>
       info.type === "local"
-        ? new FullNoteCalendar(
-            new ObsidianIO(this.app),
-            info.color,
-            info.directory
-          )
+        ? new FullNoteCalendar({
+            obsidianInterface: new ObsidianIO(this.app),
+            color: info.color,
+            directory: info.directory
+          })
         : null,
     dailynote: (info) =>
       info.type === "dailynote"
         ? new DailyNoteCalendar({
             obsidianInterface: new ObsidianIO(this.app),
             color: info.color,
-            heading: info.heading,
+            heading: info.heading
           })
         : null,
-    ical: (info) =>
-      info.type === "ical" ? new ICSCalendar(info.color, info.url) : null,
+    ical: (info) => (info.type === "ical" ? new ICSCalendar(info.color, info.url) : null),
     caldav: (info) =>
       info.type === "caldav"
         ? new CalDAVCalendar(
@@ -49,32 +40,31 @@ export default class FullCalendarPlugin extends Plugin {
             {
               type: "basic",
               username: info.username,
-              password: info.password,
+              password: info.password
             },
             info.url,
             info.homeUrl
           )
         : null,
-    FOR_TEST_ONLY: () => null,
+    FOR_TEST_ONLY: () => null
   });
 
   renderCalendar = renderCalendar;
   processFrontmatter = toEventInput;
 
   async activateView() {
-    const leaves = this.app.workspace
-      .getLeavesOfType(FULL_CALENDAR_VIEW_TYPE)
-      .filter((l) => (l.view as CalendarView).inSidebar === false);
+    const leaves = this.app.workspace.getLeavesOfType(FULL_CALENDAR_VIEW_TYPE).filter((l) => !(l.view as CalendarView).inSidebar);
     if (leaves.length === 0) {
       const leaf = this.app.workspace.getLeaf("tab");
       await leaf.setViewState({
         type: FULL_CALENDAR_VIEW_TYPE,
-        active: true,
+        active: true
       });
     } else {
       await Promise.all(leaves.map((l) => (l.view as CalendarView).onOpen()));
     }
   }
+
   async onload() {
     await this.loadSettings();
 
@@ -107,23 +97,13 @@ export default class FullCalendarPlugin extends Plugin {
     // @ts-ignore
     window.cache = this.cache;
 
-    this.registerView(
-      FULL_CALENDAR_VIEW_TYPE,
-      (leaf) => new CalendarView(leaf, this, false)
-    );
+    this.registerView(FULL_CALENDAR_VIEW_TYPE, (leaf) => new CalendarView(leaf, this, false));
 
-    this.registerView(
-      FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
-      (leaf) => new CalendarView(leaf, this, true)
-    );
+    this.registerView(FULL_CALENDAR_SIDEBAR_VIEW_TYPE, (leaf) => new CalendarView(leaf, this, true));
 
-    this.addRibbonIcon(
-      "calendar-glyph",
-      "Open Full Calendar",
-      async (_: MouseEvent) => {
-        await this.activateView();
-      }
-    );
+    this.addRibbonIcon("calendar-glyph", "Open Full Calendar", async (_: MouseEvent) => {
+      await this.activateView();
+    });
 
     this.addSettingTab(new FullCalendarSettingTab(this.app, this));
 
@@ -132,7 +112,7 @@ export default class FullCalendarPlugin extends Plugin {
       name: "New Event",
       callback: () => {
         launchCreateModal(this, {});
-      },
+      }
     });
 
     this.addCommand({
@@ -143,7 +123,7 @@ export default class FullCalendarPlugin extends Plugin {
         this.app.workspace.detachLeavesOfType(FULL_CALENDAR_VIEW_TYPE);
         this.app.workspace.detachLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE);
         new Notice("Full Calendar has been reset.");
-      },
+      }
     });
 
     this.addCommand({
@@ -151,7 +131,7 @@ export default class FullCalendarPlugin extends Plugin {
       name: "Revalidate remote calendars",
       callback: () => {
         this.cache.revalidateRemoteCalendars(true);
-      },
+      }
     });
 
     this.addCommand({
@@ -159,28 +139,25 @@ export default class FullCalendarPlugin extends Plugin {
       name: "Open Calendar",
       callback: () => {
         this.activateView();
-      },
+      }
     });
 
     this.addCommand({
       id: "full-calendar-open-sidebar",
       name: "Open in sidebar",
       callback: () => {
-        if (
-          this.app.workspace.getLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE)
-            .length
-        ) {
+        if (this.app.workspace.getLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE).length) {
           return;
         }
         this.app.workspace.getRightLeaf(false).setViewState({
-          type: FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
+          type: FULL_CALENDAR_SIDEBAR_VIEW_TYPE
         });
-      },
+      }
     });
 
     (this.app.workspace as any).registerHoverLinkSource(PLUGIN_SLUG, {
       display: "Full Calendar",
-      defaultMod: true,
+      defaultMod: true
     });
   }
 
