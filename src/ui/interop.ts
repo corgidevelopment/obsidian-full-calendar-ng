@@ -19,7 +19,7 @@ const parseTime = (time: string): Duration | null => {
 
     if (parsed.invalidReason) {
         console.error(
-            `FC: Error parsing time string '${time}': ${parsed.invalidReason}'`
+            `FC: Error parsing time string '${time}': ${parsed.invalidReason}'`,
         );
         return null;
     }
@@ -28,7 +28,7 @@ const parseTime = (time: string): Duration | null => {
         parsed.toISOTime({
             includeOffset: false,
             includePrefix: false,
-        })
+        }),
     );
 };
 
@@ -63,7 +63,7 @@ const combineDateTimeStrings = (date: string, time: string): string | null => {
     const parsedDate = DateTime.fromISO(date);
     if (parsedDate.invalidReason) {
         console.error(
-            `FC: Error parsing time string '${date}': ${parsedDate.invalidReason}`
+            `FC: Error parsing time string '${date}': ${parsedDate.invalidReason}`,
         );
         return null;
     }
@@ -84,7 +84,7 @@ const DAYS = "UMTWRFS";
 export function dateEndpointsToFrontmatter(
     start: Date,
     end: Date,
-    allDay: boolean
+    allDay: boolean,
 ): Partial<OFCEvent> {
     const date = getDate(start);
     const endDate = getDate(end);
@@ -104,7 +104,7 @@ export function dateEndpointsToFrontmatter(
 
 export function toEventInput(
     id: string,
-    frontmatter: OFCEvent
+    frontmatter: OFCEvent,
 ): EventInput | null {
     let event: EventInput = {
         id,
@@ -135,7 +135,7 @@ export function toEventInput(
             } else {
                 const dtstartStr = combineDateTimeStrings(
                     frontmatter.startDate,
-                    frontmatter.startTime
+                    frontmatter.startTime,
                 );
 
                 if (!dtstartStr) {
@@ -188,7 +188,7 @@ export function toEventInput(
         if (!frontmatter.allDay) {
             const start = combineDateTimeStrings(
                 frontmatter.date,
-                frontmatter.startTime
+                frontmatter.startTime,
             );
             if (!start) {
                 return null;
@@ -197,7 +197,7 @@ export function toEventInput(
             if (frontmatter.endTime) {
                 end = combineDateTimeStrings(
                     frontmatter.endDate || frontmatter.date,
-                    frontmatter.endTime
+                    frontmatter.endTime,
                 );
                 if (!end) {
                     return null;
@@ -251,7 +251,7 @@ export function fromEventApi(event: EventApi): OFCEvent {
             ? {
                   type: "recurring",
                   daysOfWeek: event.extendedProps.daysOfWeek.map(
-                      (i: number) => DAYS[i]
+                      (i: number) => DAYS[i],
                   ),
                   startRecur:
                       event.extendedProps.startRecur &&

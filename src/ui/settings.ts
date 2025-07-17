@@ -11,7 +11,7 @@ import {
 import { makeDefaultPartialCalendarSource, CalendarInfo } from "../types";
 import { CalendarSettings } from "./components/CalendarSetting";
 import { AddCalendarSource } from "./components/AddCalendarSource";
-import * as ReactDOM from "react-dom";
+import * as ReactDOM from "react-dom/client";
 import { createElement } from "react";
 import { getDailyNoteSettings } from "obsidian-daily-notes-interface";
 import ReactModal from "./ReactModal";
@@ -70,7 +70,7 @@ export function addCalendarButton(
     plugin: FullCalendarPlugin,
     containerEl: HTMLElement,
     submitCallback: (setting: CalendarInfo) => void,
-    listUsedDirectories?: () => string[]
+    listUsedDirectories?: () => string[],
 ) {
     let dropdown: DropdownComponent;
     const directories = app.vault
@@ -89,7 +89,7 @@ export function addCalendarButton(
                     icloud: "iCloud",
                     caldav: "CalDAV",
                     ical: "Remote (.ics format)",
-                }))
+                })),
         )
         .addExtraButton((button) => {
             button.setTooltip("Add Calendar");
@@ -104,7 +104,7 @@ export function addCalendarButton(
                                   plugin.settings.calendarSources
                                       .map(
                                           (s) =>
-                                              s.type === "local" && s.directory
+                                              s.type === "local" && s.directory,
                                       )
                                       .filter((s): s is string => !!s)
                     )();
@@ -126,10 +126,10 @@ export function addCalendarButton(
 
                     return createElement(AddCalendarSource, {
                         source: makeDefaultPartialCalendarSource(
-                            dropdown.getValue() as CalendarInfo["type"]
+                            dropdown.getValue() as CalendarInfo["type"],
                         ),
                         directories: directories.filter(
-                            (dir) => usedDirectories.indexOf(dir) === -1
+                            (dir) => usedDirectories.indexOf(dir) === -1,
                         ),
                         headings,
                         submit: async (source: CalendarInfo) => {
@@ -141,10 +141,10 @@ export function addCalendarButton(
                                             username: source.username,
                                             password: source.password,
                                         },
-                                        source.url
+                                        source.url,
                                     );
                                     sources.forEach((source) =>
-                                        submitCallback(source)
+                                        submitCallback(source),
                                     );
                                 } catch (e) {
                                     if (e instanceof Error) {
@@ -183,7 +183,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
                 Object.entries(INITIAL_VIEW_OPTIONS.DESKTOP).forEach(
                     ([value, display]) => {
                         dropdown.addOption(value, display);
-                    }
+                    },
                 );
                 dropdown.setValue(this.plugin.settings.initialView.desktop);
                 dropdown.onChange(async (initialView) => {
@@ -199,7 +199,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
                 Object.entries(INITIAL_VIEW_OPTIONS.MOBILE).forEach(
                     ([value, display]) => {
                         dropdown.addOption(value, display);
-                    }
+                    },
                 );
                 dropdown.setValue(this.plugin.settings.initialView.mobile);
                 dropdown.onChange(async (initialView) => {
@@ -238,7 +238,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
             .setDesc("Switch off to open day view on click instead.")
             .addToggle((toggle) => {
                 toggle.setValue(
-                    this.plugin.settings.clickToCreateEventFromMonthView
+                    this.plugin.settings.clickToCreateEventFromMonthView,
                 );
                 toggle.onChange(async (val) => {
                     this.plugin.settings.clickToCreateEventFromMonthView = val;
@@ -257,12 +257,13 @@ export class FullCalendarSettingTab extends PluginSettingTab {
             () =>
                 sourceList.state.sources
                     .map((s) => s.type === "local" && s.directory)
-                    .filter((s): s is string => !!s)
+                    .filter((s): s is string => !!s),
         );
 
         const sourcesDiv = containerEl.createDiv();
         sourcesDiv.style.display = "block";
-        let sourceList = ReactDOM.render(
+        let root = ReactDOM.createRoot(sourcesDiv);
+        let sourceList = root.render(
             createElement(CalendarSettings, {
                 sources: this.plugin.settings.calendarSources,
                 submit: async (settings: CalendarInfo[]) => {
@@ -270,7 +271,6 @@ export class FullCalendarSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 },
             }),
-            sourcesDiv
         );
     }
 }

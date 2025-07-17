@@ -9,7 +9,7 @@ import ReactModal from "./ReactModal";
 
 export function launchCreateModal(
     plugin: FullCalendarPlugin,
-    partialEvent: Partial<OFCEvent>
+    partialEvent: Partial<OFCEvent>,
 ) {
     const calendars = [...plugin.cache.calendars.entries()]
         .filter(([_, cal]) => cal instanceof EditableCalendar)
@@ -37,7 +37,7 @@ export function launchCreateModal(
                 }
                 closeModal();
             },
-        })
+        }),
     ).open();
 }
 
@@ -70,7 +70,7 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
                     if (calendarIndex !== calIdx) {
                         await plugin.cache.moveEventToCalendar(
                             eventId,
-                            calendars[calendarIndex].id
+                            calendars[calendarIndex].id,
                         );
                     }
                     await plugin.cache.updateEventWithId(eventId, data);
@@ -96,6 +96,6 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
                     }
                 }
             },
-        })
+        }),
     ).open();
 }

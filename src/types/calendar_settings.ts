@@ -54,7 +54,7 @@ export function safeParseCalendarInfo(obj: unknown): CalendarInfo | null {
  * Construct a partial calendar source of the specified type
  */
 export function makeDefaultPartialCalendarSource(
-    type: CalendarInfo["type"] | "icloud"
+    type: CalendarInfo["type"] | "icloud",
 ): Partial<CalendarInfo> {
     if (type === "icloud") {
         return {

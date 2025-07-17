@@ -65,11 +65,11 @@ export interface ObsidianInterface {
      */
     rewrite(
         file: TFile,
-        rewriteFunc: (contents: string) => string
+        rewriteFunc: (contents: string) => string,
     ): Promise<void>;
     rewrite(
         file: TFile,
-        rewriteFunc: (contents: string) => Promise<string>
+        rewriteFunc: (contents: string) => Promise<string>,
     ): Promise<void>;
     /**
      * Rewrite the given file and return some auxilliary info to the caller.
@@ -79,11 +79,11 @@ export interface ObsidianInterface {
      */
     rewrite<T>(
         file: TFile,
-        rewriteFunc: (contents: string) => [string, T]
+        rewriteFunc: (contents: string) => [string, T],
     ): Promise<T>;
     rewrite<T>(
         file: TFile,
-        rewriteFunc: (contents: string) => Promise<[string, T]>
+        rewriteFunc: (contents: string) => Promise<[string, T]>,
     ): Promise<T>;
 
     /**
@@ -129,8 +129,8 @@ export class ObsidianIO implements ObsidianInterface {
     async rewrite<T>(
         file: TFile,
         rewriteFunc: (
-            contents: string
-        ) => string | [string, T] | Promise<string> | Promise<[string, T]>
+            contents: string,
+        ) => string | [string, T] | Promise<string> | Promise<[string, T]>,
     ): Promise<T | void> {
         const page = await this.vault.read(file);
         let result = rewriteFunc(page);
@@ -184,7 +184,7 @@ export class ObsidianIO implements ObsidianInterface {
                 (changedFile, data, cache) => {
                     if (changedFile.path !== file.path) {
                         console.debug(
-                            "waitForMetadata(): a different file has changed. continue listening..."
+                            "waitForMetadata(): a different file has changed. continue listening...",
                         );
                         return;
                     }
@@ -195,7 +195,7 @@ export class ObsidianIO implements ObsidianInterface {
                         console.warn("No ref was found after cache loaded.");
                     }
                     return;
-                }
+                },
             );
         });
     }

@@ -31,8 +31,8 @@ rrulePlugin.recurringTypes[0].expand = function (errd, fr, de) {
                     d.getMonth(),
                     d.getDate(),
                     hours,
-                    d.getMinutes()
-                )
+                    d.getMinutes(),
+                ),
             );
         });
 };
@@ -43,7 +43,7 @@ interface ExtraRenderProps {
         startDate: Date,
         endDate: Date,
         allDay: boolean,
-        viewType: string
+        viewType: string,
     ) => Promise<void>;
     modifyEvent?: (event: EventApi, oldEvent: EventApi) => Promise<boolean>;
     eventMouseEnter?: (info: EventHoveringArg) => void;
@@ -52,7 +52,7 @@ interface ExtraRenderProps {
     timeFormat24h?: boolean;
     openContextMenuForEvent?: (
         event: EventApi,
-        mouseEvent: MouseEvent
+        mouseEvent: MouseEvent,
     ) => Promise<void>;
     toggleTask?: (event: EventApi, isComplete: boolean) => Promise<boolean>;
     forceNarrow?: boolean;
@@ -61,7 +61,7 @@ interface ExtraRenderProps {
 export function renderCalendar(
     containerEl: HTMLElement,
     eventSources: EventSourceInput[],
-    settings?: ExtraRenderProps
+    settings?: ExtraRenderProps,
 ): Calendar {
     const isMobile = window.innerWidth < 500;
     const isNarrow = settings?.forceNarrow || isMobile;
@@ -115,7 +115,7 @@ export function renderCalendar(
                         view.reveal(target);
                     } else {
                         new Notice(
-                            "Unable to reveal folder in this version of Obsidian."
+                            "Unable to reveal folder in this version of Obsidian.",
                         );
                     }
                 },
@@ -148,11 +148,11 @@ export function renderCalendar(
                   right: "analysis dayGridMonth,timeGridWeek,timeGridDay,listWeek",
               }
             : !isMobile
-            ? {
-                  right: "today,prev,next",
-                  left: "timeGrid3Days,timeGridDay,listWeek",
-              }
-            : false,
+              ? {
+                    right: "today,prev,next",
+                    left: "timeGrid3Days,timeGridDay,listWeek",
+                }
+              : false,
         footerToolbar: isMobile
             ? {
                   right: "today,prev,next",
@@ -219,7 +219,7 @@ export function renderCalendar(
                         if (e.target) {
                             let ret = await toggleTask(
                                 event,
-                                (e.target as HTMLInputElement).checked
+                                (e.target as HTMLInputElement).checked,
                             );
                             if (!ret) {
                                 (e.target as HTMLInputElement).checked = !(

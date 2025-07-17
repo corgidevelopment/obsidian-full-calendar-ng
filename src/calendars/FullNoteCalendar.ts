@@ -78,7 +78,7 @@ function stringifyYamlAtom(v: PrintableAtom): string {
 
 function stringifyYamlLine(
     k: string | number | symbol,
-    v: PrintableAtom
+    v: PrintableAtom,
 ): string {
     return `${String(k)}: ${stringifyYamlAtom(v)}`;
 }
@@ -96,7 +96,7 @@ function newFrontmatter(fields: Partial<OFCEvent>): string {
 
 function modifyFrontmatterString(
     page: string,
-    modifications: Partial<OFCEvent>
+    modifications: Partial<OFCEvent>,
 ): string {
     const frontmatter = extractFrontmatter(page)?.split("\n");
     let newFrontmatter: string[] = [];
@@ -136,8 +136,8 @@ function modifyFrontmatterString(
                 .filter((k) => !linesAdded.has(k))
                 .filter((k) => modifications[k] !== undefined)
                 .map((k) =>
-                    stringifyYamlLine(k, modifications[k] as PrintableAtom)
-                )
+                    stringifyYamlLine(k, modifications[k] as PrintableAtom),
+                ),
         );
     }
     return replaceFrontmatter(page, newFrontmatter.join("\n") + "\n");
@@ -181,7 +181,7 @@ export default class FullNoteCalendar extends EditableCalendar {
     }
 
     private async getEventsInFolderRecursive(
-        folder: TFolder
+        folder: TFolder,
     ): Promise<EditableEventResponse[]> {
         const events = await Promise.all(
             folder.children.map(async (file) => {
@@ -192,7 +192,7 @@ export default class FullNoteCalendar extends EditableCalendar {
                 } else {
                     return [];
                 }
-            })
+            }),
         );
         return events.flat();
     }
@@ -226,7 +226,7 @@ export default class FullNoteCalendar extends EditableCalendar {
 
     getNewLocation(
         location: EventPathLocation,
-        event: OFCEvent
+        event: OFCEvent,
     ): EventLocation {
         const { path, lineNumber } = location;
         if (lineNumber !== undefined) {
@@ -235,7 +235,7 @@ export default class FullNoteCalendar extends EditableCalendar {
         const file = this.app.getFileByPath(path);
         if (!file) {
             throw new Error(
-                `File ${path} either doesn't exist or is a folder.`
+                `File ${path} either doesn't exist or is a folder.`,
             );
         }
 
@@ -246,13 +246,13 @@ export default class FullNoteCalendar extends EditableCalendar {
     async modifyEvent(
         location: EventPathLocation,
         event: OFCEvent,
-        updateCacheWithLocation: (loc: EventLocation) => void
+        updateCacheWithLocation: (loc: EventLocation) => void,
     ): Promise<void> {
         const { path } = location;
         const file = this.app.getFileByPath(path);
         if (!file) {
             throw new Error(
-                `File ${path} either doesn't exist or is a folder.`
+                `File ${path} either doesn't exist or is a folder.`,
             );
         }
         const newLocation = this.getNewLocation(location, event);
@@ -263,7 +263,7 @@ export default class FullNoteCalendar extends EditableCalendar {
             await this.app.rename(file, newLocation.file.path);
         }
         await this.app.rewrite(file, (page) =>
-            modifyFrontmatterString(page, event)
+            modifyFrontmatterString(page, event),
         );
 
         return;
@@ -272,7 +272,7 @@ export default class FullNoteCalendar extends EditableCalendar {
     async move(
         fromLocation: EventPathLocation,
         toCalendar: EditableCalendar,
-        updateCacheWithLocation: (loc: EventLocation) => void
+        updateCacheWithLocation: (loc: EventLocation) => void,
     ): Promise<void> {
         const { path, lineNumber } = fromLocation;
         if (lineNumber !== undefined) {
@@ -280,7 +280,7 @@ export default class FullNoteCalendar extends EditableCalendar {
         }
         if (!(toCalendar instanceof FullNoteCalendar)) {
             throw new Error(
-                `Event cannot be moved to a note calendar from a calendar of type ${toCalendar.type}.`
+                `Event cannot be moved to a note calendar from a calendar of type ${toCalendar.type}.`,
             );
         }
         const file = this.app.getFileByPath(path);

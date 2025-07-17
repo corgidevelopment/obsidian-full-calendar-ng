@@ -3,7 +3,7 @@ import { useState } from "react";
 import { CalendarInfo } from "../../types";
 
 type ChangeListener = <T extends Partial<CalendarInfo>>(
-    fromString: (val: string) => T
+    fromString: (val: string) => T,
 ) => React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement>;
 type SourceWith<T extends Partial<CalendarInfo>, K> = T extends K ? T : never;
 
@@ -234,11 +234,11 @@ export const AddCalendarSource = ({
     const [setting, setSettingState] = useState(source);
     const [submitting, setSubmitingState] = useState(false);
     const [submitText, setSubmitText] = useState(
-        isCalDAV ? "Import Calendars" : "Add Calendar"
+        isCalDAV ? "Import Calendars" : "Add Calendar",
     );
 
     function makeChangeListener<T extends Partial<CalendarInfo>>(
-        fromString: (val: string) => T
+        fromString: (val: string) => T,
     ): React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement> {
         return (e) => setSettingState(fromString(e.target.value));
     }

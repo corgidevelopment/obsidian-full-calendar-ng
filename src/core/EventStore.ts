@@ -50,7 +50,7 @@ class OneToMany<T extends Identifier, FK extends Identifier> {
         const related = this.related.get(oneId);
         if (!related) {
             throw new Error(
-                `Unreachable: state: relation <${oneId}> exists in the foreign map but not the related map.`
+                `Unreachable: state: relation <${oneId}> exists in the foreign map but not the related map.`,
             );
         }
         related.delete(many.id);
@@ -184,7 +184,7 @@ export default class EventStore {
             const calendarId = this.calendarIndex.getRelated(new EventID(id));
             if (!calendarId) {
                 throw new Error(
-                    `Event with id ${id} does not have an associated calendar.`
+                    `Event with id ${id} does not have an associated calendar.`,
                 );
             }
             result.push({ id, event, location, calendarId });
@@ -203,8 +203,8 @@ export default class EventStore {
                 `Event with given ID "${id}" that was supposed to be added to calendar "${
                     calendar.id
                 }" already exists in the EventStore within calendar "${this.calendarIndex.getRelated(
-                    new EventID(id)
-                )}".`
+                    new EventID(id),
+                )}".`,
             );
         }
 
@@ -268,7 +268,7 @@ export default class EventStore {
 
     getEventsInFileAndCalendar(
         file: FileObj,
-        calendar: Calendar
+        calendar: Calendar,
     ): StoredEvent[] {
         const inFile = this.pathIndex.getBy(new Path(file));
         const inCalendar = this.calendarIndex.getBy(calendar);

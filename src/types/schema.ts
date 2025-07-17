@@ -9,7 +9,7 @@ const stripTime = (date: DateTime) => {
             month: date.month,
             day: date.day,
         },
-        { zone: "utc" }
+        { zone: "utc" },
     );
 };
 

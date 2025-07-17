@@ -19,7 +19,7 @@ describe("schema parsing tests", () => {
                     title: "Test",
                     date: "2021-01-01",
                     allDay: true,
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -37,7 +37,7 @@ describe("schema parsing tests", () => {
                     type: "single",
                     date: "2021-01-01",
                     allDay: true,
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -55,7 +55,7 @@ describe("schema parsing tests", () => {
                     type: "single",
                     date: "2021-01-01",
                     allDay: true,
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -75,7 +75,7 @@ describe("schema parsing tests", () => {
                     allDay: false,
                     startTime: "10:30",
                     endTime: null,
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": false,
@@ -97,7 +97,7 @@ describe("schema parsing tests", () => {
                     allDay: false,
                     startTime: "10:30 pm",
                     endTime: null,
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": false,
@@ -119,7 +119,7 @@ describe("schema parsing tests", () => {
                     allDay: false,
                     startTime: "10:30",
                     endTime: "11:45",
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": false,
@@ -140,7 +140,7 @@ describe("schema parsing tests", () => {
                     date: "2021-01-01",
                     endDate: "2021-01-03",
                     allDay: true,
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -159,7 +159,7 @@ describe("schema parsing tests", () => {
                     date: "2021-01-01",
                     allDay: true,
                     completed: null,
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -179,7 +179,7 @@ describe("schema parsing tests", () => {
                     date: "2021-01-01",
                     allDay: true,
                     completed: false,
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -199,7 +199,7 @@ describe("schema parsing tests", () => {
                     date: "2021-01-01",
                     allDay: true,
                     completed: "2021-01-01T10:30:00.000Z",
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -220,7 +220,7 @@ describe("schema parsing tests", () => {
                     allDay: true,
                     type: "recurring",
                     daysOfWeek: ["M"],
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -239,7 +239,7 @@ describe("schema parsing tests", () => {
                     allDay: true,
                     type: "recurring",
                     daysOfWeek: ["M", "W"],
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -260,7 +260,7 @@ describe("schema parsing tests", () => {
                     type: "recurring",
                     daysOfWeek: ["M"],
                     startRecur: "2023-01-05",
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -281,7 +281,7 @@ describe("schema parsing tests", () => {
                     type: "recurring",
                     daysOfWeek: ["M"],
                     endRecur: "2023-01-05",
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -303,7 +303,7 @@ describe("schema parsing tests", () => {
                     daysOfWeek: ["M"],
                     startRecur: "2023-01-05",
                     endRecur: "2023-05-12",
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -329,7 +329,7 @@ describe("schema parsing tests", () => {
                     rrule: "RRULE",
                     skipDates: [],
                     startDate: "2023-01-05",
-                })
+                }),
             ).toMatchInlineSnapshot(`
                 {
                   "allDay": true,
@@ -360,8 +360,8 @@ describe("schema parsing tests", () => {
                                 .padStart(2, "0")}-${date
                                 .getDate()
                                 .toString()
-                                .padStart(2, "0")}`
-                    )
+                                .padStart(2, "0")}`,
+                    ),
             )
             .override(
                 ParsedTime,
@@ -375,8 +375,8 @@ describe("schema parsing tests", () => {
                                 .padStart(2, "0")}:${date
                                 .getMinutes()
                                 .toString()
-                                .padStart(2, "0")}`
-                    )
+                                .padStart(2, "0")}`,
+                    ),
             );
 
         it("parses", () => {
@@ -394,7 +394,7 @@ describe("schema parsing tests", () => {
             fc.assert(
                 fc.property(EventInputArbitrary, (obj) => {
                     expect(() => parseEvent(obj)).not.toThrow();
-                })
+                }),
             );
         });
 
@@ -415,7 +415,7 @@ describe("schema parsing tests", () => {
                     const obj = serializeEvent(event);
                     const newParsedEvent = parseEvent(obj);
                     expect(newParsedEvent).toEqual(event);
-                })
+                }),
             );
         });
     });

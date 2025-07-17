@@ -15,7 +15,7 @@ export class RequestBridge {
         if (credentials) {
             this.setRequestHeader(
                 "Authorization",
-                "Basic " + this.encode(credentials)
+                "Basic " + this.encode(credentials),
             );
         }
     }
@@ -47,7 +47,7 @@ export class Basic extends transport.Transport {
     send(
         request: Request,
         url: string,
-        options?: transport.TransportOptions
+        options?: transport.TransportOptions,
     ): Promise<any> {
         return co(
             function* (this: Basic) {
@@ -69,9 +69,8 @@ export class Basic extends transport.Transport {
                         body: request.requestData,
                         headers: requestBridge.headers,
                     });
-                    requestBridge.responseText = yield Promise.resolve(
-                        response
-                    );
+                    requestBridge.responseText =
+                        yield Promise.resolve(response);
                     result = transformResponse
                         ? transformResponse(requestBridge)
                         : requestBridge.responseText;
@@ -81,7 +80,7 @@ export class Basic extends transport.Transport {
                 }
 
                 return result;
-            }.bind(this)
+            }.bind(this),
         );
     }
 }

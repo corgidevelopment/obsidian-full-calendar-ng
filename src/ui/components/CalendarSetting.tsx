@@ -210,18 +210,18 @@ export class CalendarSettings extends React.Component<
                             onClick={() => {
                                 if (
                                     this.state.sources.filter(
-                                        (s) => s.type === "dailynote"
+                                        (s) => s.type === "dailynote",
                                     ).length > 1
                                 ) {
                                     new Notice(
-                                        "Only one daily note calendar is allowed."
+                                        "Only one daily note calendar is allowed.",
                                     );
                                     return;
                                 }
                                 this.props.submit(
                                     this.state.sources.map(
-                                        (elt) => elt as CalendarInfo
-                                    )
+                                        (elt) => elt as CalendarInfo,
+                                    ),
                                 );
                                 this.setState({ dirty: false });
                             }}

@@ -60,6 +60,6 @@ export abstract class EditableCalendar extends Calendar {
     abstract modifyEvent(
         location: EventPathLocation,
         newEvent: OFCEvent,
-        updateCacheWithLocation: (loc: EventLocation) => void
+        updateCacheWithLocation: (loc: EventLocation) => void,
     ): Promise<void>;
 }

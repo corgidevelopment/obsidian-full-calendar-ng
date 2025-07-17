@@ -1,3 +1,5 @@
+console.log("Reloaded Full Calendar at " + new Date().toISOString());
+
 import { MarkdownView, Notice, Plugin, TFile } from "obsidian";
 import {
     CalendarView,
@@ -28,7 +30,7 @@ export default class FullCalendarPlugin extends Plugin {
                 ? new FullNoteCalendar(
                       new ObsidianIO(this.app),
                       info.color,
-                      info.directory
+                      info.directory,
                   )
                 : null,
         dailynote: (info) =>
@@ -36,7 +38,7 @@ export default class FullCalendarPlugin extends Plugin {
                 ? new DailyNoteCalendar(
                       new ObsidianIO(this.app),
                       info.color,
-                      info.heading
+                      info.heading,
                   )
                 : null,
         ical: (info) =>
@@ -52,7 +54,7 @@ export default class FullCalendarPlugin extends Plugin {
                           password: info.password,
                       },
                       info.url,
-                      info.homeUrl
+                      info.homeUrl,
                   )
                 : null,
         FOR_TEST_ONLY: () => null,
@@ -73,7 +75,7 @@ export default class FullCalendarPlugin extends Plugin {
             });
         } else {
             await Promise.all(
-                leaves.map((l) => (l.view as CalendarView).onOpen())
+                leaves.map((l) => (l.view as CalendarView).onOpen()),
             );
         }
     }
@@ -85,7 +87,7 @@ export default class FullCalendarPlugin extends Plugin {
         this.registerEvent(
             this.app.metadataCache.on("changed", (file) => {
                 this.cache.fileUpdated(file);
-            })
+            }),
         );
 
         this.registerEvent(
@@ -94,7 +96,7 @@ export default class FullCalendarPlugin extends Plugin {
                     console.debug("FILE RENAMED", file.path);
                     this.cache.deleteEventsAtPath(oldPath);
                 }
-            })
+            }),
         );
 
         this.registerEvent(
@@ -103,7 +105,7 @@ export default class FullCalendarPlugin extends Plugin {
                     console.debug("FILE DELETED", file.path);
                     this.cache.deleteEventsAtPath(file.path);
                 }
-            })
+            }),
         );
 
         // @ts-ignore
@@ -111,12 +113,12 @@ export default class FullCalendarPlugin extends Plugin {
 
         this.registerView(
             FULL_CALENDAR_VIEW_TYPE,
-            (leaf) => new CalendarView(leaf, this, false)
+            (leaf) => new CalendarView(leaf, this, false),
         );
 
         this.registerView(
             FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
-            (leaf) => new CalendarView(leaf, this, true)
+            (leaf) => new CalendarView(leaf, this, true),
         );
 
         this.addRibbonIcon(
@@ -124,7 +126,7 @@ export default class FullCalendarPlugin extends Plugin {
             "Open Full Calendar",
             async (_: MouseEvent) => {
                 await this.activateView();
-            }
+            },
         );
 
         this.addSettingTab(new FullCalendarSettingTab(this.app, this));
@@ -144,7 +146,7 @@ export default class FullCalendarPlugin extends Plugin {
                 this.cache.reset(this.settings.calendarSources);
                 this.app.workspace.detachLeavesOfType(FULL_CALENDAR_VIEW_TYPE);
                 this.app.workspace.detachLeavesOfType(
-                    FULL_CALENDAR_SIDEBAR_VIEW_TYPE
+                    FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
                 );
                 new Notice("Full Calendar has been reset.");
             },
@@ -172,7 +174,7 @@ export default class FullCalendarPlugin extends Plugin {
             callback: () => {
                 if (
                     this.app.workspace.getLeavesOfType(
-                        FULL_CALENDAR_SIDEBAR_VIEW_TYPE
+                        FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
                     ).length
                 ) {
                     return;
@@ -198,7 +200,7 @@ export default class FullCalendarPlugin extends Plugin {
         this.settings = Object.assign(
             {},
             DEFAULT_SETTINGS,
-            await this.loadData()
+            await this.loadData(),
         );
     }
 

@@ -23,7 +23,7 @@ function getCalendarColors(color: string | null | undefined): {
     textColor: string;
 } {
     let textVar = getComputedStyle(document.body).getPropertyValue(
-        "--text-on-accent"
+        "--text-on-accent",
     );
     if (color) {
         const m = color
@@ -44,7 +44,7 @@ function getCalendarColors(color: string | null | undefined): {
         color:
             color ||
             getComputedStyle(document.body).getPropertyValue(
-                "--interactive-accent"
+                "--interactive-accent",
             ),
         textColor: textVar,
     };
@@ -59,7 +59,7 @@ export class CalendarView extends ItemView {
     constructor(
         leaf: WorkspaceLeaf,
         plugin: FullCalendarPlugin,
-        inSidebar = false
+        inSidebar = false,
     ) {
         super(leaf);
         this.plugin = plugin;
@@ -85,11 +85,11 @@ export class CalendarView extends ItemView {
             ({ events, editable, color, id }): EventSourceInput => ({
                 id,
                 events: events.flatMap(
-                    (e) => toEventInput(e.id, e.event) || []
+                    (e) => toEventInput(e.id, e.event) || [],
                 ),
                 editable,
                 ...getCalendarColors(color),
-            })
+            }),
         );
     }
 
@@ -109,7 +109,7 @@ export class CalendarView extends ItemView {
 
         if (
             this.plugin.settings.calendarSources.filter(
-                (s) => s.type !== "FOR_TEST_ONLY"
+                (s) => s.type !== "FOR_TEST_ONLY",
             ).length === 0
         ) {
             renderOnboarding(this.app, this.plugin, calendarEl);
@@ -133,7 +133,7 @@ export class CalendarView extends ItemView {
                         await openFileForEvent(
                             this.plugin.cache,
                             this.app,
-                            info.event.id
+                            info.event.id,
                         );
                     } else {
                         launchEditModal(this.plugin, info.event.id);
@@ -157,7 +157,7 @@ export class CalendarView extends ItemView {
                 const partialEvent = dateEndpointsToFrontmatter(
                     start,
                     end,
-                    allDay
+                    allDay,
                 );
                 try {
                     if (
@@ -180,7 +180,7 @@ export class CalendarView extends ItemView {
                 try {
                     const didModify = await this.plugin.cache.updateEventWithId(
                         oldEvent.id,
-                        fromEventApi(newEvent)
+                        fromEventApi(newEvent),
                     );
                     return !!didModify;
                 } catch (e: any) {
@@ -193,7 +193,7 @@ export class CalendarView extends ItemView {
             eventMouseEnter: async (info) => {
                 try {
                     const location = this.plugin.cache.getInfoForEditableEvent(
-                        info.event.id
+                        info.event.id,
                     ).location;
                     if (location) {
                         this.app.workspace.trigger("hover-link", {
@@ -228,9 +228,9 @@ export class CalendarView extends ItemView {
                                 .onClick(async () => {
                                     await this.plugin.cache.processEvent(
                                         e.id,
-                                        (e) => toggleTask(e, false)
+                                        (e) => toggleTask(e, false),
                                     );
-                                })
+                                }),
                         );
                     } else {
                         menu.addItem((item) =>
@@ -239,9 +239,9 @@ export class CalendarView extends ItemView {
                                 .onClick(async () => {
                                     await this.plugin.cache.processEvent(
                                         e.id,
-                                        unmakeTask
+                                        unmakeTask,
                                     );
-                                })
+                                }),
                         );
                     }
                     menu.addSeparator();
@@ -251,7 +251,7 @@ export class CalendarView extends ItemView {
                                 return;
                             }
                             openFileForEvent(this.plugin.cache, this.app, e.id);
-                        })
+                        }),
                     );
                     menu.addItem((item) =>
                         item.setTitle("Delete").onClick(async () => {
@@ -260,12 +260,12 @@ export class CalendarView extends ItemView {
                             }
                             await this.plugin.cache.deleteEvent(e.id);
                             new Notice(`Deleted event "${e.title}".`);
-                        })
+                        }),
                     );
                 } else {
                     menu.addItem((item) => {
                         item.setTitle(
-                            "No actions available on remote events"
+                            "No actions available on remote events",
                         ).setDisabled(true);
                     });
                 }
@@ -284,7 +284,7 @@ export class CalendarView extends ItemView {
                 try {
                     await this.plugin.cache.updateEventWithId(
                         e.id,
-                        toggleTask(event, isDone)
+                        toggleTask(event, isDone),
                     );
                 } catch (e) {
                     if (e instanceof FCError) {
@@ -311,7 +311,7 @@ export class CalendarView extends ItemView {
                 this.fullCalendarView?.removeAllEventSources();
                 const sources = this.translateSources();
                 sources.forEach((source) =>
-                    this.fullCalendarView?.addEventSource(source)
+                    this.fullCalendarView?.addEventSource(source),
                 );
                 return;
             } else if (payload.type === "events") {
@@ -327,7 +327,7 @@ export class CalendarView extends ItemView {
                         event.remove();
                     } else {
                         console.warn(
-                            `Event with id=${id} was slated to be removed but does not exist in the calendar.`
+                            `Event with id=${id} was slated to be removed but does not exist in the calendar.`,
                         );
                     }
                 });
@@ -341,7 +341,7 @@ export class CalendarView extends ItemView {
                     });
                     const addedEvent = this.fullCalendarView?.addEvent(
                         eventInput!,
-                        calendarId
+                        calendarId,
                     );
                     console.debug("event that was added", addedEvent);
                 });
@@ -354,7 +354,7 @@ export class CalendarView extends ItemView {
                 this.fullCalendarView?.addEventSource({
                     id,
                     events: events.flatMap(
-                        ({ id, event }) => toEventInput(id, event) || []
+                        ({ id, event }) => toEventInput(id, event) || [],
                     ),
                     editable,
                     ...getCalendarColors(color),

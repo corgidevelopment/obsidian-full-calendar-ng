@@ -5,14 +5,14 @@ import { Authentication, CalDAVSource } from "src/types";
 
 export async function importCalendars(
     auth: Authentication,
-    url: string
+    url: string,
 ): Promise<CalDAVSource[]> {
     try {
         let xhr = new transport.Basic(
             new dav.Credentials({
                 username: auth.username,
                 password: auth.password,
-            })
+            }),
         );
         let account = await dav.createAccount({
             xhr: xhr,
@@ -38,7 +38,7 @@ export async function importCalendars(
                     url: calendar.url,
                     color: color ? (Color(color).hex() as string) : null,
                 };
-            })
+            }),
         );
         return calendars
             .flatMap((c) => (c ? c : []))

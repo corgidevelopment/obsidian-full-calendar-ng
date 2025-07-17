@@ -18,7 +18,7 @@ export default class CalDAVCalendar extends RemoteCalendar {
         name: string,
         credentials: Authentication,
         serverUrl: string,
-        calendarUrl: string
+        calendarUrl: string,
     ) {
         super(color);
         this._name = name;
@@ -32,14 +32,14 @@ export default class CalDAVCalendar extends RemoteCalendar {
             new dav.Credentials({
                 username: this.credentials.username,
                 password: this.credentials.password,
-            })
+            }),
         );
         let account = await dav.createAccount({
             xhr: xhr,
             server: this.serverUrl,
         });
         let calendar = account.calendars.find(
-            (calendar) => calendar.url === this.calendarUrl
+            (calendar) => calendar.url === this.calendarUrl,
         );
         if (!calendar) {
             return;

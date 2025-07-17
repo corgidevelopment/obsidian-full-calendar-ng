@@ -6,7 +6,7 @@ import { CalendarInfo } from "../types";
 export function renderOnboarding(
     app: App,
     plugin: FullCalendarPlugin,
-    el: HTMLElement
+    el: HTMLElement,
 ) {
     el.style.height = "100%";
     const nocal = el.createDiv();

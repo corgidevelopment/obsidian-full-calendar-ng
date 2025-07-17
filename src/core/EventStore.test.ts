@@ -12,16 +12,16 @@ const withCounter = <T>(f: (x: string) => T, label?: string) => {
     return () => f(c());
 };
 
-const mockFile = withCounter((path) => ({ path } as TFile), "file");
+const mockFile = withCounter((path) => ({ path }) as TFile, "file");
 
 const mockCalendar = withCounter(
-    (id): Calendar => ({ id } as Calendar),
-    "calendar"
+    (id): Calendar => ({ id }) as Calendar,
+    "calendar",
 );
 
 const mockEvent = withCounter(
-    (title): OFCEvent => ({ title } as OFCEvent),
-    "event"
+    (title): OFCEvent => ({ title }) as OFCEvent,
+    "event",
 );
 
 const mockLocation = (withLine = false) => ({
@@ -88,19 +88,19 @@ describe.each([true, false])(
             store.add({ calendar, location, id, event });
 
             expect(() =>
-                store.add({ calendar, location, id, event })
+                store.add({ calendar, location, id, event }),
             ).toThrow();
             const calendar2 = mockCalendar();
             const event2 = mockEvent();
             const location2 = mockLocation(withLineNumbers);
             expect(() =>
-                store.add({ calendar: calendar2, location, id, event })
+                store.add({ calendar: calendar2, location, id, event }),
             ).toThrow();
             expect(() =>
-                store.add({ calendar, location: location2, id, event })
+                store.add({ calendar, location: location2, id, event }),
             ).toThrow();
             expect(() =>
-                store.add({ calendar, location, id, event: event2 })
+                store.add({ calendar, location, id, event: event2 }),
             ).toThrow();
         });
 
@@ -458,7 +458,7 @@ describe.each([true, false])(
             expect(store.getEventDetails(id2)?.calendarId).toBe(calendar2.id);
             expect(store.getEventDetails(id3)?.calendarId).toBe(calendar2.id);
             expect(
-                store.getEventsInFileAndCalendar(location2.file, calendar2)
+                store.getEventsInFileAndCalendar(location2.file, calendar2),
             ).toEqual([
                 {
                     event: event2,
@@ -667,5 +667,5 @@ describe.each([true, false])(
             expect(store.fileCount).toBe(0);
             expect(store.calendarCount).toBe(0);
         });
-    }
+    },
 );

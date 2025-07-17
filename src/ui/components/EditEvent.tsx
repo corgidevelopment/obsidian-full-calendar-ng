@@ -5,7 +5,7 @@ import { CalendarInfo, OFCEvent } from "../../types";
 
 function makeChangeListener<T>(
     setState: React.Dispatch<React.SetStateAction<T>>,
-    fromString: (val: string) => T
+    fromString: (val: string) => T,
 ): React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement> {
     return (e) => setState(fromString(e.target.value));
 }
@@ -101,16 +101,16 @@ export const EditEvent = ({
             ? initialEvent.type === "single"
                 ? initialEvent.date
                 : initialEvent.type === "recurring"
-                ? initialEvent.startRecur
-                : initialEvent.type === "rrule"
-                ? initialEvent.startDate
-                : ""
-            : ""
+                  ? initialEvent.startRecur
+                  : initialEvent.type === "rrule"
+                    ? initialEvent.startDate
+                    : ""
+            : "",
     );
     const [endDate, setEndDate] = useState(
         initialEvent && initialEvent.type === "single"
             ? initialEvent.endDate
-            : undefined
+            : undefined,
     );
 
     let initialStartTime = "";
@@ -126,13 +126,13 @@ export const EditEvent = ({
     const [endTime, setEndTime] = useState(initialEndTime);
     const [title, setTitle] = useState(initialEvent?.title || "");
     const [isRecurring, setIsRecurring] = useState(
-        initialEvent?.type === "recurring" || false
+        initialEvent?.type === "recurring" || false,
     );
     const [endRecur, setEndRecur] = useState("");
 
     const [daysOfWeek, setDaysOfWeek] = useState<string[]>(
         (initialEvent?.type === "recurring" ? initialEvent.daysOfWeek : []) ||
-            []
+            [],
     );
 
     const [allDay, setAllDay] = useState(initialEvent?.allDay || false);
@@ -144,13 +144,13 @@ export const EditEvent = ({
             initialEvent.completed !== null &&
             initialEvent.completed !== undefined
             ? initialEvent.completed
-            : false
+            : false,
     );
 
     const [isTask, setIsTask] = useState(
         initialEvent?.type === "single" &&
             initialEvent.completed !== undefined &&
-            initialEvent.completed !== null
+            initialEvent.completed !== null,
     );
 
     const titleRef = useRef<HTMLInputElement>(null);
@@ -190,7 +190,7 @@ export const EditEvent = ({
                           completed: isTask ? complete : null,
                       }),
             },
-            calendarIndex
+            calendarIndex,
         );
     };
 
@@ -220,14 +220,14 @@ export const EditEvent = ({
                         value={calendarIndex}
                         onChange={makeChangeListener(
                             setCalendarIndex,
-                            parseInt
+                            parseInt,
                         )}
                     >
                         {calendars
                             .flatMap((cal) =>
                                 cal.type === "local" || cal.type === "dailynote"
                                     ? [cal]
-                                    : []
+                                    : [],
                             )
                             .map((cal, idx) => (
                                 <option
@@ -271,7 +271,7 @@ export const EditEvent = ({
                                 required
                                 onChange={makeChangeListener(
                                     setStartTime,
-                                    (x) => x
+                                    (x) => x,
                                 )}
                             />
                             -
@@ -282,7 +282,7 @@ export const EditEvent = ({
                                 required
                                 onChange={makeChangeListener(
                                     setEndTime,
-                                    (x) => x
+                                    (x) => x,
                                 )}
                             />
                         </>
@@ -329,7 +329,7 @@ export const EditEvent = ({
                                 value={endRecur}
                                 onChange={makeChangeListener(
                                     setEndRecur,
-                                    (x) => x
+                                    (x) => x,
                                 )}
                             />
                         </p>
@@ -359,7 +359,7 @@ export const EditEvent = ({
                                 setComplete(
                                     e.target.checked
                                         ? DateTime.now().toISO()
-                                        : false
+                                        : false,
                                 )
                             }
                             type="checkbox"

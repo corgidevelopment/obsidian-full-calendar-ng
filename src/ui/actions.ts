@@ -11,7 +11,7 @@ import EventCache from "src/core/EventCache";
 export async function openFileForEvent(
     cache: EventCache,
     { workspace, vault }: { workspace: Workspace; vault: Vault },
-    id: string
+    id: string,
 ) {
     const details = cache.getInfoForEditableEvent(id);
     if (!details) {

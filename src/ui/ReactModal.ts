@@ -1,9 +1,9 @@
 import * as React from "react";
-import * as ReactDOM from "react-dom";
+import ReactDOM from "react-dom/client";
 import { App, Modal } from "obsidian";
 
 type RenderCallback = (
-    close: () => void
+    close: () => void,
 ) => Promise<ReturnType<typeof React.createElement>>;
 export default class ReactModal<Props, Component> extends Modal {
     onOpenCallback: RenderCallback;
@@ -12,17 +12,24 @@ export default class ReactModal<Props, Component> extends Modal {
         super(app);
         this.onOpenCallback = onOpenCallback;
     }
-
+    // Somewhere in your class (to unmount later)
+    private reactRoot: ReactDOM.Root | null = null;
     async onOpen() {
         const { contentEl } = this;
-        ReactDOM.render(
-            await this.onOpenCallback(() => this.close()),
-            contentEl
-        );
+
+        // Create root and render component
+        this.reactRoot = ReactDOM.createRoot(contentEl);
+
+        const element = await this.onOpenCallback(() => this.close());
+        this.reactRoot.render(element);
     }
 
     onClose() {
-        const { contentEl } = this;
-        ReactDOM.unmountComponentAtNode(contentEl);
+        if (this.reactRoot) {
+            this.reactRoot.unmount();
+            this.reactRoot = null;
+        }
+
+        this.contentEl.empty(); // still needed for modal cleanup
     }
 }

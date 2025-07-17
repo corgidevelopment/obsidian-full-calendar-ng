@@ -27,8 +27,8 @@ const withCounter = <T>(f: (x: string) => T, label?: string) => {
 };
 
 const mockEvent = withCounter(
-    (title): OFCEvent => ({ title } as OFCEvent),
-    "event"
+    (title): OFCEvent => ({ title }) as OFCEvent,
+    "event",
 );
 
 class TestReadonlyCalendar extends Calendar {
@@ -57,7 +57,7 @@ class TestReadonlyCalendar extends Calendar {
 
 // For tests, we only want test calendars to
 const initializerMap = (
-    cb: (info: CalendarInfo) => Calendar | null
+    cb: (info: CalendarInfo) => Calendar | null,
 ): CalendarInitializerMap => ({
     FOR_TEST_ONLY: cb,
     local: () => null,
@@ -90,9 +90,9 @@ describe("event cache with readonly calendar", () => {
                 return new TestReadonlyCalendar(
                     info.color,
                     info.id,
-                    info.events || []
+                    info.events || [],
                 );
-            })
+            }),
         );
         cache.reset([
             { type: "FOR_TEST_ONLY", color: "#000000", id: "test", events },
@@ -204,7 +204,7 @@ class TestEditable extends EditableCalendar {
     constructor(
         color: string,
         directory: string,
-        events: EditableEventResponse[]
+        events: EditableEventResponse[],
     ) {
         super(color);
         this._directory = directory;
@@ -236,7 +236,7 @@ class TestEditable extends EditableCalendar {
     }
 }
 
-const mockFile = withCounter((path) => ({ path } as TFile), "file");
+const mockFile = withCounter((path) => ({ path }) as TFile, "file");
 const mockLocation = (withLine = false) => ({
     file: mockFile(),
     lineNumber: withLine ? Math.floor(Math.random() * 100) : undefined,
@@ -253,7 +253,7 @@ const assertCacheContentCounts = (
         calendars,
         files,
         events,
-    }: { calendars: number; files: number; events: number }
+    }: { calendars: number; files: number; events: number },
 ) => {
     expect(cache._storeForTest.calendarCount).toBe(calendars);
     expect(cache._storeForTest.fileCount).toBe(files);
@@ -268,7 +268,7 @@ describe("editable calendars", () => {
                     return null;
                 }
                 return new TestEditable(info.color, info.id, events);
-            })
+            }),
         );
         cache.reset([
             { type: "FOR_TEST_ONLY", id: "test", events: [], color: "black" },
@@ -314,7 +314,7 @@ describe("editable calendars", () => {
             const event = mockEvent();
             const loc = mockLocation();
             calendar.createEvent.mockReturnValueOnce(
-                new Promise((resolve) => resolve(loc))
+                new Promise((resolve) => resolve(loc)),
             );
             expect(await cache.addEvent(getId("test"), event)).toBeTruthy();
             expect(calendar.createEvent.mock.calls.length).toBe(1);
@@ -338,7 +338,7 @@ describe("editable calendars", () => {
             const event2 = mockEvent();
             const loc = { file: event[1].file, lineNumber: 102 };
             calendar.createEvent.mockReturnValueOnce(
-                new Promise((resolve) => resolve(loc))
+                new Promise((resolve) => resolve(loc)),
             );
             expect(await cache.addEvent(getId("test"), event2)).toBeTruthy();
             expect(calendar.createEvent.mock.calls.length).toBe(1);
@@ -362,7 +362,7 @@ describe("editable calendars", () => {
 
             const calendar = getCalendar(cache, "test");
             calendar.createEvent.mockReturnValueOnce(
-                new Promise((resolve) => resolve(loc))
+                new Promise((resolve) => resolve(loc)),
             );
             expect(await cache.addEvent(getId("test"), event2)).toBeTruthy();
             expect(calendar.createEvent.mock.calls.length).toBe(1);
@@ -385,23 +385,23 @@ describe("editable calendars", () => {
 
             calendar.createEvent
                 .mockReturnValueOnce(
-                    new Promise((resolve) => resolve(mockLocation()))
+                    new Promise((resolve) => resolve(mockLocation())),
                 )
                 .mockReturnValueOnce(
-                    new Promise((resolve) => resolve(mockLocation()))
+                    new Promise((resolve) => resolve(mockLocation())),
                 )
                 .mockReturnValueOnce(
-                    new Promise((resolve) => resolve(mockLocation()))
+                    new Promise((resolve) => resolve(mockLocation())),
                 );
 
             expect(
-                await cache.addEvent(getId("test"), mockEvent())
+                await cache.addEvent(getId("test"), mockEvent()),
             ).toBeTruthy();
             expect(
-                await cache.addEvent(getId("test"), mockEvent())
+                await cache.addEvent(getId("test"), mockEvent()),
             ).toBeTruthy();
             expect(
-                await cache.addEvent(getId("test"), mockEvent())
+                await cache.addEvent(getId("test"), mockEvent()),
             ).toBeTruthy();
 
             expect(calendar.createEvent.mock.calls.length).toBe(3);
@@ -466,7 +466,7 @@ describe("editable calendars", () => {
 
             assertFailed(
                 () => cache.deleteEvent("unknown ID"),
-                /not present in event store/
+                /not present in event store/,
             );
 
             const calendar = getCalendar(cache, "test");
@@ -519,14 +519,14 @@ describe("editable calendars", () => {
 
             const calendar = getCalendar(cache, "test");
             calendar.modifyEvent.mockReturnValueOnce(
-                new Promise((resolve) => resolve(newLocation))
+                new Promise((resolve) => resolve(newLocation)),
             );
             calendar.getNewLocation.mockReturnValueOnce(
-                new Promise((resolve) => resolve(newLocation))
+                new Promise((resolve) => resolve(newLocation)),
             );
 
             expect(
-                cache._storeForTest.getEventsInFile(oldEvent[1].file).length
+                cache._storeForTest.getEventsInFile(oldEvent[1].file).length,
             ).toBe(1);
 
             await cache.updateEventWithId(id, newEvent);
@@ -546,7 +546,7 @@ describe("editable calendars", () => {
 
             for (const { file, numEvents } of fileDetails) {
                 expect(cache._storeForTest.getEventsInFile(file).length).toBe(
-                    numEvents
+                    numEvents,
                 );
             }
         });
@@ -565,7 +565,7 @@ describe("editable calendars", () => {
 
             assertFailed(
                 () => cache.updateEventWithId("unknown ID", mockEvent()),
-                /not present in event store/
+                /not present in event store/,
             );
 
             const sources = cache.getAllEvents();
@@ -635,7 +635,7 @@ describe("editable calendars", () => {
                 });
 
                 calendar.getEventsInFile.mockReturnValue(
-                    new Promise((resolve) => resolve(eventsInFile))
+                    new Promise((resolve) => resolve(eventsInFile)),
                 );
 
                 await cache.fileUpdated(file as TFile);
@@ -658,18 +658,18 @@ describe("editable calendars", () => {
                     expect(callbackInvocation.toRemove).toBeDefined();
 
                     expect(callbackInvocation.toRemove.length).toBe(
-                        toRemoveLength
+                        toRemoveLength,
                     );
                     expect(callbackInvocation.toAdd.length).toBe(
-                        eventsToAdd.length
+                        eventsToAdd.length,
                     );
                     expect(
-                        callbackInvocation.toAdd.map((e) => e.event)
+                        callbackInvocation.toAdd.map((e) => e.event),
                     ).toEqual(eventsToAdd);
                 } else {
                     expect(callbackMock.mock.calls.length).toBe(0);
                 }
-            }
+            },
         );
         it.todo("updates when events are the same but locations are different");
     });

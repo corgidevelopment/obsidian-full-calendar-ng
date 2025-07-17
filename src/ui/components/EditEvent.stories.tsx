@@ -20,7 +20,7 @@ const calendars = [
 
 const submit = async function (
     event: OFCEvent,
-    calendarIndex: number
+    calendarIndex: number,
 ): Promise<void> {
     alert("Event submitted, see console for details");
     console.log({ event, calendarIndex });

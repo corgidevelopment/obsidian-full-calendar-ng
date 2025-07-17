@@ -23,7 +23,7 @@ export type UpdateViewCallback = (
               toAdd: CacheEntry[];
           }
         | { type: "calendar"; calendar: OFCEventSource }
-        | { type: "resync" }
+        | { type: "resync" },
 ) => void;
 
 const SECOND = 1000;
@@ -34,7 +34,7 @@ const MILLICONDS_BETWEEN_REVALIDATIONS = 5 * MINUTE;
 // TODO: Write tests for this function.
 export const eventsAreDifferent = (
     oldEvents: OFCEvent[],
-    newEvents: OFCEvent[]
+    newEvents: OFCEvent[],
 ): boolean => {
     oldEvents.sort((a, b) => a.title.localeCompare(b.title));
     newEvents.sort((a, b) => a.title.localeCompare(b.title));
@@ -148,7 +148,7 @@ export default class EventCache {
                     location,
                     id: event.id || this.generateId(),
                     event,
-                })
+                }),
             );
         }
         this.initialized = true;
@@ -224,7 +224,7 @@ export default class EventCache {
         }
         if (!location) {
             throw new Error(
-                `Event with ID ${eventId} does not have a location in the Vault.`
+                `Event with ID ${eventId} does not have a location in the Vault.`,
             );
         }
         return { calendar, location };
@@ -301,7 +301,7 @@ export default class EventCache {
         }
         if (!(calendar instanceof EditableCalendar)) {
             console.error(
-                `Event cannot be added to non-editable calendar of type ${calendar.type}`
+                `Event cannot be added to non-editable calendar of type ${calendar.type}`,
             );
             throw new Error(`Cannot add event to a read-only calendar`);
         }
@@ -336,7 +336,7 @@ export default class EventCache {
      */
     async updateEventWithId(
         eventId: string,
-        newEvent: OFCEvent
+        newEvent: OFCEvent,
     ): Promise<boolean> {
         const { calendar, location: oldLocation } =
             this.getInfoForEditableEvent(eventId);
@@ -354,12 +354,12 @@ export default class EventCache {
                     id: eventId,
                     event: newEvent,
                 });
-            }
+            },
         );
 
         this.updateViews(
             [eventId],
-            [{ id: eventId, calendarId: calendar.id, event: newEvent }]
+            [{ id: eventId, calendarId: calendar.id, event: newEvent }],
         );
         return true;
     }
@@ -376,7 +376,7 @@ export default class EventCache {
      */
     processEvent(
         id: string,
-        process: (e: OFCEvent) => OFCEvent
+        process: (e: OFCEvent) => OFCEvent,
     ): Promise<boolean> {
         const event = this.store.getEventById(id);
         if (!event) {
@@ -389,13 +389,13 @@ export default class EventCache {
 
     async moveEventToCalendar(
         eventId: string,
-        newCalendarId: string
+        newCalendarId: string,
     ): Promise<void> {
         const event = this.store.getEventById(eventId);
         const details = this.store.getEventDetails(eventId);
         if (!details || !event) {
             throw new Error(
-                `Tried moving unknown event ID ${eventId} to calendar ${newCalendarId}`
+                `Tried moving unknown event ID ${eventId} to calendar ${newCalendarId}`,
             );
         }
         const { calendarId: oldCalendarId, location } = details;
@@ -418,7 +418,7 @@ export default class EventCache {
             )
         ) {
             throw new Error(
-                `Both calendars must be Full Note Calendars to move events between them.`
+                `Both calendars must be Full Note Calendars to move events between them.`,
             );
         }
 
@@ -456,7 +456,7 @@ export default class EventCache {
 
         // Get all calendars that contain events stored in this file.
         const calendars = [...this.calendars.values()].flatMap((c) =>
-            c instanceof EditableCalendar && c.containsPath(file.path) ? c : []
+            c instanceof EditableCalendar && c.containsPath(file.path) ? c : [],
         );
 
         // If no calendars exist, return early.
@@ -470,7 +470,7 @@ export default class EventCache {
         for (const calendar of calendars) {
             const oldEvents = this.store.getEventsInFileAndCalendar(
                 file,
-                calendar
+                calendar,
             );
             // TODO: Relying on calendars for file I/O means that we're potentially
             // reading the file from disk multiple times. Could be more effecient if
@@ -484,20 +484,20 @@ export default class EventCache {
             // TODO: It's possible events are not different, but the location has changed.
             const eventsHaveChanged = eventsAreDifferent(
                 oldEventsMapped,
-                newEventsMapped
+                newEventsMapped,
             );
 
             // If no events have changed from what's in the cache, then there's no need to update the event store.
             if (!eventsHaveChanged) {
                 console.debug(
-                    "events have not changed, do not update store or view."
+                    "events have not changed, do not update store or view.",
                 );
                 return;
             }
             console.debug(
                 "events have changed, updating store and views...",
                 oldEvents,
-                newEvents
+                newEvents,
             );
 
             const newEventsWithIds = newEvents.map(([event, location]) => ({
@@ -548,7 +548,7 @@ export default class EventCache {
         }
 
         const remoteCalendars = [...this.calendars.values()].flatMap((c) =>
-            c instanceof RemoteCalendar ? c : []
+            c instanceof RemoteCalendar ? c : [],
         );
 
         console.warn("Revalidating remote calendars...");
@@ -588,11 +588,11 @@ export default class EventCache {
             this.lastRevalidation = Date.now();
             console.debug("All remote calendars have been fetched.");
             const errors = results.flatMap((result) =>
-                result.status === "rejected" ? result.reason : []
+                result.status === "rejected" ? result.reason : [],
             );
             if (errors.length > 0) {
                 new Notice(
-                    "A remote calendar failed to load. Check the console for more details."
+                    "A remote calendar failed to load. Check the console for more details.",
                 );
                 errors.forEach((reason) => {
                     console.error(`Revalidation failed with reason: ${reason}`);

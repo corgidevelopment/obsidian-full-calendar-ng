@@ -22,19 +22,12 @@ async function assertFailed(func: () => Promise<any>, message: RegExp) {
 const makeApp = (app: MockApp): ObsidianInterface => ({
     getAbstractFileByPath: (path) => app.vault.getAbstractFileByPath(path),
     getFileByPath(path: string): TFile | null {
-        const f = app.vault.getAbstractFileByPath(path);
-        if (!f) {
-            return null;
-        }
-        if (!(f instanceof TFile)) {
-            return null;
-        }
-        return f;
+        return app.vault.getFileByPath(path);
     },
     getMetadata: (file) => app.metadataCache.getFileCache(file),
     waitForMetadata: (file) =>
         new Promise((resolve) =>
-            resolve(app.metadataCache.getFileCache(file)!)
+            resolve(app.metadataCache.getFileCache(file)!),
         ),
     read: (file) => app.vault.read(file),
     create: jest.fn(),
@@ -115,12 +108,12 @@ describe("Note Calendar Tests", () => {
                             (builder, { title, event }) =>
                                 builder.file(
                                     title,
-                                    new FileBuilder().frontmatter(event)
+                                    new FileBuilder().frontmatter(event),
                                 ),
-                            new MockAppBuilder(dirName)
-                        )
+                            new MockAppBuilder(dirName),
+                        ),
                     )
-                    .done()
+                    .done(),
             );
             const calendar = new FullNoteCalendar(obsidian, color, dirName);
             const res = await calendar.getEvents();
@@ -129,7 +122,7 @@ describe("Note Calendar Tests", () => {
             const paths = res.map((e) => e[1].file.path);
 
             expect(
-                res.every((elt) => elt[1].lineNumber === undefined)
+                res.every((elt) => elt[1].lineNumber === undefined),
             ).toBeTruthy();
 
             for (const { event, title } of inputs.map((i) => ({
@@ -156,7 +149,7 @@ describe("Note Calendar Tests", () => {
                 expect(eventsFromFile.length).toBe(1);
                 expect(eventsFromFile[0][0]).toEqual(event);
             }
-        }
+        },
     );
     it.todo("Recursive folder settings");
 
@@ -208,15 +201,15 @@ describe("Note Calendar Tests", () => {
                 .folder(
                     new MockAppBuilder("events").file(
                         "2022-01-01 Test Event.md",
-                        new FileBuilder().frontmatter(event)
-                    )
+                        new FileBuilder().frontmatter(event),
+                    ),
                 )
-                .done()
+                .done(),
         );
         const calendar = new FullNoteCalendar(obsidian, color, dirName);
         await assertFailed(
             () => calendar.createEvent(parseEvent(event)),
-            /already exists/
+            /already exists/,
         );
     });
 
@@ -235,15 +228,15 @@ describe("Note Calendar Tests", () => {
                 .folder(
                     new MockAppBuilder("events").file(
                         filename,
-                        new FileBuilder().frontmatter(event)
-                    )
+                        new FileBuilder().frontmatter(event),
+                    ),
                 )
-                .done()
+                .done(),
         );
         const calendar = new FullNoteCalendar(obsidian, color, dirName);
 
         const firstFile = obsidian.getAbstractFileByPath(
-            join("events", filename)
+            join("events", filename),
         ) as TFile;
 
         const contents = await obsidian.read(firstFile);
@@ -253,7 +246,7 @@ describe("Note Calendar Tests", () => {
             { path: join("events", filename), lineNumber: undefined },
             // @ts-ignore
             { ...event, endTime: "13:30" },
-            mockFn
+            mockFn,
         );
         // TODO: make the third param a mock that we can inspect
         const newLoc = mockFn.mock.calls[0][0];

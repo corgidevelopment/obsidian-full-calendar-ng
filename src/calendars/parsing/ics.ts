@@ -34,7 +34,10 @@ function specifiesEnd(iCalEvent: ical.Event) {
 function icsToOFC(input: ical.Event): OFCEvent {
     if (input.isRecurring()) {
         const rrule = rrulestr(
-            input.component.getFirstProperty("rrule").getFirstValue().toString()
+            input.component
+                .getFirstProperty("rrule")
+                .getFirstValue()
+                .toString(),
         );
         const allDay = input.startDate.isDate;
         const exdates = input.component
@@ -53,7 +56,7 @@ function icsToOFC(input: ical.Event): OFCEvent {
             rrule: rrule.toString(),
             skipDates: exdates,
             startDate: getDate(
-                input.startDate.convertToZone(ical.Timezone.utcTimezone)
+                input.startDate.convertToZone(ical.Timezone.utcTimezone),
             ),
             ...(allDay
                 ? { allDay: true }
@@ -61,11 +64,13 @@ function icsToOFC(input: ical.Event): OFCEvent {
                       allDay: false,
                       startTime: getTime(
                           input.startDate.convertToZone(
-                              ical.Timezone.utcTimezone
-                          )
+                              ical.Timezone.utcTimezone,
+                          ),
                       ),
                       endTime: getTime(
-                          input.endDate.convertToZone(ical.Timezone.utcTimezone)
+                          input.endDate.convertToZone(
+                              ical.Timezone.utcTimezone,
+                          ),
                       ),
                   }),
         };
@@ -121,7 +126,7 @@ export function getEventsFromICS(text: string): OFCEvent[] {
     const baseEvents = Object.fromEntries(
         events
             .filter((e) => e.recurrenceId === null)
-            .map((e) => [e.uid, icsToOFC(e)])
+            .map((e) => [e.uid, icsToOFC(e)]),
     );
 
     const recurrenceExceptions = events
@@ -137,7 +142,7 @@ export function getEventsFromICS(text: string): OFCEvent[] {
         if (baseEvent.type !== "rrule" || event.type !== "single") {
             console.warn(
                 "Recurrence exception was recurring or base event was not recurring",
-                { baseEvent, recurrenceException: event }
+                { baseEvent, recurrenceException: event },
             );
             continue;
         }
@@ -145,7 +150,7 @@ export function getEventsFromICS(text: string): OFCEvent[] {
     }
 
     const allEvents = Object.values(baseEvents).concat(
-        recurrenceExceptions.map((e) => e[1])
+        recurrenceExceptions.map((e) => e[1]),
     );
 
     return allEvents.map(validateEvent).flatMap((e) => (e ? [e] : []));

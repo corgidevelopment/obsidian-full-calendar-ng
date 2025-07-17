@@ -35,17 +35,17 @@ const parseBool = (s: string): boolean | string =>
 
 const fieldRegex = /\[([^\]]+):: ?([^\]]+)\]/g;
 export function getInlineAttributes(
-    s: string
+    s: string,
 ): Record<string, string | boolean> {
     return Object.fromEntries(
-        Array.from(s.matchAll(fieldRegex)).map((m) => [m[1], parseBool(m[2])])
+        Array.from(s.matchAll(fieldRegex)).map((m) => [m[1], parseBool(m[2])]),
     );
 }
 
 const getHeadingPosition = (
     headingText: string,
     metadata: CachedMetadata,
-    endOfDoc: Loc
+    endOfDoc: Loc,
 ): Pos | null => {
     if (!metadata.headings) {
         return null;
@@ -74,7 +74,7 @@ const getHeadingPosition = (
 
 const getListsUnderHeading = (
     headingText: string,
-    metadata: CachedMetadata
+    metadata: CachedMetadata,
 ): ListItemCache[] => {
     if (!metadata.listItems) {
         return [];
@@ -90,7 +90,7 @@ const getListsUnderHeading = (
     return metadata.listItems?.filter(
         (l) =>
             headingPos.start.offset < l.position.start.offset &&
-            l.position.end.offset <= headingPos.end.offset
+            l.position.end.offset <= headingPos.end.offset,
     );
 };
 
@@ -106,7 +106,7 @@ const checkboxTodo = (s: string) => {
 
 const getInlineEventFromLine = (
     text: string,
-    globalAttrs: Partial<OFCEvent>
+    globalAttrs: Partial<OFCEvent>,
 ): OFCEvent | null => {
     const attrs = getInlineAttributes(text);
 
@@ -126,7 +126,7 @@ const getInlineEventFromLine = (
 function getAllInlineEventsFromFile(
     fileText: string,
     listItems: ListItemCache[],
-    fileGlobalAttrs: Partial<OFCEvent>
+    fileGlobalAttrs: Partial<OFCEvent>,
 ): { lineNumber: number; event: OFCEvent }[] {
     const lines = fileText.split("\n");
     const listItemText: Line[] = listItems
@@ -142,7 +142,7 @@ function getAllInlineEventsFromFile(
             }),
         }))
         .flatMap(({ event, lineNumber }) =>
-            event ? [{ event, lineNumber }] : []
+            event ? [{ event, lineNumber }] : [],
         );
 }
 
@@ -156,7 +156,7 @@ const generateInlineAttributes = (attrs: Record<string, any>): string => {
 
 const makeListItem = (
     data: OFCEvent,
-    whitespacePrefix: string = ""
+    whitespacePrefix: string = "",
 ): string => {
     if (data.type !== "single") {
         throw new Error("Can only pass in single event.");
@@ -195,7 +195,7 @@ const modifyListItem = (line: string, data: OFCEvent): string | null => {
     if (!listMatch) {
         console.warn(
             "Tried modifying a list item with a position that wasn't a list item",
-            { line }
+            { line },
         );
         return null;
     }
@@ -215,7 +215,7 @@ type AddToHeadingProps = {
 };
 const addToHeading = (
     page: string,
-    { heading, item, headingText }: AddToHeadingProps
+    { heading, item, headingText }: AddToHeadingProps,
 ): { page: string; lineNumber: number } => {
     let lines = page.split("\n");
 
@@ -272,7 +272,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
         }
         const listItems = getListsUnderHeading(this.heading, cache);
         const inlineEvents = await this.app.process(file, (text) =>
-            getAllInlineEventsFromFile(text, listItems, { date })
+            getAllInlineEventsFromFile(text, listItems, { date }),
         );
         return inlineEvents.map(({ event, lineNumber }) => [
             event,
@@ -292,7 +292,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
         if (event.type !== "single" && event.type !== undefined) {
             console.debug(
                 "tried creating a recurring event in a daily note",
-                event
+                event,
             );
             throw new Error("Cannot create a recurring event in a daily note.");
         }
@@ -304,11 +304,11 @@ export default class DailyNoteCalendar extends EditableCalendar {
         const metadata = await this.app.waitForMetadata(file);
 
         const headingInfo = metadata.headings?.find(
-            (h) => h.heading == this.heading
+            (h) => h.heading == this.heading,
         );
         if (!headingInfo) {
             throw new Error(
-                `Could not find heading ${this.heading} in daily note ${file.path}.`
+                `Could not find heading ${this.heading} in daily note ${file.path}.`,
             );
         }
         let lineNumber = await this.app.rewrite(file, (contents) => {
@@ -348,26 +348,26 @@ export default class DailyNoteCalendar extends EditableCalendar {
     async modifyEvent(
         loc: EventPathLocation,
         newEvent: OFCEvent,
-        updateCacheWithLocation: (loc: EventLocation) => void
+        updateCacheWithLocation: (loc: EventLocation) => void,
     ): Promise<void> {
         console.debug("modified daily note event");
         if (newEvent.type !== "single" && newEvent.type !== undefined) {
             throw new Error(
-                "Recurring events in daily notes are not supported."
+                "Recurring events in daily notes are not supported.",
             );
         }
         if (newEvent.endDate) {
             throw new Error(
-                "Multi-day events are not supported in daily notes."
+                "Multi-day events are not supported in daily notes.",
             );
         }
         const { file, lineNumber } = this.getConcreteLocation(loc);
         const oldDate = getDateFromFile(file as any, "day")?.format(
-            DATE_FORMAT
+            DATE_FORMAT,
         );
         if (!oldDate) {
             throw new Error(
-                `Could not get date from file at path ${file.path}`
+                `Could not get date from file at path ${file.path}`,
             );
         }
         if (newEvent.date !== oldDate) {
@@ -386,11 +386,11 @@ export default class DailyNoteCalendar extends EditableCalendar {
                 throw new Error("No metadata for file " + file.path);
             }
             const headingInfo = metadata.headings?.find(
-                (h) => h.heading == this.heading
+                (h) => h.heading == this.heading,
             );
             if (!headingInfo) {
                 throw new Error(
-                    `Could not find heading ${this.heading} in daily note ${file.path}.`
+                    `Could not find heading ${this.heading} in daily note ${file.path}.`,
                 );
             }
 
@@ -429,7 +429,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
 
     move(
         from: EventPathLocation,
-        to: EditableCalendar
+        to: EditableCalendar,
     ): Promise<EventLocation> {
         throw new Error("Method not implemented.");
     }
