@@ -1,23 +1,19 @@
 import { Notice } from "obsidian";
 import * as React from "react";
-import { EditableCalendar } from "src/calendars/EditableCalendar";
 import FullCalendarPlugin from "src/main";
 import type { OFCEvent } from "src/types";
 import { openFileForEvent } from "./actions";
 import { EditEvent } from "./components/EditEvent";
 import ReactModal from "./ReactModal";
-import DailyNoteCalendar from "../calendars/DailyNoteCalendar";
 
 export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Partial<OFCEvent>) {
-  const calendars = [...plugin.cache.calendars.entries()]
-    .filter(([_, cal]) => cal instanceof EditableCalendar || cal instanceof DailyNoteCalendar)
-    .map(([id, cal]) => {
-      return {
-        id,
-        type: cal.type,
-        name: cal.name
-      };
-    });
+  const calendars = [...plugin.cache.calendars.entries()].map(([id, cal]) => {
+    return {
+      id,
+      type: cal.type,
+      name: cal.name
+    };
+  });
   new ReactModal(plugin.app, async (closeModal) =>
     React.createElement(EditEvent, {
       initialEvent: partialEvent,
@@ -46,15 +42,13 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
   }
   const calId = plugin.cache.getInfoForEditableEvent(eventId).calendar.id;
 
-  const calendars = [...plugin.cache.calendars.entries()]
-    .filter(([_, cal]) => cal instanceof EditableCalendar)
-    .map(([id, cal]) => {
-      return {
-        id,
-        type: cal.type,
-        name: cal.name
-      };
-    });
+  const calendars = [...plugin.cache.calendars.entries()].map(([id, cal]) => {
+    return {
+      id,
+      type: cal.type,
+      name: cal.name
+    };
+  });
 
   const calIdx = calendars.findIndex(({ id }) => id === calId);
 

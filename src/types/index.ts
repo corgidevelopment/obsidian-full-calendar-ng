@@ -15,10 +15,12 @@ export class FCError {
   }
 }
 
-export type EventLocation = {
-  file: { path: string };
-  lineNumber: number | undefined;
-};
+export type EventLocation =
+  | {
+      file: { path: string };
+      lineNumber: number | undefined;
+    }
+  | { url: string };
 
 export type Authentication = {
   type: "basic";

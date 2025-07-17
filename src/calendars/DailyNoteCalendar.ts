@@ -1,17 +1,16 @@
 import type { IEditableCalendar } from "./IEditableCalendar";
-import type { FileBasedCalendar } from "./FileBasedCalendar";
+import type { IFileBasedCalendar } from "./IFileBasedCalendar";
 import type { CalendarInfo, EventLocation, OFCEvent } from "../types";
 import type { EventPathLocation } from "../core/EventStore";
-import type { EditableEventResponse } from "./EditableCalendar";
 import type { ICalendar } from "./ICalendar";
 import { createDailyNote, getAllDailyNotes, getDailyNote, getDailyNoteSettings, getDateFromFile } from "obsidian-daily-notes-interface";
-import { type EventResponse, ID_SEPARATOR } from "./Calendar";
 import moment from "moment/moment";
 import { addToHeading, DATE_FORMAT, getAllInlineEventsFromFile, getListsUnderHeading, modifyListItem } from "../logic/tmpUtils";
 import type { ObsidianInterface } from "../ObsidianAdapter";
 import { TFile } from "obsidian";
+import { type EditableEventResponse, type EventResponse, ID_SEPARATOR } from "../logic/tmpTypes";
 
-export default class DailyNoteCalendar implements IEditableCalendar, FileBasedCalendar, ICalendar {
+export default class DailyNoteCalendar implements IEditableCalendar, IFileBasedCalendar, ICalendar {
   color: string;
   heading: string;
   id: string = `${this.type}${ID_SEPARATOR}${this.identifier}`;
@@ -21,6 +20,10 @@ export default class DailyNoteCalendar implements IEditableCalendar, FileBasedCa
     this.obsidianInterface = obsidianInterface;
     this.color = color;
     this.heading = heading;
+  }
+
+  containsPath(path: string): boolean {
+    return path.startsWith(this.directory);
   }
 
   get directory(): string {
@@ -98,14 +101,13 @@ export default class DailyNoteCalendar implements IEditableCalendar, FileBasedCa
     });
     return this.obsidianInterface
       .process(file, (text) => getAllInlineEventsFromFile(text, listItems, { date }))
-      .then((data) => data.map(({ event, lineNumber }) => [event, { file, lineNumber }]));
+      .then((data) => data.map(({ event, lineNumber }) => ({ event, location: { file, lineNumber } })));
   }
 
   async getEvents(): Promise<EventResponse[]> {
     const notes = getAllDailyNotes();
-    //@ts-expect-error: TFile version mismatch -> Have to bump obsidian version I guess
-    const files = Object.values(notes) as TFile[];
-    return (await Promise.all(files.map((f) => this.getEventsInFile(f)))).flat();
+    const files = Object.values(notes) as unknown as TFile[];
+    return (await Promise.all(files.map(this.getEventsInFile))).flat();
   }
 
   async modifyEvent(location: EventPathLocation, newEvent: OFCEvent, updateCacheWithLocation: any): Promise<void> {
@@ -122,9 +124,7 @@ export default class DailyNoteCalendar implements IEditableCalendar, FileBasedCa
       throw new Error(`Could not get date from file at path ${file.path}`);
     }
     if (newEvent.date !== oldDate) {
-      // Event needs to be moved to a new file.
       console.debug("daily note event moving to a new file.");
-      // TODO: Factor this out with the createFile path.
       const m = moment(newEvent.date);
       let newFile = getDailyNote(m, getAllDailyNotes()) as unknown as TFile;
       if (!newFile) {
@@ -142,19 +142,15 @@ export default class DailyNoteCalendar implements IEditableCalendar, FileBasedCa
       }
 
       await this.obsidianInterface.rewrite(file, async (oldFileContents) => {
-        // Open the old file and remove the event.
         let lines = oldFileContents.split("\n");
         lines.splice(lineNumber, 1);
         await this.obsidianInterface.rewrite(newFile, (newFileContents) => {
-          // Before writing that change back to disk, open the new file and add the event.
           const { page, lineNumber } = addToHeading({
             page: newFileContents,
             heading: headingInfo,
             item: newEvent,
             headingText: this.heading
           });
-          // Before any file changes are committed, call the updateCacheWithLocation callback to ensure
-          // the cache is properly updated with the new location.
           updateCacheWithLocation({ file: newFile, lineNumber });
           return page;
         });

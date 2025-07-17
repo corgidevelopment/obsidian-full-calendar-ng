@@ -1,5 +1,5 @@
-import { Calendar } from "../calendars/Calendar";
 import type { EventLocation, OFCEvent } from "../types";
+import type { UnknownCalendar } from "../logic/tmpTypes";
 
 interface Identifier {
   id: string;
@@ -7,6 +7,7 @@ interface Identifier {
 
 class Path implements Identifier {
   id: string;
+
   constructor(file: { path: string }) {
     this.id = file.path;
   }
@@ -14,6 +15,7 @@ class Path implements Identifier {
 
 class EventID implements Identifier {
   id: string;
+
   constructor(id: string) {
     this.id = id;
   }
@@ -105,7 +107,7 @@ export type StoredEvent = {
 };
 
 type AddEventProps = {
-  calendar: Calendar;
+  calendar: UnknownCalendar;
   location: EventLocation | null;
   id: string;
   event: OFCEvent;
@@ -126,7 +128,7 @@ type FileObj = { path: string };
 export default class EventStore {
   private store: Map<string, OFCEvent> = new Map();
 
-  private calendarIndex = new OneToMany<Calendar, EventID>();
+  private calendarIndex = new OneToMany<UnknownCalendar, EventID>();
 
   private pathIndex = new OneToMany<Path, EventID>();
   private lineNumbers: Map<string, number> = new Map();
@@ -206,7 +208,7 @@ export default class EventStore {
 
     this.store.set(id, event);
     this.calendarIndex.add(calendar, new EventID(id));
-    if (location) {
+    if (location && "file" in location) {
       const { file, lineNumber } = location;
       console.debug("adding event in file:", file.path);
       this.pathIndex.add(new Path(file), new EventID(id));
@@ -242,12 +244,6 @@ export default class EventStore {
     return eventIds;
   }
 
-  deleteEventsInCalendar(calendar: Calendar): Set<string> {
-    const eventIds = this.calendarIndex.getBy(calendar);
-    eventIds.forEach((id) => this.delete(id));
-    return eventIds;
-  }
-
   getEventById(id: string): OFCEvent | null {
     return this.store.get(id) || null;
   }
@@ -256,11 +252,11 @@ export default class EventStore {
     return this.fetch(this.pathIndex.getBy(new Path(file)));
   }
 
-  getEventsInCalendar(calendar: Calendar): StoredEvent[] {
+  getEventsInCalendar(calendar: UnknownCalendar): StoredEvent[] {
     return this.fetch(this.calendarIndex.getBy(calendar));
   }
 
-  getEventsInFileAndCalendar(file: FileObj, calendar: Calendar): StoredEvent[] {
+  getEventsInFileAndCalendar(file: FileObj, calendar: UnknownCalendar): StoredEvent[] {
     const inFile = this.pathIndex.getBy(new Path(file));
     const inCalendar = this.calendarIndex.getBy(calendar);
     return this.fetch([...inFile].filter((id) => inCalendar.has(id)));

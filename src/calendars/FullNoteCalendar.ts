@@ -2,14 +2,13 @@ import { TFile, TFolder } from "obsidian";
 import type { EventPathLocation } from "../core/EventStore";
 import type { ObsidianInterface } from "../ObsidianAdapter";
 import { type EventLocation, type OFCEvent, validateEvent } from "../types";
-import { type EditableEventResponse } from "./EditableCalendar";
 import type { IEditableCalendar } from "./IEditableCalendar";
-import type { FileBasedCalendar } from "./FileBasedCalendar";
+import type { IFileBasedCalendar } from "./IFileBasedCalendar";
 import type { ICalendar } from "./ICalendar";
 import { filenameForEvent, modifyFrontmatterString, newFrontmatter } from "../logic/tmpUtils";
-import { ID_SEPARATOR } from "./Calendar";
+import { type EditableEventResponse, ID_SEPARATOR, type UnknownCalendar } from "../logic/tmpTypes";
 
-export default class FullNoteCalendar implements IEditableCalendar, FileBasedCalendar, ICalendar {
+export default class FullNoteCalendar implements IEditableCalendar, IFileBasedCalendar, ICalendar {
   color: string;
   obsidianInterface: ObsidianInterface;
   directory: string;
@@ -19,6 +18,10 @@ export default class FullNoteCalendar implements IEditableCalendar, FileBasedCal
     this.obsidianInterface = obsidianInterface;
     this.color = color;
     this.directory = directory;
+  }
+
+  containsPath(path: string): boolean {
+    return path.startsWith(this.directory);
   }
 
   get type(): "local" {
@@ -42,7 +45,7 @@ export default class FullNoteCalendar implements IEditableCalendar, FileBasedCal
     if (!event.title) {
       event.title = file.basename;
     }
-    return [[event, { file, lineNumber: undefined }]];
+    return [{ event, location: { file, lineNumber: undefined } }];
   }
 
   async getEvents(): Promise<EditableEventResponse[]> {
@@ -93,8 +96,10 @@ export default class FullNoteCalendar implements IEditableCalendar, FileBasedCal
       throw new Error(`File ${path} either doesn't exist or is a folder.`);
     }
     const newLocation = this.getNewLocation(location, event);
-
     updateCacheWithLocation(newLocation);
+    if (!("file" in newLocation)) {
+      throw new Error("received invalid location");
+    }
 
     if (file.path !== newLocation.file.path) {
       await this.obsidianInterface.rename(file, newLocation.file.path);
@@ -104,11 +109,7 @@ export default class FullNoteCalendar implements IEditableCalendar, FileBasedCal
     return;
   }
 
-  async move(
-    fromLocation: EventPathLocation,
-    toCalendar: IEditableCalendar & ICalendar,
-    updateCacheWithLocation: (loc: EventLocation) => void
-  ): Promise<void> {
+  async move(fromLocation: EventPathLocation, toCalendar: UnknownCalendar, updateCacheWithLocation: (loc: EventLocation) => void): Promise<void> {
     const { path, lineNumber } = fromLocation;
     if (lineNumber !== undefined) {
       throw new Error("Note calendar cannot handle inline events.");

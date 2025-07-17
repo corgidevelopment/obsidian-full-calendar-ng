@@ -1,17 +1,20 @@
 import { request } from "obsidian";
 import type { CalendarInfo } from "src/types";
-import type { EventResponse } from "./Calendar";
 import { getEventsFromICS } from "./parsing/ics";
-import RemoteCalendar from "./RemoteCalendar";
+import type { IRemoteCalendar } from "./IRemoteCalendar";
+import type { ICalendar } from "./ICalendar";
+import { type EventResponse, ID_SEPARATOR } from "../logic/tmpTypes";
 
 const WEBCAL = "webcal";
 
-export default class ICSCalendar extends RemoteCalendar {
-  private url: string;
+export default class ICSCalendar implements IRemoteCalendar, ICalendar {
+  url: string;
+  color: string;
+  id: string = `${this.type}${ID_SEPARATOR}${this.identifier}`;
   private response: string | null = null;
 
   constructor(color: string, url: string) {
-    super(color);
+    this.color = color;
     if (url.startsWith(WEBCAL)) {
       url = "https" + url.slice(WEBCAL.length);
     }
@@ -42,6 +45,6 @@ export default class ICSCalendar extends RemoteCalendar {
     if (!this.response) {
       return [];
     }
-    return getEventsFromICS(this.response).map((e) => [e, null]);
+    return getEventsFromICS(this.response).map((e) => ({ event: e, location: null }));
   }
 }

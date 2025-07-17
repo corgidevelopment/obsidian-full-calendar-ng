@@ -1,7 +1,7 @@
 import { TFile } from "obsidian";
-import type { EditableEventResponse } from "./EditableCalendar";
+import type { EditableEventResponse } from "../logic/tmpTypes";
 
-export interface FileBasedCalendar {
+export interface IFileBasedCalendar {
   directory: string;
   getEventsInFile(file: TFile): Promise<EditableEventResponse[]>;
 }

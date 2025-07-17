@@ -1,15 +1,11 @@
 import { Notice, TFile } from "obsidian";
 import equal from "deep-equal";
-
-import { Calendar } from "../calendars/Calendar";
-import { EditableCalendar } from "../calendars/EditableCalendar";
 import EventStore, { type StoredEvent } from "./EventStore";
 import { type CalendarInfo, type EventLocation, type OFCEvent, validateEvent } from "../types";
-import RemoteCalendar from "../calendars/RemoteCalendar";
 import FullNoteCalendar from "../calendars/FullNoteCalendar";
-import DailyNoteCalendar from "../calendars/DailyNoteCalendar";
+import type { UnknownCalendar } from "../logic/tmpTypes";
 
-export type CalendarInitializerMap = Record<CalendarInfo["type"], (info: CalendarInfo) => Calendar | null>;
+export type CalendarInitializerMap = Record<CalendarInfo["type"], (info: CalendarInfo) => UnknownCalendar | null>;
 
 export type CacheEntry = { event: OFCEvent; id: string; calendarId: string };
 
@@ -85,7 +81,7 @@ export default class EventCache {
   private calendarInitializers: CalendarInitializerMap;
 
   private store = new EventStore();
-  calendars = new Map<string, Calendar | DailyNoteCalendar>();
+  calendars = new Map<string, UnknownCalendar>();
 
   private pkCounter = 0;
 
@@ -125,6 +121,7 @@ export default class EventCache {
         const cal = this.calendarInitializers[s.type](s);
         return cal || [];
       })
+      .filter((cal) => "id" in cal)
       .forEach((cal) => this.calendars.set(cal.id, cal));
   }
 
@@ -137,7 +134,7 @@ export default class EventCache {
     }
     for (const calendar of this.calendars.values()) {
       const results = await calendar.getEvents();
-      results.forEach(([event, location]) =>
+      results.forEach(({ event, location }) =>
         this.store.add({
           calendar,
           location,
@@ -166,7 +163,7 @@ export default class EventCache {
     for (const [calId, calendar] of this.calendars.entries()) {
       const events = eventsByCalendar.get(calId) || [];
       result.push({
-        editable: calendar instanceof EditableCalendar,
+        editable: "createEvent" in calendar,
         events: events.map(({ event, id }) => ({ event, id })), // make sure not to leak location data past the cache.
         color: calendar.color,
         id: calId
@@ -186,14 +183,15 @@ export default class EventCache {
       return false;
     }
     const cal = this.getCalendarById(calId);
-    return cal instanceof EditableCalendar;
+    if (!cal) return false;
+    return "createEvent" in cal;
   }
 
   getEventById(s: string): OFCEvent | null {
     return this.store.getEventById(s);
   }
 
-  getCalendarById(c: string): Calendar | undefined {
+  getCalendarById(c: string): UnknownCalendar | undefined {
     return this.calendars.get(c);
   }
 
@@ -296,6 +294,10 @@ export default class EventCache {
       console.error(`Event cannot be added to non-editable calendar of type ${calendar.type}`);
       throw new Error(`Cannot add event to a read-only calendar`);
     }
+    if (!("id" in calendar)) {
+      console.error(`calendar has no id!`);
+      throw new Error(`Cannot add event to a calendar without id!`);
+    }
     const location = await calendar.createEvent(event);
     const id = this.store.add({
       calendar,
@@ -329,7 +331,10 @@ export default class EventCache {
     const { calendar, location: oldLocation } = this.getInfoForEditableEvent(eventId);
     const { path, lineNumber } = oldLocation;
     console.debug("updating event with ID", eventId);
-
+    if (!("id" in calendar)) {
+      console.error(`tried to update event in id-less calendar`);
+      throw new Error(`tried to update event in id-less calendar`);
+    }
     await calendar.modifyEvent({ path, lineNumber }, newEvent, (newLocation: EventLocation) => {
       this.store.delete(eventId);
       this.store.add({
@@ -419,7 +424,7 @@ export default class EventCache {
     console.debug("fileUpdated() called for file", file.path);
 
     // Get all calendars that contain events stored in this file.
-    const calendars = [...this.calendars.values()].flatMap((c) => (c instanceof EditableCalendar && c.containsPath(file.path) ? c : []));
+    const calendars = [...this.calendars.values()].filter((c) => "containsPath" in c).flatMap((c) => (c && c.containsPath(file.path) ? c : []));
 
     // If no calendars exist, return early.
     if (calendars.length === 0) {
@@ -431,33 +436,27 @@ export default class EventCache {
 
     for (const calendar of calendars) {
       const oldEvents = this.store.getEventsInFileAndCalendar(file, calendar);
-      // TODO: Relying on calendars for file I/O means that we're potentially
-      // reading the file from disk multiple times. Could be more effecient if
-      // we break the abstraction layer here.
       console.debug("get events in file", file.path);
       const newEvents = await calendar.getEventsInFile(file);
 
       const oldEventsMapped = oldEvents.map(({ event }) => event);
-      const newEventsMapped = newEvents.map(([event, _]) => event);
+      const newEventsMapped = newEvents.map(({ event }) => event);
       console.debug("comparing events", file.path, oldEvents, newEvents);
-      // TODO: It's possible events are not different, but the location has changed.
       const eventsHaveChanged = eventsAreDifferent(oldEventsMapped, newEventsMapped);
 
-      // If no events have changed from what's in the cache, then there's no need to update the event store.
       if (!eventsHaveChanged) {
         console.debug("events have not changed, do not update store or view.");
         return;
       }
       console.debug("events have changed, updating store and views...", oldEvents, newEvents);
 
-      const newEventsWithIds = newEvents.map(([event, location]) => ({
+      const newEventsWithIds = newEvents.map(({ event, location }) => ({
         event,
         id: event.id || this.generateId(),
         location,
         calendarId: calendar.id
       }));
 
-      // If events have changed in the calendar, then remove all the old events from the store and add in new ones.
       const oldIds = oldEvents.map((r: StoredEvent) => r.id);
       oldIds.forEach((id: string) => {
         this.store.delete(id);
@@ -494,7 +493,7 @@ export default class EventCache {
       return;
     }
 
-    const remoteCalendars = [...this.calendars.values()].flatMap((c) => (c instanceof RemoteCalendar ? c : []));
+    const remoteCalendars = [...this.calendars.values()].flatMap((c) => ("revalidate" in c ? c : []));
 
     console.warn("Revalidating remote calendars...");
     this.revalidating = true;
@@ -503,7 +502,7 @@ export default class EventCache {
         .revalidate()
         .then(() => calendar.getEvents())
         .then((events) => {
-          const newEvents = events.map(([event, location]) => ({
+          const newEvents = events.map(({ event, location }) => ({
             event,
             id: event.id || this.generateId(),
             location,
