@@ -1,4 +1,3 @@
-//lol, parseBool returning a string 😂
 import { OFCEvent, validateEvent } from "../types";
 import { CachedMetadata, ListItemCache, Loc, Pos } from "obsidian";
 import { AddToHeadingProps, Line } from "./tmpTypes";
@@ -9,6 +8,7 @@ export const fieldRegex = /\[([^\]]+):: ?([^\]]+)]/g;
 
 export const DATE_FORMAT = "YYYY-MM-DD";
 
+//lol, parseBool returning a string 😂
 export function parseBool(s: string): boolean | string {
   return s === "true" ? true : s === "false" ? false : s;
 }
