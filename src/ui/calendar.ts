@@ -23,7 +23,8 @@ import iCalendarPlugin from "@fullcalendar/icalendar";
 
 import { TFolder, Notice } from "obsidian";
 
-// There is an issue with FullCalendar RRule support around DST boundaries which is fixed by this monkeypatch:
+// There is an issue with FullCalendar RRule support around Daylight Saving Time boundaries
+// which is fixed by this monkeypatch:
 // https://github.com/fullcalendar/fullcalendar/issues/5273#issuecomment-1360459342
 rrulePlugin.recurringTypes[0].expand = function (errd, fr, de) {
     const hours = errd.rruleSet._dtstart.getHours();
@@ -44,6 +45,13 @@ rrulePlugin.recurringTypes[0].expand = function (errd, fr, de) {
 
 interface ExtraRenderProps {
     eventClick?: (info: EventClickArg) => void;
+    customButtons?: {
+        [key: string]: {
+            text: string;
+            click: () => void | Promise<void>;
+        };
+    };
+
     select?: (
         startDate: Date,
         endDate: Date,
@@ -77,6 +85,7 @@ export function renderCalendar(
         eventMouseEnter,
         openContextMenuForEvent,
         toggleTask,
+        customButtons,
     } = settings || {};
     const modifyEventCallback =
         modifyEvent &&
@@ -96,36 +105,7 @@ export function renderCalendar(
         });
 
     const cal = new Calendar(containerEl, {
-        customButtons: {
-            // Added by JK
-            analysis: {
-                text: "Analysis",
-                click: async () => {
-                    const target = app.vault.getAbstractFileByPath("Calender");
-                    if (!target || !(target instanceof TFolder)) {
-                        new Notice("Folder “Calender” not found");
-                        return;
-                    }
-                    let leaf =
-                        app.workspace.getLeavesOfType("file-explorer")[0];
-                    if (!leaf) {
-                        leaf = app.workspace.getLeftLeaf(false);
-                        await leaf.setViewState({ type: "file-explorer" });
-                    }
-                    app.workspace.revealLeaf(leaf);
-                    const view = leaf.view;
-                    if (typeof view.revealInFolder === "function") {
-                        view.revealInFolder(target);
-                    } else if (typeof view.reveal === "function") {
-                        view.reveal(target);
-                    } else {
-                        new Notice(
-                            "Unable to reveal folder in this version of Obsidian.",
-                        );
-                    }
-                },
-            },
-        },
+        customButtons: customButtons,
         plugins: [
             // View plugins
             dayGridPlugin,

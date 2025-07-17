@@ -46,7 +46,6 @@ const parseTime = (time: string): Duration | null => {
     }
 
     return Duration.fromISOTime(isoTime);
-
 };
 
 const normalizeTimeString = (time: string): string | null => {
@@ -80,7 +79,8 @@ const getTime = (date: Date): string => {
     return isoTime;
 };
 
-const getDate = (date: Date): string => DateTime.fromJSDate(date).toISODate() ?? "";
+const getDate = (date: Date): string =>
+    DateTime.fromJSDate(date).toISODate() ?? "";
 
 const combineDateTimeStrings = (date: string, time: string): string | null => {
     const parsedDate = DateTime.fromISO(date);

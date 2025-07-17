@@ -24,6 +24,7 @@ import { openFileForEvent } from "./actions";
 import { launchCreateModal, launchEditModal } from "./event_modal";
 import { isTask, toggleTask, unmakeTask } from "src/ui/tasks";
 import { UpdateViewCallback } from "src/core/EventCache";
+import { revealAnalysisFolder } from "./tasks/ChronoAnalyser";
 
 export const FULL_CALENDAR_VIEW_TYPE = "full-calendar-view";
 export const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = "full-calendar-sidebar-view";
@@ -134,6 +135,12 @@ export class CalendarView extends ItemView {
         }
         this.fullCalendarView = renderCalendar(calendarEl, sources, {
             forceNarrow: this.inSidebar,
+            customButtons: {
+                analysis: {
+                    text: "Analysis",
+                    click: () => revealAnalysisFolder(this.plugin.app),
+                },
+            },
             eventClick: async (info) => {
                 try {
                     if (
