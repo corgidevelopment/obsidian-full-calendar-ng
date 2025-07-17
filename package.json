@@ -1,6 +1,6 @@
 {
     "name": "obsidian-full-calendar",
-    "version": "0.10.7",
+    "version": "0.10.12",
     "description": "Obsidian integration with Full Calendar (fullcalendar.io)",
     "main": "main.js",
     "scripts": {
@@ -8,8 +8,8 @@
         "build": "node esbuild.config.mjs production",
         "prod": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
         "version": "node version-bump.mjs && git add manifest.json versions.json",
-        "lint": "prettier --check src/**/*.ts*",
-        "fix-lint": "prettier --write src/**/*.ts*",
+        "lint": "prettier --config .prettierrc.json --check src/**/*.ts*",
+        "fix-lint": "prettier --config .prettierrc.json --write src/**/*.ts*",
         "compile": "tsc -noEmit --skipLibCheck",
         "prepare": "husky install",
         "test": "jest --ci --silent=true",
@@ -27,6 +27,7 @@
         "@types/co": "^4.6.6",
         "@types/color": "^4.2.0",
         "@types/dav": "^1.7.7",
+        "@types/flatpickr": "^3.0.2",
         "@types/jest": "^30.0.0",
         "@types/js-yaml": "^4.0.9",
         "@types/luxon": "^3.6.2",

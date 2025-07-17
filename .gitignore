@@ -21,8 +21,9 @@ main.css
 *.map
 
 # obsidian
-data.json
-.obsidian
 obsidian-dev-vault/
+
+# Others
+src/chrono_analyser/export-to-txt.bat
 
 .DS_Store
