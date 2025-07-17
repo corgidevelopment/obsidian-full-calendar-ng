@@ -6,13 +6,17 @@ import { OFCEvent } from "src/types";
 import { openFileForEvent } from "./actions";
 import { EditEvent } from "./components/EditEvent";
 import ReactModal from "./ReactModal";
+import DailyNoteCalendar from "../calendars/DailyNoteCalendar";
 
 export function launchCreateModal(
   plugin: FullCalendarPlugin,
   partialEvent: Partial<OFCEvent>
 ) {
   const calendars = [...plugin.cache.calendars.entries()]
-    .filter(([_, cal]) => cal instanceof EditableCalendar)
+    .filter(
+      ([_, cal]) =>
+        cal instanceof EditableCalendar || cal instanceof DailyNoteCalendar
+    )
     .map(([id, cal]) => {
       return {
         id,

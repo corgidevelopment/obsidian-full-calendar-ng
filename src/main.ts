@@ -33,11 +33,11 @@ export default class FullCalendarPlugin extends Plugin {
         : null,
     dailynote: (info) =>
       info.type === "dailynote"
-        ? new DailyNoteCalendar(
-            new ObsidianIO(this.app),
-            info.color,
-            info.heading
-          )
+        ? new DailyNoteCalendar({
+            obsidianInterface: new ObsidianIO(this.app),
+            color: info.color,
+            heading: info.heading,
+          })
         : null,
     ical: (info) =>
       info.type === "ical" ? new ICSCalendar(info.color, info.url) : null,

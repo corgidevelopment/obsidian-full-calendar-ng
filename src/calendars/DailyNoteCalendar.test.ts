@@ -1,4 +1,4 @@
-import { getInlineAttributes } from "./DailyNoteCalendar";
+import { getInlineAttributes } from "../logic/tmpUtils";
 
 it.each([
   ["one variable [hello:: world]", { hello: "world" }],

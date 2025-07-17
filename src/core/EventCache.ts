@@ -7,6 +7,8 @@ import EventStore, { StoredEvent } from "./EventStore";
 import { CalendarInfo, OFCEvent, validateEvent } from "../types";
 import RemoteCalendar from "../calendars/RemoteCalendar";
 import FullNoteCalendar from "../calendars/FullNoteCalendar";
+import { IEditableCalendar } from "../calendars/IEditableCalendar";
+import DailyNoteCalendar from "../calendars/DailyNoteCalendar";
 
 export type CalendarInitializerMap = Record<
   CalendarInfo["type"],
@@ -90,7 +92,7 @@ export default class EventCache {
   private calendarInitializers: CalendarInitializerMap;
 
   private store = new EventStore();
-  calendars = new Map<string, Calendar>();
+  calendars = new Map<string, Calendar | DailyNoteCalendar>();
 
   private pkCounter = 0;
 
@@ -299,7 +301,7 @@ export default class EventCache {
     if (!calendar) {
       throw new Error(`Calendar ID ${calendarId} is not registered.`);
     }
-    if (!(calendar instanceof EditableCalendar)) {
+    if (!("createEvent" in calendar)) {
       console.error(
         `Event cannot be added to non-editable calendar of type ${calendar.type}`
       );
