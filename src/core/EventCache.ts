@@ -551,7 +551,6 @@ export default class EventCache {
             c instanceof RemoteCalendar ? c : [],
         );
 
-        console.warn("Revalidating remote calendars...");
         this.revalidating = true;
         const promises = remoteCalendars.map((calendar) => {
             return calendar

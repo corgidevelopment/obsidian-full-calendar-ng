@@ -48,6 +48,7 @@ async function build() {
     format: "cjs",
     target: "es2016",
     logLevel: "info",
+    minify: prod,
     sourcemap: prod ? false : "inline",
     treeShaking: true,
     entryNames: "[name]", // Use the entry name as the output name
