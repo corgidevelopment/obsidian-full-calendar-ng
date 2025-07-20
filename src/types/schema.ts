@@ -1,3 +1,17 @@
+/**
+ * @file schema.ts
+ * @brief Defines the Zod schema and TypeScript type for an OFCEvent.
+ *
+ * @description
+ * This is a critical file that defines the canonical shape of an event object
+ * (`OFCEvent`) within the plugin. It uses a `zod` schema to enforce structure,
+ *  handle default values, and validate event data parsed from various sources.
+ * This ensures that all events, regardless of origin, conform to a consistent
+ * and predictable data model.
+ *
+ * @license See LICENSE.md
+ */
+
 import { z, ZodError } from 'zod';
 import { DateTime, Duration } from 'luxon';
 

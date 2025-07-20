@@ -1,3 +1,19 @@
+/**
+ * @file DailyNoteCalendar.ts
+ * @brief Implements a calendar source that parses events from daily notes.
+ *
+ * @description
+ * This file defines the `DailyNoteCalendar` class, which manages events
+ * stored as list items within Obsidian's daily notes. It is responsible for
+ * parsing tasks and events from a specific heading, using inline dataview-like
+ * attributes (`[key:: value]`) for event properties. It also handles the
+ * serialization and writing of events back into the correct daily note file.
+ *
+ * @see EditableCalendar.ts
+ *
+ * @license See LICENSE.md
+ */
+
 import moment from 'moment';
 import { TFile, CachedMetadata, HeadingCache, ListItemCache, Loc, Pos } from 'obsidian';
 import {

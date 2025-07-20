@@ -1,3 +1,21 @@
+/**
+ * @file ObsidianAdapter.ts
+ * @brief Defines an interface abstracting interactions with the Obsidian API.
+ *
+ * @description
+ * This file implements the Adapter pattern to decouple the plugin's business
+ * logic from the core Obsidian API (`app`). The `ObsidianInterface` defines a
+ * contract for all interactions with the Vault and metadata cache, such as
+ * reading, writing, and deleting files. The `ObsidianIO` class provides the
+ * concrete implementation. This architecture is crucial for testability,
+ * allowing the Obsidian API to be mocked in unit tests.
+ *
+ * @see FullNoteCalendar.ts
+ * @see DailyNoteCalendar.ts
+ *
+ * @license See LICENSE.md
+ */
+
 import {
   App,
   CachedMetadata,

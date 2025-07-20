@@ -1,3 +1,19 @@
+/**
+ * @file ICSCalendar.ts
+ * @brief Implements a remote, read-only calendar from an iCalendar (.ics) URL.
+ *
+ * @description
+ * This file defines the `ICSCalendar` class, which fetches and parses event
+ * data from a remote `.ics` file URL. It is a read-only calendar source,
+ * responsible for periodically revalidating its data. It handles the `webcal://`
+ * protocol by converting it to `https://`.
+ *
+ * @see RemoteCalendar.ts
+ * @see calendars/parsing/ics.ts
+ *
+ * @license See LICENSE.md
+ */
+
 import { request } from 'obsidian';
 import { CalendarInfo } from 'src/types';
 import { EventResponse } from './Calendar';

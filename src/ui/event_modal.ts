@@ -1,11 +1,21 @@
 /**
  * @file event_modal.ts
- * @description Provides functions to launch modal dialogs (using React)
- *              for creating or editing events. Integrates with the event
- *              cache and calendar UI to persist and update events.
+ * @brief Provides functions to launch React-based modals for creating and editing events.
+ *
+ * @description
+ * This file serves as the bridge between Obsidian's imperative UI system and
+ * the declarative React world. The `launchCreateModal` and `launchEditModal`
+ * functions are responsible for creating a `ReactModal` instance and mounting
+ * the `EditEvent` React component within it, passing all necessary props and
+ * callbacks for event submission and deletion.
+ *
+ * @see ReactModal.ts
+ * @see components/EditEvent.tsx
  *
  * @exports launchCreateModal
  * @exports launchEditModal
+ *
+ * @license See LICENSE.md
  */
 
 import { Notice } from 'obsidian';

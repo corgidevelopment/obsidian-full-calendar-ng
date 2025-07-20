@@ -1,3 +1,16 @@
+/**
+ * @file AddCalendarSource.tsx
+ * @brief React component for the "Add New Calendar" modal form.
+ *
+ * @description
+ * This file defines the `AddCalendarSource` React component. It renders a
+ * dynamic form tailored to the type of calendar being added (e.g., showing
+ * a directory dropdown for local calendars, or URL/credential fields for
+ * CalDAV). It manages form state and handles submission.
+ *
+ * @license See LICENSE.md
+ */
+
 import * as React from 'react';
 import { useState } from 'react';
 import { CalendarInfo } from '../../types';

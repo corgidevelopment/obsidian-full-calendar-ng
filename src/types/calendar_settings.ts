@@ -1,3 +1,17 @@
+/**
+ * @file calendar_settings.ts
+ * @brief Defines the schemas and types for calendar source configurations.
+ *
+ * @description
+ * This file uses the `zod` library to define strongly-typed schemas for the
+ * various calendar source types (local, dailynote, ical, caldav). These
+ * schemas are used to parse and validate the calendar configurations stored
+ * in `data.json`, ensuring data integrity and providing type safety
+ * throughout the plugin.
+ *
+ * @license See LICENSE.md
+ */
+
 import { ZodError, z } from 'zod';
 import { OFCEvent } from './schema';
 

@@ -1,3 +1,17 @@
+/**
+ * @file import.ts
+ * @brief Provides functionality for discovering and importing calendars from a CalDAV server.
+ *
+ * @description
+ * This utility file contains the `importCalendars` function, which connects
+ * to a CalDAV server, authenticates, and discovers all available calendar
+ * collections for the user. It fetches metadata like display name and color
+ * for each calendar and formats it into `CalDAVSource` objects suitable for
+ * storing in the plugin's settings.
+ *
+ * @license See LICENSE.md
+ */
+
 import Color from 'color';
 import dav from 'dav';
 import * as transport from './transport';

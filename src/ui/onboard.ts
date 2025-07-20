@@ -1,3 +1,15 @@
+/**
+ * @file onboard.ts
+ * @brief Renders the initial onboarding screen for new users.
+ *
+ * @description
+ * This file contains the logic to display a helpful message and a call-to-action
+ * when a user has the plugin enabled but has not yet configured any calendar
+ * sources. It guides the user to create their first calendar.
+ *
+ * @license See LICENSE.md
+ */
+
 import { App } from 'obsidian';
 import FullCalendarPlugin from '../main';
 import { addCalendarButton } from './settings';

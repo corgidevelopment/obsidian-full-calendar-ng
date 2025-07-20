@@ -1,3 +1,16 @@
+/**
+ * @file Calendar.ts
+ * @brief Defines the abstract base class for all calendar sources.
+ *
+ * @description
+ * This file contains the `Calendar` abstract class, which establishes the
+ * fundamental contract for any calendar type within the plugin. It ensures
+ * that all calendar sources, whether local or remote, provide a consistent
+ * interface for identification (id, name, type) and for retrieving events.
+ *
+ * @license See LICENSE.md
+ */
+
 import { CalendarInfo, EventLocation, OFCEvent } from 'src/types';
 
 export const ID_SEPARATOR = '::';

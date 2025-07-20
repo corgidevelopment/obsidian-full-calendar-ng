@@ -1,3 +1,17 @@
+/**
+ * @file transport.ts
+ * @brief Implements a custom transport layer for the `dav` library using Obsidian's `request` API.
+ *
+ * @description
+ * This file bridges the gap between the `dav.js` library, which expects an
+ * XMLHttpRequest-like interface, and Obsidian's `request` function. The
+ * `RequestBridge` and `Basic` classes adapt the API calls, allowing the
+ * CalDAV client to work within the Obsidian desktop and mobile environments
+ * without relying on a browser's built-in XHR object.
+ *
+ * @license See LICENSE.md
+ */
+
 import { co } from 'co';
 import { Credentials, Request, transport } from 'dav';
 import { request as makeRequest } from 'obsidian';

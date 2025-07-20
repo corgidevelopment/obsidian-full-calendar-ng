@@ -1,3 +1,17 @@
+/**
+ * @file main.ts
+ * @brief Main plugin entry point for Obsidian Full Calendar.
+ *
+ * @description
+ * This file contains the `FullCalendarPlugin` class, which is the primary
+ * controller for the entire plugin. It manages the plugin's lifecycle,
+ * including loading/unloading, settings management, command registration,
+ * and view initialization. It serves as the central hub that wires together
+ * the event cache, UI components, and Obsidian's application workspace.
+ *
+ * @license See LICENSE.md
+ */
+
 import { MarkdownView, Notice, Plugin, TFile } from 'obsidian';
 import { CalendarView, FULL_CALENDAR_SIDEBAR_VIEW_TYPE, FULL_CALENDAR_VIEW_TYPE } from './ui/view';
 import { renderCalendar } from './ui/calendar';
@@ -48,6 +62,12 @@ export default class FullCalendarPlugin extends Plugin {
   renderCalendar = renderCalendar;
   processFrontmatter = toEventInput;
 
+  /**
+   * Activates the Full Calendar view.
+   * If a calendar view is already open in a main tab, it focuses that view.
+   * Otherwise, it opens a new calendar view in a new tab.
+   * This prevents opening multiple duplicate calendar tabs.
+   */
   async activateView() {
     const leaves = this.app.workspace
       .getLeavesOfType(FULL_CALENDAR_VIEW_TYPE)
@@ -64,6 +84,14 @@ export default class FullCalendarPlugin extends Plugin {
       await Promise.all(leaves.map(l => (l.view as CalendarView).onOpen()));
     }
   }
+
+  /**
+   * Plugin load lifecycle method.
+   * This method is called when the plugin is enabled.
+   * It initializes settings, sets up the EventCache, registers the calendar
+   * and sidebar views, adds the ribbon icon and commands, and sets up
+   * listeners for Vault file changes (create, rename, delete).
+   */
   async onload() {
     await this.loadSettings();
 
@@ -165,15 +193,28 @@ export default class FullCalendarPlugin extends Plugin {
     });
   }
 
+  /**
+   * Plugin unload lifecycle method.
+   * This method is called when the plugin is disabled.
+   * It cleans up by detaching all calendar and sidebar views.
+   */
   onunload() {
     this.app.workspace.detachLeavesOfType(FULL_CALENDAR_VIEW_TYPE);
     this.app.workspace.detachLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE);
   }
 
+  /**
+   * Loads plugin settings from disk, merging them with default values.
+   */
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
 
+  /**
+   * Saves the current plugin settings to disk.
+   * After saving, it triggers a reset and repopulation of the event cache
+   * to ensure all calendars are using the new settings.
+   */
   async saveSettings() {
     new Notice('Resetting the event cache with new settings...');
     await this.saveData(this.settings);

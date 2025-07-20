@@ -1,3 +1,16 @@
+/**
+ * @file ReactModal.ts
+ * @brief A generic Obsidian Modal class for hosting React components.
+ *
+ * @description
+ * This file defines a reusable `ReactModal` class that extends Obsidian's
+ * built-in `Modal`. It handles the lifecycle of mounting and unmounting a
+ * React component within the modal, providing a clean way to use React for
+ * complex UI inside a standard Obsidian modal window.
+ *
+ * @license See LICENSE.md
+ */
+
 import * as React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App, Modal } from 'obsidian';

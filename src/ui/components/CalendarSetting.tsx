@@ -1,3 +1,17 @@
+/**
+ * @file CalendarSetting.tsx
+ * @brief React component for displaying and managing a list of configured calendars.
+ *
+ * @description
+ * This file defines the `CalendarSettings` component, which is embedded in the
+ * plugin's settings tab. It is responsible for rendering the list of all
+ * currently configured calendar sources, allowing the user to modify their
+ * colors or delete them. It maintains its own state and syncs with the
+ * plugin settings upon saving.
+ *
+ * @license See LICENSE.md
+ */
+
 import { Notice } from 'obsidian';
 import * as React from 'react';
 import { CalendarInfo } from '../../types';

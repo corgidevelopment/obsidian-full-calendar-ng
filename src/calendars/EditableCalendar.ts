@@ -1,3 +1,20 @@
+/**
+ * @file EditableCalendar.ts
+ * @brief Defines the abstract base class for all user-editable calendars.
+ *
+ * @description
+ * This file contains the `EditableCalendar` abstract class, which extends
+ * `Calendar`. It establishes the contract for calendars whose event data is
+ * stored within the Obsidian Vault and can be created, updated, and deleted
+ * by the user. This class separates read-write local calendars from
+ * read-only remote calendars.
+ *
+ * @see FullNoteCalendar.ts
+ * @see DailyNoteCalendar.ts
+ *
+ * @license See LICENSE.md
+ */
+
 import { TFile } from 'obsidian';
 import { EventPathLocation } from 'src/core/EventStore';
 import { EventLocation, OFCEvent } from 'src/types';
@@ -50,12 +67,17 @@ export abstract class EditableCalendar extends Calendar {
 
   /**
    * Modify an event on disk.
+   * Implementations of this method are responsible for all file I/O to update
+   * an event. This includes modifying frontmatter, changing file content, or
+   * even renaming/moving the file if the event's date or title changes.
    *
-   * @param location Location of event
-   * @param newEvent New event details
-   * @param updateCacheWithLocation This callback updates the cache with the new location
-   *        of the event. In order to avoid race conditions with file I/O, make sure this
-   *        is called before any files are changed on disk.
+   * @param location - The current location of the event on disk.
+   * @param newEvent - The new event details to be saved.
+   * @param updateCacheWithLocation - A critical callback that MUST be called by the
+   *        implementation *before* any file modifications are written to disk.
+   *        This prevents race conditions by ensuring the in-memory cache is
+   *        updated with the new potential location of the event. If the file write
+   *        fails, the cache is still consistent with what's on disk.
    */
   abstract modifyEvent(
     location: EventPathLocation,

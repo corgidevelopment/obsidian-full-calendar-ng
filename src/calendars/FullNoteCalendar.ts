@@ -1,3 +1,18 @@
+/**
+ * @file FullNoteCalendar.ts
+ * @brief Implements a calendar source where each event is a separate note.
+ *
+ * @description
+ * This file defines the `FullNoteCalendar` class. In this model, each event
+ * corresponds to a dedicated Markdown file within a specified directory.
+ * All event data is stored in the note's YAML frontmatter. This class
+ * handles the creation, parsing, and modification of these event notes.
+ *
+ * @see EditableCalendar.ts
+ *
+ * @license See LICENSE.md
+ */
+
 import { TFile, TFolder, parseYaml } from 'obsidian';
 import { rrulestr } from 'rrule';
 import { EventPathLocation } from '../core/EventStore';

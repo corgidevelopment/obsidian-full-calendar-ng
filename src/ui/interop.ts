@@ -1,12 +1,18 @@
 /**
  * @file interop.ts
- * @description Provides utility functions for converting between
- *              Obsidian Full Calendar event objects (OFCEvent)
- *              and FullCalendar's event format (EventInput). Also
- *              handles formatting, ID mapping, and dirty tracking.
+ * @brief Provides data conversion functions between OFCEvent and FullCalendar's EventInput.
+ *
+ * @description
+ * This file is a critical data-translation layer. It contains the logic for
+ * converting the plugin's internal `OFCEvent` format into the `EventInput`
+ * format that the FullCalendar.js library understands, and vice-versa. This
+ * "interoperability" is essential for displaying events correctly and for
+ * processing user interactions like dragging and resizing.
  *
  * @exports toEventInput
  * @exports toOFCEvent
+ *
+ * @license See LICENSE.md
  */
 
 import { EventApi, EventInput } from '@fullcalendar/core';
@@ -15,10 +21,11 @@ import { OFCEvent } from '../types';
 import { DateTime, Duration } from 'luxon';
 import { rrulestr } from 'rrule';
 
-/*
- * Functions for converting between the types used by the FullCalendar view plugin and types used internally by Obsidian Full Calendar.
+/**
+ * Functions for converting between the types used by the FullCalendar view plugin and
+ * types used internally by Obsidian Full Calendar.
+ *
  */
-
 const parseTime = (time: string): Duration | null => {
   let parsed = DateTime.fromFormat(time, 'h:mm a');
   if (parsed.invalidReason) {
@@ -120,6 +127,15 @@ export function dateEndpointsToFrontmatter(
   };
 }
 
+/**
+ * Converts an OFCEvent from the cache into an EventInput object that FullCalendar can render.
+ * This function handles all event types (single, recurring, rrule) and correctly
+ * formats dates, times, and recurrence rules.
+ *
+ * @param id The unique ID of the event.
+ * @param frontmatter The OFCEvent object.
+ * @returns An `EventInput` object, or `null` if the event data is invalid.
+ */
 export function toEventInput(id: string, frontmatter: OFCEvent): EventInput | null {
   let event: EventInput = {
     id,
@@ -233,6 +249,14 @@ export function toEventInput(id: string, frontmatter: OFCEvent): EventInput | nu
   return event;
 }
 
+/**
+ * Converts an `EventApi` object from FullCalendar back into an `OFCEvent`.
+ * This is typically used after a user interaction, like dragging or resizing an event,
+ * to get the new event data in a format that can be saved back to the cache and disk.
+ *
+ * @param event The `EventApi` object from FullCalendar.
+ * @returns An `OFCEvent` object.
+ */
 export function fromEventApi(event: EventApi): OFCEvent {
   const isRecurring: boolean = event.extendedProps.daysOfWeek !== undefined;
   const startDate = getDate(event.start as Date);

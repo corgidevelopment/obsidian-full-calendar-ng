@@ -1,11 +1,19 @@
 /**
  * @file view.ts
- * @description Defines the `CalendarView` class, which integrates with
- *      Obsidian's workspace system to provide a tabbed or sidebar view for
- *      the Full Calendar plugin. Responsible for mounting and unmounting
- *      the calendar UI using FullCalendar.
+ * @brief Defines the `CalendarView`, the main component for displaying the calendar.
+ *
+ * @description
+ * This file contains the `CalendarView` class, which extends Obsidian's `ItemView`.
+ * It is responsible for creating and managing the DOM element that hosts the
+ * calendar, initializing FullCalendar.js, and subscribing to the `EventCache`
+ * for updates. It handles all direct user interactions with the calendar and
+ * translates them into actions on the `EventCache`.
  *
  * @exports CalendarView
+ *
+ * @see EventCache.ts
+ *
+ * @license See LICENSE.md
  */
 
 import './overrides.css';
@@ -73,6 +81,11 @@ export class CalendarView extends ItemView {
     return this.inSidebar ? 'Full Calendar' : 'Calendar';
   }
 
+  /**
+   * Translates event data from the `EventCache` into the `EventSourceInput`
+   * format required by the FullCalendar library.
+   * Also calculates the correct text color for event backgrounds.
+   */
   translateSources() {
     return this.plugin.cache.getAllEvents().map(
       ({ events, editable, color, id }): EventSourceInput => ({
@@ -84,6 +97,14 @@ export class CalendarView extends ItemView {
     );
   }
 
+  /**
+   * Called when the view is opened or re-focused.
+   * This is the main rendering method. It clears any existing calendar,
+   * fetches all event sources from the cache, and initializes a new FullCalendar
+   * instance with all the necessary options and interaction callbacks (e.g., for
+   * event clicking, dragging, and creating new events). It also registers a
+   * callback with the EventCache to listen for updates.
+   */
   async onOpen() {
     await this.plugin.loadSettings();
     if (!this.plugin.cache) {

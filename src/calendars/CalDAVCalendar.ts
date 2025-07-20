@@ -1,3 +1,19 @@
+/**
+ * @file CalDAVCalendar.ts
+ * @brief Implements a remote calendar source using the CalDAV protocol.
+ *
+ * @description
+ * This file defines the `CalDAVCalendar` class, which extends `RemoteCalendar`.
+ * It is responsible for connecting to a CalDAV server using provided
+ * credentials, fetching calendar objects (Vevents) from a specific calendar
+ * collection, and parsing them into the internal `OFCEvent` format.
+ *
+ * @see RemoteCalendar.ts
+ * @see calendars/parsing/caldav/transport.ts
+ *
+ * @license See LICENSE.md
+ */
+
 import dav from 'dav';
 import * as transport from './parsing/caldav/transport';
 import { Authentication, CalendarInfo, OFCEvent } from 'src/types';

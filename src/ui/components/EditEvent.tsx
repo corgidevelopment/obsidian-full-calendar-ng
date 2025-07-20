@@ -1,11 +1,14 @@
 /**
  * @file EditEvent.tsx
- * @description React component for the "Edit Event" modal.
- *              Handles form state, validation, and submission to
- *              update or create events via the plugin's EventCache
- *              and associated calendars.
+ * @brief React component for the "Create/Edit Event" modal form.
  *
- * @component EditEvent
+ * @description
+ * This file defines the `EditEvent` React component, which provides the form
+ * for creating and editing events. It manages all form state, including title,
+ * dates, times, recurrence rules, and associated calendar. It performs form
+- * validation and calls a submit callback to persist changes.
+ *
+ * @license See LICENSE.md
  */
 
 import { DateTime } from 'luxon';

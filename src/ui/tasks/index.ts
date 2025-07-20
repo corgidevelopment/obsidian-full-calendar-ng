@@ -1,3 +1,16 @@
+/**
+ * @file index.ts
+ * @brief Provides utility functions for handling task-related events.
+ *
+ * @description
+ * This file contains helper functions to manage the "task" aspect of an event.
+ * It includes logic for identifying if an event is a task (`isTask`), toggling
+ * its completion status (`toggleTask`), and converting a regular event into a
+ * task or vice-versa (`unmakeTask`).
+ *
+ * @license See LICENSE.md
+ */
+
 import { DateTime } from 'luxon';
 import { OFCEvent } from 'src/types';
 

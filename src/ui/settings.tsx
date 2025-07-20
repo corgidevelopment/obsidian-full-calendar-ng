@@ -1,11 +1,19 @@
 /**
  * @file settings.tsx
- * @description Implements the plugin’s settings tab UI using Obsidian's
- *              PluginSettingTab API. Allows users to configure
- *              calendar sources, appearance, and behavior.
+ * @brief Implements the plugin's settings tab UI.
+ *
+ * @description
+ * This file defines the `FullCalendarSettingTab` class, which uses Obsidian's
+ * `PluginSettingTab` API to build the user-facing settings interface. It
+ * combines native Obsidian UI components with the React-based `CalendarSettings`
+ * component to manage and persist all plugin configurations.
  *
  * @exports FullCalendarSettingTab
  * @exports DEFAULT_SETTINGS
+ *
+ * @see components/CalendarSetting.tsx
+ *
+ * @license See LICENSE.md
  */
 
 import FullCalendarPlugin from '../main';

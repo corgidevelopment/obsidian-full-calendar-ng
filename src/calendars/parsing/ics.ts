@@ -1,3 +1,17 @@
+/**
+ * @file ics.ts
+ * @brief Provides functions for parsing iCalendar (ICS) data into OFCEvents.
+ *
+ * @description
+ * This file serves as the primary data translation layer for the iCalendar
+ * format. It uses the `ical.js` library to parse raw ICS text and converts
+ * iCalendar components (Vevent) into the plugin's internal `OFCEvent` format.
+ * It correctly handles single events, recurring events (RRULE), and
+ * recurrence exceptions (EXDATE, RECURRENCE-ID).
+ *
+ * @license See LICENSE.md
+ */
+
 import ical from 'ical.js';
 import { OFCEvent, validateEvent } from '../../types';
 import { DateTime } from 'luxon';

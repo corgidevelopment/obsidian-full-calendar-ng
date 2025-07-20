@@ -1,9 +1,17 @@
 /**
  * @file calendar.ts
- * @description Handles rendering the calendar given a container element,
- *              eventSources, and interaction callbacks.
+ * @brief A wrapper for initializing and rendering the FullCalendar.js library.
+ *
+ * @description
+ * This file provides the `renderCalendar` function, which is a factory for
+ * creating a `Calendar` instance from the `@fullcalendar/core` library. It
+ * encapsulates all the configuration and boilerplate needed to set up the
+- * calendar, including plugins, views, toolbar settings, and interaction
+ * callbacks.
  *
  * @exports renderCalendar
+ * 
+ * @license See LICENSE.md
  */
 
 import {

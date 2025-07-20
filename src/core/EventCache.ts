@@ -1,3 +1,30 @@
+/**
+ * @file EventCache.ts
+ * @brief Defines the EventCache, the central state management for all event data.
+ *
+ * @description
+ * The EventCache is the single source of truth for all calendar events. It
+ * orchestrates the fetching, storing, and updating of event data from all
+ * configured calendar sources. It listens for Vault changes, manages CUD
+ * operations by delegating to calendar instances, and notifies the UI of
+ * any state changes, ensuring the view is always in sync.
+ *
+ * Responsibilities:
+ * - Initializing and managing Calendar objects from plugin settings.
+ * - Fetching, parsing, and storing events in the EventStore.
+ * - Providing event data to the UI in a FullCalendar-compatible format.
+ * - Handling all CUD (Create, Update, Delete) operations, delegating file I/O
+ *   to the appropriate EditableCalendar instance.
+ * - Subscribing to Vault changes and updating its internal state.
+ * - Notifying registered views (subscribers) of any changes to event data.
+ * - Throttling and managing revalidation of remote calendars.
+ *
+ * @see EventStore.ts
+ * @see ui/view.ts
+ *
+ * @license See LICENSE.md
+ */
+
 import { Notice, TFile } from 'obsidian';
 import equal from 'deep-equal';
 
@@ -322,10 +349,18 @@ export default class EventCache {
   }
 
   /**
-   * Update an event with a given ID.
-   * @param eventId ID of event to update.
-   * @param newEvent new event contents
-   * @returns true if update was successful, false otherwise.
+   * Update an event with a given ID. This is a primary method for event modification.
+   * It finds the event's calendar and location, then calls the calendar's
+   * `modifyEvent` method to perform the underlying file/API changes.
+   *
+   * The `updateCacheWithLocation` callback passed to `modifyEvent` is crucial
+   * for maintaining data consistency, as it updates the cache's in-memory
+   * representation of the event's location before the file is written.
+   *
+   * @param eventId ID of the event to update.
+   * @param newEvent The new event data.
+   * @returns true if the update was successful.
+   * @throws If the event is not in an editable calendar or cannot be found.
    */
   async updateEventWithId(eventId: string, newEvent: OFCEvent): Promise<boolean> {
     const { calendar, location: oldLocation } = this.getInfoForEditableEvent(eventId);
@@ -410,18 +445,24 @@ export default class EventCache {
   ///
 
   /**
-   * Delete all events located at a given path and notify subscribers.
-   * @param path path of file that has been deleted
+   * Deletes all events associated with a given file path from the EventStore
+   * and notifies views to remove them.
+   *
+   * @param path Path of the file that has been deleted.
    */
   deleteEventsAtPath(path: string) {
     this.updateViews([...this.store.deleteEventsAtPath(path)], []);
   }
 
   /**
-   * Main hook into the filesystem.
-   * This callback should be called whenever a file has been updated or created.
-   * @param file File which has been updated
-   * @returns nothing
+   * Main hook into the filesystem. Called when a file is created or updated.
+   * It determines which calendars are affected by the change, reads the new
+   * event data from the file, compares it to the old data in the cache,
+   * and updates the EventStore and subscribing views if any changes are detected.
+   *
+   * @param file The file that has been updated in the Vault.
+   * @remarks This is an async method and can be prone to race conditions if
+   * a file is updated multiple times in quick succession.
    */
   async fileUpdated(file: TFile): Promise<void> {
     console.debug('fileUpdated() called for file', file.path);
@@ -489,8 +530,14 @@ export default class EventCache {
   }
 
   /**
-   * Revalidate calendars asynchronously. This is not a blocking function: as soon as new data
-   * is available for any remote calendar, its data will be updated in the cache and any subscribing views.
+   * Revalidates all remote calendars (ICS, CalDAV) to fetch the latest events.
+   * This operation is non-blocking. As each calendar finishes fetching, it
+   * updates the cache and the UI.
+   *
+   * @param force - If true, bypasses the throttling mechanism and fetches immediately.
+   *                Defaults to false.
+   * @remarks Revalidation is throttled by MILLICONDS_BETWEEN_REVALIDATIONS to avoid
+   * excessive network requests.
    */
   revalidateRemoteCalendars(force = false) {
     if (this.revalidating) {

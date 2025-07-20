@@ -1,3 +1,17 @@
+/**
+ * @file EventStore.ts
+ * @brief Defines the EventStore, an in-memory database for event objects.
+ *
+ * @description
+ * This file provides the `EventStore` class, which is designed for efficient
+ * storage and retrieval of events. It uses an ID-based primary key and maintains
+ * secondary indexes for lookups by calendar and by file path. This indexing
+ * strategy prevents costly full-scans and is critical for performance,
+ * especially when dealing with a large number of events.
+ *
+ * @license See LICENSE.md
+ */
+
 import { Calendar } from '../calendars/Calendar';
 import { EventLocation, OFCEvent } from '../types';
 
@@ -31,6 +45,15 @@ class OneToMany<T extends Identifier, FK extends Identifier> {
     this.related.clear();
   }
 
+  /**
+   * Adds a new event to the store and updates all relevant indexes.
+   * @param calendar - The calendar instance this event belongs to.
+   * @param location - The file path and line number where the event is defined, if applicable.
+   * @param id - The unique ID for the event.
+   * @param event - The event data object.
+   * @returns The ID of the added event.
+   * @throws If an event with the same ID already exists in the store.
+   */
   add(one: T, many: FK) {
     this.foreign.set(many.id, one.id);
     let related = this.related.get(one.id);
@@ -41,6 +64,11 @@ class OneToMany<T extends Identifier, FK extends Identifier> {
     related.add(many.id);
   }
 
+  /**
+   * Deletes an event from the store and all associated indexes.
+   * @param id The ID of the event to delete.
+   * @returns The deleted event object if it existed, otherwise null.
+   */
   delete(many: FK) {
     const oneId = this.foreign.get(many.id);
     if (!oneId) {
