@@ -45,8 +45,7 @@ export default class FullCalendarPlugin extends Plugin {
             info.url,
             info.homeUrl
           )
-        : null,
-    FOR_TEST_ONLY: () => null
+        : null
   });
 
   renderCalendar = renderCalendar;
@@ -149,7 +148,7 @@ export default class FullCalendarPlugin extends Plugin {
         if (this.app.workspace.getLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE).length) {
           return;
         }
-        this.app.workspace.getRightLeaf(false).setViewState({
+        this.app.workspace.getRightLeaf(false)?.setViewState({
           type: FULL_CALENDAR_SIDEBAR_VIEW_TYPE
         });
       }

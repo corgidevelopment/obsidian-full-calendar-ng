@@ -1,5 +1,4 @@
-import { ZodError, z } from "zod";
-import { type OFCEvent } from "./schema";
+import { z } from "zod";
 
 const calendarOptionsSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("local"), directory: z.string() }),
@@ -17,34 +16,7 @@ const calendarOptionsSchema = z.discriminatedUnion("type", [
 
 const colorValidator = z.object({ color: z.string() });
 
-export type TestSource = {
-  type: "FOR_TEST_ONLY";
-  id: string;
-  events?: OFCEvent[];
-};
-
-export type CalendarInfo = (z.infer<typeof calendarOptionsSchema> | TestSource) & z.infer<typeof colorValidator>;
-
-export function parseCalendarInfo(obj: unknown): CalendarInfo {
-  const options = calendarOptionsSchema.parse(obj);
-  const color = colorValidator.parse(obj);
-
-  return { ...options, ...color };
-}
-
-export function safeParseCalendarInfo(obj: unknown): CalendarInfo | null {
-  try {
-    return parseCalendarInfo(obj);
-  } catch (e) {
-    if (e instanceof ZodError) {
-      console.debug("Parsing calendar info failed with errors", {
-        obj,
-        error: e.message
-      });
-    }
-    return null;
-  }
-}
+export type CalendarInfo = z.infer<typeof calendarOptionsSchema> & z.infer<typeof colorValidator>;
 
 /**
  * Construct a partial calendar source of the specified type

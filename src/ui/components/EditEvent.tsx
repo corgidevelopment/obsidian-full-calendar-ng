@@ -1,7 +1,8 @@
 import { DateTime } from "luxon";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
-import type { CalendarInfo, OFCEvent } from "../../types";
+import type { CalendarInfo } from "../../types";
+import { type AnyEvent, DaysOfWeek } from "../../logic/Event";
 
 function makeChangeListener<T>(
   setState: React.Dispatch<React.SetStateAction<T>>,
@@ -16,6 +17,7 @@ interface DayChoiceProps {
   isSelected: boolean;
   onClick: (code: string) => void;
 }
+
 const DayChoice = ({ code, label, isSelected, onClick }: DayChoiceProps) => (
   <button
     type="button"
@@ -37,26 +39,16 @@ const DayChoice = ({ code, label, isSelected, onClick }: DayChoiceProps) => (
   </button>
 );
 
-const DAY_MAP = {
-  U: "Sunday",
-  M: "Monday",
-  T: "Tuesday",
-  W: "Wednesday",
-  R: "Thursday",
-  F: "Friday",
-  S: "Saturday"
-};
-
-const DaySelect = ({ value: days, onChange }: { value: string[]; onChange: (days: string[]) => void }) => {
+const DaySelect = ({ value: days, onChange }: { value: DaysOfWeek[]; onChange: (days: DaysOfWeek[]) => void }) => {
   return (
     <div>
-      {Object.entries(DAY_MAP).map(([code, label]) => (
+      {Object.entries(DaysOfWeek).map(([code, label]) => (
         <DayChoice
           key={code}
           code={code}
           label={label}
-          isSelected={days.includes(code)}
-          onClick={() => (days.includes(code) ? onChange(days.filter((c) => c !== code)) : onChange([code, ...days]))}
+          isSelected={days.includes(label)}
+          onClick={() => (days.includes(label) ? onChange(days.filter((c) => c !== code)) : onChange([label, ...days]))}
         />
       ))}
     </div>
@@ -64,32 +56,20 @@ const DaySelect = ({ value: days, onChange }: { value: string[]; onChange: (days
 };
 
 interface EditEventProps {
-  submit: (frontmatter: OFCEvent, calendarIndex: number) => Promise<void>;
+  submit: (event: AnyEvent, calendarIndex: number) => Promise<void>;
   readonly calendars: {
     id: string;
     name: string;
     type: CalendarInfo["type"];
   }[];
   defaultCalendarIndex: number;
-  initialEvent?: Partial<OFCEvent>;
+  initialEvent?: Partial<AnyEvent>;
   open?: () => Promise<void>;
   deleteEvent?: () => Promise<void>;
 }
 
 export const EditEvent = ({ initialEvent, submit, open, deleteEvent, calendars, defaultCalendarIndex }: EditEventProps) => {
-  const [date, setDate] = useState(
-    initialEvent
-      ? initialEvent.type === "single"
-        ? initialEvent.date
-        : initialEvent.type === "recurring"
-        ? initialEvent.startRecur
-        : initialEvent.type === "rrule"
-        ? initialEvent.startDate
-        : ""
-      : ""
-  );
-  const [endDate] = useState(initialEvent && initialEvent.type === "single" ? initialEvent.endDate : undefined);
-
+  const [date, setDate] = useState(initialEvent?.start?.toISODate());
   let initialStartTime = "";
   let initialEndTime = "";
   if (initialEvent) {
@@ -102,21 +82,23 @@ export const EditEvent = ({ initialEvent, submit, open, deleteEvent, calendars, 
   const [startTime, setStartTime] = useState(initialStartTime);
   const [endTime, setEndTime] = useState(initialEndTime);
   const [title, setTitle] = useState(initialEvent?.title || "");
-  const [isRecurring, setIsRecurring] = useState(initialEvent?.type === "recurring" || false);
+  const [isRecurring, setIsRecurring] = useState(initialEvent && "daysOfWeek" in initialEvent);
   const [endRecur, setEndRecur] = useState("");
+  const [daysOfWeek, setDaysOfWeek] = useState<DaysOfWeek[]>(() => {
+    if (initialEvent && "daysOfWeek" in initialEvent) {
+      return initialEvent.daysOfWeek ?? [];
+    }
+    return [];
+  });
 
-  const [daysOfWeek, setDaysOfWeek] = useState<string[]>((initialEvent?.type === "recurring" ? initialEvent.daysOfWeek : []) || []);
-
-  const [allDay, setAllDay] = useState(initialEvent?.allDay || false);
+  const [allDay, setAllDay] = useState(() => {
+    if (initialEvent && "allDay" in initialEvent) {
+      return initialEvent.allDay ?? false;
+    }
+    return false;
+  });
 
   const [calendarIndex, setCalendarIndex] = useState(defaultCalendarIndex);
-
-  const [complete, setComplete] = useState(
-    initialEvent?.type === "single" && initialEvent.completed !== null && initialEvent.completed !== undefined ? initialEvent.completed : false
-  );
-
-  const [isTask, setIsTask] = useState(initialEvent?.type === "single" && initialEvent.completed !== undefined && initialEvent.completed !== null);
-
   const titleRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (titleRef.current) {
@@ -126,26 +108,30 @@ export const EditEvent = ({ initialEvent, submit, open, deleteEvent, calendars, 
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await submit(
-      {
-        ...{ title },
-        ...(allDay ? { allDay: true } : { allDay: false, startTime: startTime || "", endTime }),
-        ...(isRecurring
-          ? {
-              type: "recurring",
-              daysOfWeek: daysOfWeek as ("U" | "M" | "T" | "W" | "R" | "F" | "S")[],
-              startRecur: date || undefined,
-              endRecur: endRecur || undefined
-            }
-          : {
-              type: "single",
-              date: date || "",
-              endDate: endDate || null,
-              completed: isTask ? complete : null
-            })
-      },
-      calendarIndex
-    );
+    if (!date) {
+      return;
+    }
+    let event: AnyEvent;
+    const [sHours, sMinutes] = startTime.split(":");
+    const start = DateTime.fromISO(date).plus({ hours: Number.parseInt(sHours), minutes: Number.parseInt(sMinutes) });
+    const [eHours, eMinutes] = endTime.split(":");
+    const end = DateTime.fromISO(date).plus({ hours: Number.parseInt(eHours), minutes: Number.parseInt(eMinutes) });
+    if (isRecurring) {
+      event = {
+        title,
+        start,
+        end,
+        daysOfWeek: daysOfWeek
+      };
+    } else {
+      event = {
+        title,
+        start,
+        end,
+        allDay: allDay
+      };
+    }
+    await submit(event, calendarIndex);
   };
 
   return (
@@ -169,10 +155,10 @@ export const EditEvent = ({ initialEvent, submit, open, deleteEvent, calendars, 
         <p>
           <select id="calendar" value={calendarIndex} onChange={makeChangeListener(setCalendarIndex, parseInt)}>
             {calendars
-              .flatMap((cal) => (cal.type === "local" || cal.type === "dailynote" ? [cal] : []))
+              .flatMap((cal) => (["local", "dailynote", "caldav"].includes(cal.type) ? [cal] : []))
               .map((cal, idx) => (
                 <option key={idx} value={idx} disabled={!(initialEvent?.title === undefined || calendars[calendarIndex].type === cal.type)}>
-                  {cal.type === "local" ? cal.name : "Daily Note"}
+                  {["local", "caldav"].includes(cal.type) ? cal.name : "Daily Note"}
                 </option>
               ))}
           </select>
@@ -225,30 +211,6 @@ export const EditEvent = ({ initialEvent, submit, open, deleteEvent, calendars, 
             </p>
           </>
         )}
-        <p>
-          <label htmlFor="task">Task Event </label>
-          <input
-            id="task"
-            checked={isTask}
-            onChange={(e) => {
-              setIsTask(e.target.checked);
-            }}
-            type="checkbox"
-          />
-        </p>
-
-        {isTask && (
-          <>
-            <label htmlFor="taskStatus">Complete? </label>
-            <input
-              id="taskStatus"
-              checked={!(complete === false || complete === undefined)}
-              onChange={(e) => setComplete(e.target.checked ? DateTime.now().toISO() : false)}
-              type="checkbox"
-            />
-          </>
-        )}
-
         <p
           style={{
             display: "flex",
@@ -256,7 +218,7 @@ export const EditEvent = ({ initialEvent, submit, open, deleteEvent, calendars, 
             width: "100%"
           }}
         >
-          <button type="submit"> Save Event </button>
+          <button type="submit"> Save Event</button>
           <span>
             {deleteEvent && (
               <button

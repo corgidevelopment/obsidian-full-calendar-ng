@@ -1,12 +1,16 @@
 import dav from "dav";
 import * as transport from "./parsing/caldav/transport";
-import type { Authentication, CalendarInfo, EventLocation, OFCEvent } from "src/types";
+import type { Authentication, CalendarInfo, EventLocation } from "src/types";
 import { getEventsFromICS } from "src/calendars/parsing/ics";
 import type { IEditableCalendar } from "./IEditableCalendar";
 import type { IRemoteCalendar } from "./IRemoteCalendar";
 import type { ICalendar } from "./ICalendar";
 import type { EventPathLocation } from "src/core/EventStore";
-import { type EditableEventResponse, ID_SEPARATOR } from "../logic/tmpTypes";
+import { ID_SEPARATOR } from "../logic/consts";
+import type { EditableEventResponse } from "../logic/EventResponse";
+import type { AnyEvent } from "../logic/Event";
+import { anyEventToDavEvent } from "../logic/anyEventToDavEvent";
+import { davEventToVCalString } from "../logic/DavEvent";
 
 export default class CalDAVCalendar implements IRemoteCalendar, Omit<IEditableCalendar, "containsPath">, ICalendar {
   _name: string;
@@ -16,7 +20,7 @@ export default class CalDAVCalendar implements IRemoteCalendar, Omit<IEditableCa
   id: string = `${this.type}${ID_SEPARATOR}${this.identifier}`;
   color: string;
 
-  events: OFCEvent[] = [];
+  events: AnyEvent[] = [];
 
   constructor(color: string, name: string, credentials: Authentication, serverUrl: string, calendarUrl: string) {
     this.color = color;
@@ -26,19 +30,42 @@ export default class CalDAVCalendar implements IRemoteCalendar, Omit<IEditableCa
     this.calendarUrl = calendarUrl;
   }
 
-  createEvent(_: OFCEvent): Promise<EventLocation> {
-    throw new Error("Method not implemented.");
-  }
+  createEvent = async (e: AnyEvent): Promise<EventLocation> => {
+    let xhr = new transport.Basic(
+      new dav.Credentials({
+        username: this.credentials.username,
+        password: this.credentials.password
+      })
+    );
+    let account = await dav.createAccount({
+      xhr: xhr,
+      server: this.serverUrl
+    });
+    let calendar = account.calendars.find((calendar) => calendar.url === this.calendarUrl);
+    if (!calendar) {
+      throw new Error("remote calendar not found!");
+    }
 
-  deleteEvent(_: EventPathLocation): Promise<void> {
-    throw new Error("Method not implemented.");
-  }
+    const davEvent = anyEventToDavEvent({ e });
+    const data = davEventToVCalString(davEvent);
+    const filename = davEvent.filename;
+    await dav.createCalendarObject(calendar, {
+      data,
+      xhr,
+      filename
+    });
+    return { url: "" };
+  };
 
-  modifyEvent(_: EventPathLocation, __: OFCEvent, ___: (loc: EventLocation) => void): Promise<void> {
+  deleteEvent = (_: EventPathLocation): Promise<void> => {
     throw new Error("Method not implemented.");
-  }
+  };
 
-  async revalidate(): Promise<void> {
+  modifyEvent = (_: EventPathLocation, __: AnyEvent, ___: (loc: EventLocation) => void): Promise<void> => {
+    throw new Error("Method not implemented.");
+  };
+
+  revalidate = async (): Promise<void> => {
     let xhr = new transport.Basic(
       new dav.Credentials({
         username: this.credentials.username,
@@ -55,7 +82,7 @@ export default class CalDAVCalendar implements IRemoteCalendar, Omit<IEditableCa
     }
     let caldavEvents = await dav.listCalendarObjects(calendar, { xhr });
     this.events = caldavEvents.filter((vevent) => vevent.calendarData).flatMap((vevent) => getEventsFromICS(vevent.calendarData));
-  }
+  };
 
   get type(): CalendarInfo["type"] {
     return "caldav";
@@ -69,7 +96,7 @@ export default class CalDAVCalendar implements IRemoteCalendar, Omit<IEditableCa
     return this._name;
   }
 
-  async getEvents(): Promise<EditableEventResponse[]> {
+  getEvents = async (): Promise<EditableEventResponse[]> => {
     return this.events.map((e) => ({ event: e, location: { url: "" } }));
-  }
+  };
 }

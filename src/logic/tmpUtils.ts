@@ -1,60 +1,52 @@
-import { type OFCEvent, validateEvent } from "../types";
-import { type CachedMetadata, type ListItemCache, type Loc, parseYaml, type Pos } from "obsidian";
-import { type AddToHeadingProps, type Line, type PrintableAtom } from "./tmpTypes";
-import { rrulestr } from "rrule";
+import { type CachedMetadata, type ListItemCache, type Loc, parseYaml, type Pos, type TFile } from "obsidian";
+import type { Line } from "./Line";
+import type { AddToHeadingProps } from "./AddToHeadingProps";
+import type { PrintableAtom } from "./PrintableAtom";
+import { type AnyEvent, isEvent, isNotAllDay, isRecurring } from "./Event";
+import { DateTime } from "luxon";
+import { createDailyNote, getDailyNote, getDateFromFile } from "obsidian-daily-notes-interface";
+import type { Moment } from "moment";
+import moment from "moment/moment";
 
 export const listRegex = /^(\s*)-\s+(\[(.)]\s+)?/;
-export const checkboxRegex = /^\s*-\s+\[(.)]\s+/;
 export const fieldRegex = /\[([^\]]+):: ?([^\]]+)]/g;
 
 export const DATE_FORMAT = "YYYY-MM-DD";
 
-//lol, parseBool returning a string 😂
-export function parseBool(s: string): boolean | string {
-  return s === "true" ? true : s === "false" ? false : s;
-}
-
-// string | false | null 🤣
-export function checkboxTodo(s: string): string | false | null {
-  const match = s.match(checkboxRegex);
-  if (!match || !match[1]) {
-    return null;
+export function parseBool(s: string): boolean {
+  if (s.toLowerCase() === "true") {
+    return true;
+  } else if (s.toLowerCase() === "false") {
+    return false;
   }
-  return match[1] === " " ? false : match[1];
+  throw new Error(`error parsing ${s} as boolean `);
 }
 
 export function getAllInlineEventsFromFile(
   fileText: string,
   listItems: ListItemCache[],
-  fileGlobalAttrs: Partial<OFCEvent>
-): { lineNumber: number; event: OFCEvent }[] {
+  fileGlobalAttrs: Partial<AnyEvent>
+): { lineNumber: number; event: AnyEvent }[] {
   const lines = fileText.split("\n");
-  const listItemText: Line[] = listItems.map((i) => i.position.start.line).map((idx) => ({ lineNumber: idx, text: lines[idx] }));
+  const listItemText: Line[] = listItems
+    .map((i) => i.position.start.line)
+    .map((idx) => ({
+      lineNumber: idx,
+      text: lines[idx]
+    }));
 
   return listItemText
     .map((l) => ({
       lineNumber: l.lineNumber,
       event: getInlineEventFromLine(l.text, {
-        ...fileGlobalAttrs,
-        type: "single"
+        ...fileGlobalAttrs
       })
     }))
     .flatMap(({ event, lineNumber }) => (event ? [{ event, lineNumber }] : []));
 }
 
-export function getInlineEventFromLine(text: string, globalAttrs: Partial<OFCEvent>): OFCEvent | null {
-  const attrs = getInlineAttributes(text);
-  // Shortcut validation if there are no inline attributes.
-  if (Object.keys(attrs).length === 0) {
-    return null;
-  }
-
-  return validateEvent({
-    title: text.replace(listRegex, "").replace(fieldRegex, "").trim(),
-    completed: checkboxTodo(text),
-    ...globalAttrs,
-    ...attrs
-  });
+export function getInlineEventFromLine(_: string, __: Partial<AnyEvent>): AnyEvent | null {
+  return null;
 }
 
 export function getInlineAttributes(s: string): Record<string, string | boolean> {
@@ -108,38 +100,25 @@ export function getListsUnderHeading({ headingText, metadata }: { headingText: s
   return metadata.listItems?.filter((l) => headingPos.start.offset < l.position.start.offset && l.position.end.offset <= headingPos.end.offset);
 }
 
-const makeListItem = (data: OFCEvent, whitespacePrefix: string = ""): string => {
-  if (data.type !== "single") {
+export function makeListItem(data: AnyEvent, whitespacePrefix: string = ""): string {
+  if (isNotAllDay(data)) {
+    const { id, allDay } = data;
+    let attrs = {};
+    if (!allDay) {
+      attrs = { id };
+    } else {
+      attrs = { id, allDay };
+    }
+    return `${whitespacePrefix}- ${data.title} ${generateInlineAttributes(attrs)}`;
+  } else {
     throw new Error("Can only pass in single event.");
   }
-  const { completed, title } = data;
-  const checkbox = (() => {
-    if (completed !== null && completed !== undefined) {
-      return `[${completed ? "x" : " "}]`;
-    }
-    return null;
-  })();
+}
 
-  const attrs: Partial<OFCEvent> = { ...data };
-  delete attrs["completed"];
-  delete attrs["title"];
-  delete attrs["type"];
-  delete attrs["date"];
-
-  for (const key of <(keyof OFCEvent)[]>Object.keys(attrs)) {
-    if (attrs[key] === undefined || attrs[key] === null) {
-      delete attrs[key];
-    }
-  }
-
-  if (!attrs["allDay"]) {
-    delete attrs["allDay"];
-  }
-
-  return `${whitespacePrefix}- ${checkbox || ""} ${title} ${generateInlineAttributes(attrs)}`;
-};
-
-export function addToHeading({ page, heading, headingText, item }: AddToHeadingProps): { page: string; lineNumber: number } {
+export function addToHeading({ page, heading, headingText, item }: AddToHeadingProps): {
+  page: string;
+  lineNumber: number;
+} {
   let lines = page.split("\n");
 
   const listItem = makeListItem(item);
@@ -155,19 +134,16 @@ export function addToHeading({ page, heading, headingText, item }: AddToHeadingP
   }
 }
 
-export function basenameFromEvent(event: OFCEvent): string {
-  switch (event.type) {
-    case undefined:
-    case "single":
-      return `${event.date} ${event.title}`;
-    case "recurring":
-      return `(Every ${event.daysOfWeek.join(",")}) ${event.title}`;
-    case "rrule":
-      return `(${rrulestr(event.rrule).toText()}) ${event.title}`;
+export function basenameFromEvent(event: AnyEvent): string {
+  if (isEvent(event)) {
+    return `${event.start} ${event.title}`;
+  } else if (isRecurring(event)) {
+    return `(Every ${event.daysOfWeek.join(",")}) ${event.title}`;
   }
+  throw new Error("unhandled event type passed to basenameFromEvent!");
 }
 
-export function filenameForEvent(event: OFCEvent): string {
+export function filenameForEvent(event: AnyEvent): string {
   return `${basenameFromEvent(event)}.md`;
 }
 
@@ -225,7 +201,7 @@ export function stringifyYamlLine(k: string | number | symbol, v: PrintableAtom)
   return `${String(k)}: ${stringifyYamlAtom(v)}`;
 }
 
-export function newFrontmatter(fields: Partial<OFCEvent>): string {
+export function newFrontmatter(fields: Partial<AnyEvent>): string {
   return (
     "---\n" +
     Object.entries(fields)
@@ -236,7 +212,27 @@ export function newFrontmatter(fields: Partial<OFCEvent>): string {
   );
 }
 
-export function modifyListItem(line: string, data: OFCEvent): string | null {
+export function eventFromFrontmatter(fm: { [key: string]: any }): AnyEvent {
+  if (fm["daysOfWeek"]?.length >= 0) {
+    return {
+      id: fm["id"],
+      start: fm["start"],
+      end: fm["end"],
+      title: fm["title"],
+      daysOfWeek: fm["daysOfWeek"]
+    };
+  } else {
+    return {
+      id: fm["id"],
+      start: fm["start"],
+      end: fm["end"],
+      title: fm["title"],
+      allDay: fm["allDay"]
+    };
+  }
+}
+
+export function modifyListItem(line: string, data: AnyEvent): string | null {
   const listMatch = line.match(listRegex);
   if (!listMatch) {
     console.warn("Tried modifying a list item with a position that wasn't a list item", { line });
@@ -248,7 +244,7 @@ export function modifyListItem(line: string, data: OFCEvent): string | null {
 
 const FRONTMATTER_SEPARATOR = "---";
 
-export function modifyFrontmatterString(page: string, modifications: Partial<OFCEvent>): string {
+export function modifyFrontmatterString(page: string, modifications: Partial<AnyEvent>): string {
   const frontmatter = extractFrontmatter(page)?.split("\n");
   let newFrontmatter: string[] = [];
   if (!frontmatter) {
@@ -266,28 +262,53 @@ export function modifyFrontmatterString(page: string, modifications: Partial<OFC
         continue;
       }
 
-      const keys = Object.keys(obj) as [keyof OFCEvent];
+      const keys = Object.keys(obj) as [keyof AnyEvent];
       if (keys.length !== 1) {
         throw new Error("One YAML line parsed to multiple keys.");
       }
       const key = keys[0];
       linesAdded.add(key);
-      const newVal: PrintableAtom | undefined = modifications[key];
+      const newVal = modifications[key] instanceof DateTime ? modifications[key].toISODate() : modifications[key];
       if (newVal !== undefined) {
         newFrontmatter.push(stringifyYamlLine(key, newVal));
       } else {
-        // Just push the old line if we don't have a modification.
         newFrontmatter.push(line);
       }
     }
 
     // Add all rows that were not originally in the frontmatter.
     newFrontmatter.push(
-      ...(Object.keys(modifications) as [keyof OFCEvent])
+      ...(Object.keys(modifications) as [keyof AnyEvent])
         .filter((k) => !linesAdded.has(k))
         .filter((k) => modifications[k] !== undefined)
         .map((k) => stringifyYamlLine(k, modifications[k] as PrintableAtom))
     );
   }
   return replaceFrontmatter(page, newFrontmatter.join("\n") + "\n");
+}
+
+export function getDateFromDailyNote(file: TFile): DateTime | null {
+  const m = getDateFromFile(file as any, "day");
+  if (!m) return null;
+  return momentToDateTime(m);
+}
+
+export function getDateOfDateTime(t: DateTime) {
+  return t.startOf("day");
+}
+
+function momentToDateTime(m: Moment): DateTime {
+  return DateTime.fromMillis(m.milliseconds());
+}
+
+function dateTimeToMoment(d: DateTime): Moment {
+  return moment(d.toMillis());
+}
+
+export async function createDailyNoteByDateTime(d: DateTime): Promise<TFile> {
+  return (await createDailyNote(dateTimeToMoment(d))) as unknown as TFile;
+}
+
+export function getDailyNoteByDateTime(d: DateTime, dailyNotes: any): TFile {
+  return getDailyNote(dateTimeToMoment(d), dailyNotes as any) as unknown as TFile;
 }

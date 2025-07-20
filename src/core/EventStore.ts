@@ -1,5 +1,6 @@
-import type { EventLocation, OFCEvent } from "../types";
-import type { UnknownCalendar } from "../logic/tmpTypes";
+import type { EventLocation } from "../types";
+import type { UnknownCalendar } from "../logic/AnyCalendar";
+import type { AnyEvent } from "../logic/Event";
 
 interface Identifier {
   id: string;
@@ -101,7 +102,7 @@ export type EventPathLocation = {
 
 export type StoredEvent = {
   id: string;
-  event: OFCEvent;
+  event: AnyEvent;
   location: EventPathLocation | null;
   calendarId: string;
 };
@@ -110,7 +111,7 @@ type AddEventProps = {
   calendar: UnknownCalendar;
   location: EventLocation | null;
   id: string;
-  event: OFCEvent;
+  event: AnyEvent;
 };
 
 type EventDetails = Omit<AddEventProps, "location" | "calendar"> & {
@@ -126,7 +127,7 @@ type FileObj = { path: string };
  * well as what file their source lives in.
  */
 export default class EventStore {
-  private store: Map<string, OFCEvent> = new Map();
+  private store: Map<string, AnyEvent> = new Map();
 
   private calendarIndex = new OneToMany<UnknownCalendar, EventID>();
 
@@ -224,7 +225,7 @@ export default class EventStore {
    * @param id ID of event to delete.
    * @returns The event if it was in the store, null otherwise.
    */
-  delete(id: string): OFCEvent | null {
+  delete(id: string): AnyEvent | null {
     const event = this.store.get(id);
     if (!event) {
       return null;
@@ -244,7 +245,7 @@ export default class EventStore {
     return eventIds;
   }
 
-  getEventById(id: string): OFCEvent | null {
+  getEventById(id: string): AnyEvent | null {
     return this.store.get(id) || null;
   }
 

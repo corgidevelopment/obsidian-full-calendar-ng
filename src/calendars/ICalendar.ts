@@ -1,4 +1,4 @@
-import type { EventResponse } from "../logic/tmpTypes";
+import type { EventResponse } from "../logic/EventResponse";
 
 export interface ICalendar {
   color: string;

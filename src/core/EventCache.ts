@@ -1,13 +1,14 @@
 import { Notice, TFile } from "obsidian";
 import equal from "deep-equal";
 import EventStore, { type StoredEvent } from "./EventStore";
-import { type CalendarInfo, type EventLocation, type OFCEvent, validateEvent } from "../types";
+import { type CalendarInfo, type EventLocation } from "../types";
 import FullNoteCalendar from "../calendars/FullNoteCalendar";
-import type { UnknownCalendar } from "../logic/tmpTypes";
+import type { UnknownCalendar } from "../logic/AnyCalendar";
+import type { AnyEvent } from "../logic/Event";
 
 export type CalendarInitializerMap = Record<CalendarInfo["type"], (info: CalendarInfo) => UnknownCalendar | null>;
 
-export type CacheEntry = { event: OFCEvent; id: string; calendarId: string };
+export type CacheEntry = { event: AnyEvent; id: string; calendarId: string };
 
 export type UpdateViewCallback = (
   info:
@@ -25,14 +26,12 @@ const MINUTE = 60 * SECOND;
 
 const MILLICONDS_BETWEEN_REVALIDATIONS = 5 * MINUTE;
 
-// TODO: Write tests for this function.
-export const eventsAreDifferent = (oldEvents: OFCEvent[], newEvents: OFCEvent[]): boolean => {
+export const eventsAreDifferent = (oldEvents: AnyEvent[], newEvents: AnyEvent[]): boolean => {
   oldEvents.sort((a, b) => a.title.localeCompare(b.title));
   newEvents.sort((a, b) => a.title.localeCompare(b.title));
 
-  // validateEvent() will normalize the representation of default fields in events.
-  oldEvents = oldEvents.flatMap((e) => validateEvent(e) || []);
-  newEvents = newEvents.flatMap((e) => validateEvent(e) || []);
+  newEvents = newEvents.flatMap((e) => e || []);
+  oldEvents = oldEvents.flatMap((e) => e || []);
 
   console.debug("comparing events", oldEvents, newEvents);
 
@@ -187,7 +186,7 @@ export default class EventCache {
     return "createEvent" in cal;
   }
 
-  getEventById(s: string): OFCEvent | null {
+  getEventById(s: string): AnyEvent | null {
     return this.store.getEventById(s);
   }
 
@@ -285,7 +284,7 @@ export default class EventCache {
    * @param event Event details
    * @returns Returns true if successful, false otherwise.
    */
-  async addEvent(calendarId: string, event: OFCEvent): Promise<boolean> {
+  async addEvent(calendarId: string, event: AnyEvent): Promise<boolean> {
     const calendar = this.calendars.get(calendarId);
     if (!calendar) {
       throw new Error(`Calendar ID ${calendarId} is not registered.`);
@@ -324,10 +323,10 @@ export default class EventCache {
   /**
    * Update an event with a given ID.
    * @param eventId ID of event to update.
-   * @param newEvent new event contents
+   * @param event new event contents
    * @returns true if update was successful, false otherwise.
    */
-  async updateEventWithId(eventId: string, newEvent: OFCEvent): Promise<boolean> {
+  async updateEventWithId(eventId: string, event: AnyEvent): Promise<boolean> {
     const { calendar, location: oldLocation } = this.getInfoForEditableEvent(eventId);
     const { path, lineNumber } = oldLocation;
     console.debug("updating event with ID", eventId);
@@ -335,17 +334,17 @@ export default class EventCache {
       console.error(`tried to update event in id-less calendar`);
       throw new Error(`tried to update event in id-less calendar`);
     }
-    await calendar.modifyEvent({ path, lineNumber }, newEvent, (newLocation: EventLocation) => {
+    await calendar.modifyEvent({ path, lineNumber }, event, (newLocation: EventLocation) => {
       this.store.delete(eventId);
       this.store.add({
         calendar,
         location: newLocation,
         id: eventId,
-        event: newEvent
+        event
       });
     });
 
-    this.updateViews([eventId], [{ id: eventId, calendarId: calendar.id, event: newEvent }]);
+    this.updateViews([eventId], [{ id: eventId, calendarId: calendar.id, event }]);
     return true;
   }
 
@@ -359,7 +358,7 @@ export default class EventCache {
    * @param process function to transform the event.
    * @returns true if the update was successful.
    */
-  processEvent(id: string, process: (e: OFCEvent) => OFCEvent): Promise<boolean> {
+  processEvent(id: string, process: (e: AnyEvent) => AnyEvent): Promise<boolean> {
     const event = this.store.getEventById(id);
     if (!event) {
       throw new Error("Event does not exist");

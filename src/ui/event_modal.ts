@@ -1,12 +1,12 @@
 import { Notice } from "obsidian";
 import * as React from "react";
 import FullCalendarPlugin from "src/main";
-import type { OFCEvent } from "src/types";
 import { openFileForEvent } from "./actions";
 import { EditEvent } from "./components/EditEvent";
 import ReactModal from "./ReactModal";
+import type { AnyEvent } from "../logic/Event";
 
-export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Partial<OFCEvent>) {
+export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Partial<AnyEvent>) {
   const calendars = [...plugin.cache.calendars.entries()].map(([id, cal]) => {
     return {
       id,
@@ -14,6 +14,7 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
       name: cal.name
     };
   });
+
   new ReactModal(plugin.app, async (closeModal) =>
     React.createElement(EditEvent, {
       initialEvent: partialEvent,

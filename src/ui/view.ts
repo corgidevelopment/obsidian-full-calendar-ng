@@ -3,12 +3,11 @@ import { ItemView, Menu, Notice, WorkspaceLeaf } from "obsidian";
 import { Calendar, type EventSourceInput } from "@fullcalendar/core";
 import { renderCalendar } from "./calendar";
 import FullCalendarPlugin from "../main";
-import { FCError, PLUGIN_SLUG } from "../types";
+import { PLUGIN_SLUG } from "../types";
 import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from "./interop";
 import { renderOnboarding } from "./onboard";
 import { openFileForEvent } from "./actions";
 import { launchCreateModal, launchEditModal } from "./event_modal";
-import { isTask, toggleTask, unmakeTask } from "src/ui/tasks";
 import { type UpdateViewCallback } from "src/core/EventCache";
 
 export const FULL_CALENDAR_VIEW_TYPE = "full-calendar-view";
@@ -87,7 +86,7 @@ export class CalendarView extends ItemView {
     container.empty();
     let calendarEl = container.createEl("div");
 
-    if (this.plugin.settings.calendarSources.filter((s) => s.type !== "FOR_TEST_ONLY").length === 0) {
+    if (this.plugin.settings.calendarSources.length === 0) {
       renderOnboarding(this.app, this.plugin, calendarEl);
       return;
     }
@@ -177,19 +176,6 @@ export class CalendarView extends ItemView {
         }
 
         if (this.plugin.cache.isEventEditable(e.id)) {
-          if (!isTask(event)) {
-            menu.addItem((item) =>
-              item.setTitle("Turn into task").onClick(async () => {
-                await this.plugin.cache.processEvent(e.id, (e) => toggleTask(e, false));
-              })
-            );
-          } else {
-            menu.addItem((item) =>
-              item.setTitle("Remove checkbox").onClick(async () => {
-                await this.plugin.cache.processEvent(e.id, unmakeTask);
-              })
-            );
-          }
           menu.addSeparator();
           menu.addItem((item) =>
             item.setTitle("Go to note").onClick(() => {
@@ -215,25 +201,6 @@ export class CalendarView extends ItemView {
         }
 
         menu.showAtMouseEvent(mouseEvent);
-      },
-      toggleTask: async (e, isDone) => {
-        const event = this.plugin.cache.getEventById(e.id);
-        if (!event) {
-          return false;
-        }
-        if (event.type !== "single") {
-          return false;
-        }
-
-        try {
-          await this.plugin.cache.updateEventWithId(e.id, toggleTask(event, isDone));
-        } catch (e) {
-          if (e instanceof FCError) {
-            new Notice(e.message);
-          }
-          return false;
-        }
-        return true;
       }
     });
     // @ts-ignore

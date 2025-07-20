@@ -3,7 +3,8 @@ import type { CalendarInfo } from "src/types";
 import { getEventsFromICS } from "./parsing/ics";
 import type { IRemoteCalendar } from "./IRemoteCalendar";
 import type { ICalendar } from "./ICalendar";
-import { type EventResponse, ID_SEPARATOR } from "../logic/tmpTypes";
+import { ID_SEPARATOR } from "../logic/consts";
+import type { EventResponse } from "../logic/EventResponse";
 
 const WEBCAL = "webcal";
 
@@ -33,18 +34,18 @@ export default class ICSCalendar implements IRemoteCalendar, ICalendar {
     return this.url;
   }
 
-  async revalidate(): Promise<void> {
+  revalidate = async (): Promise<void> => {
     console.debug("revalidating ICS calendar " + this.name);
     this.response = await request({
       url: this.url,
       method: "GET"
     });
-  }
+  };
 
-  async getEvents(): Promise<EventResponse[]> {
+  getEvents = async (): Promise<EventResponse[]> => {
     if (!this.response) {
       return [];
     }
     return getEventsFromICS(this.response).map((e) => ({ event: e, location: null }));
-  }
+  };
 }
