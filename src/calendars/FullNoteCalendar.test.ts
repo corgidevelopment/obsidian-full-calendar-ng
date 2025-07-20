@@ -1,12 +1,13 @@
 import { join } from 'path';
 import { TFile } from 'obsidian';
 
-import { ObsidianInterface } from 'src/ObsidianAdapter';
+import { ObsidianInterface } from '../ObsidianAdapter';
 import { MockApp, MockAppBuilder } from '../../test_helpers/AppBuilder';
 import { FileBuilder } from '../../test_helpers/FileBuilder';
-import { OFCEvent } from 'src/types';
+import { OFCEvent } from '../types';
 import FullNoteCalendar from './FullNoteCalendar';
 import { parseEvent } from '../types/schema';
+import { DEFAULT_SETTINGS } from '../ui/settings';
 
 async function assertFailed(func: () => Promise<any>, message: RegExp) {
   try {
@@ -107,7 +108,7 @@ describe('Note Calendar Tests', () => {
         )
         .done()
     );
-    const calendar = new FullNoteCalendar(obsidian, color, dirName);
+    const calendar = new FullNoteCalendar(obsidian, color, dirName, DEFAULT_SETTINGS);
     const res = await calendar.getEvents();
     expect(res.length).toBe(inputs.length);
     const events = res.map(e => e[0]);
@@ -144,7 +145,7 @@ describe('Note Calendar Tests', () => {
 
   it('creates an event', async () => {
     const obsidian = makeApp(MockAppBuilder.make().done());
-    const calendar = new FullNoteCalendar(obsidian, color, dirName);
+    const calendar = new FullNoteCalendar(obsidian, color, dirName, DEFAULT_SETTINGS);
     const event = {
       title: 'Test Event',
       date: '2022-01-01',
@@ -195,7 +196,7 @@ describe('Note Calendar Tests', () => {
         )
         .done()
     );
-    const calendar = new FullNoteCalendar(obsidian, color, dirName);
+    const calendar = new FullNoteCalendar(obsidian, color, dirName, DEFAULT_SETTINGS);
     await assertFailed(() => calendar.createEvent(parseEvent(event)), /already exists/);
   });
 
@@ -214,7 +215,7 @@ describe('Note Calendar Tests', () => {
         .folder(new MockAppBuilder('events').file(filename, new FileBuilder().frontmatter(event)))
         .done()
     );
-    const calendar = new FullNoteCalendar(obsidian, color, dirName);
+    const calendar = new FullNoteCalendar(obsidian, color, dirName, DEFAULT_SETTINGS);
 
     const firstFile = obsidian.getAbstractFileByPath(join('events', filename)) as TFile;
 

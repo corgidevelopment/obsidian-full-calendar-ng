@@ -15,10 +15,12 @@
  */
 
 import { request } from 'obsidian';
-import { CalendarInfo } from 'src/types';
+import { CalendarInfo } from '../types';
 import { EventResponse } from './Calendar';
 import { getEventsFromICS } from './parsing/ics';
 import RemoteCalendar from './RemoteCalendar';
+import { FullCalendarSettings } from '../ui/settings';
+import { convertEvent } from '../core/Timezone';
 
 const WEBCAL = 'webcal';
 
@@ -26,14 +28,13 @@ export default class ICSCalendar extends RemoteCalendar {
   private url: string;
   private response: string | null = null;
 
-  constructor(color: string, url: string) {
-    super(color);
+  constructor(color: string, url: string, settings: FullCalendarSettings) {
+    super(color, settings);
     if (url.startsWith(WEBCAL)) {
       url = 'https' + url.slice(WEBCAL.length);
     }
     this.url = url;
   }
-
   get type(): CalendarInfo['type'] {
     return 'ical';
   }
@@ -57,6 +58,29 @@ export default class ICSCalendar extends RemoteCalendar {
     if (!this.response) {
       return [];
     }
-    return getEventsFromICS(this.response).map(e => [e, null]);
+
+    const displayTimezone = this.settings.displayTimezone;
+    if (!displayTimezone) {
+      return []; // Cannot process without a target timezone.
+    }
+
+    return getEventsFromICS(this.response).map(event => {
+      // For debugging specific events from your ICS feed.
+      // if (event.title.includes('PDE II exam')) {
+      //   console.log('--- STAGE 2: OFCEvent before conversion ---');
+      //   console.log('Event Title:', event.title);
+      //   console.log('Event Timezone:', event.timezone);
+      //   console.log('Event Start Time (as parsed):', event.startTime);
+      //   console.log('Display Timezone (target):', displayTimezone);
+      //   console.log('-----------------------------------------');
+      // }
+
+      let translatedEvent = event;
+      // If the event has its own timezone, convert it to the display timezone.
+      if (event.timezone && event.timezone !== displayTimezone) {
+        translatedEvent = convertEvent(event, event.timezone, displayTimezone);
+      }
+      return [translatedEvent, null];
+    });
   }
 }

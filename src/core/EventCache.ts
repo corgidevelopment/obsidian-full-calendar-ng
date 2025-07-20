@@ -34,10 +34,12 @@ import EventStore, { StoredEvent } from './EventStore';
 import { CalendarInfo, OFCEvent, validateEvent } from '../types';
 import RemoteCalendar from '../calendars/RemoteCalendar';
 import FullNoteCalendar from '../calendars/FullNoteCalendar';
+import FullCalendarPlugin from '../main';
+import { FullCalendarSettings } from '../ui/settings';
 
 export type CalendarInitializerMap = Record<
   CalendarInfo['type'],
-  (info: CalendarInfo) => Calendar | null
+  (info: CalendarInfo, settings: FullCalendarSettings) => Calendar | null
 >;
 
 export type CacheEntry = { event: OFCEvent; id: string; calendarId: string };
@@ -110,6 +112,7 @@ export type OFCEventSource = {
  */
 export default class EventCache {
   private calendarInfos: CalendarInfo[] = [];
+  private plugin: FullCalendarPlugin;
 
   private calendarInitializers: CalendarInitializerMap;
 
@@ -130,7 +133,8 @@ export default class EventCache {
 
   lastRevalidation: number = 0;
 
-  constructor(calendarInitializers: CalendarInitializerMap) {
+  constructor(plugin: FullCalendarPlugin, calendarInitializers: CalendarInitializerMap) {
+    this.plugin = plugin;
     this.calendarInitializers = calendarInitializers;
   }
 
@@ -151,7 +155,7 @@ export default class EventCache {
   init() {
     this.calendarInfos
       .flatMap(s => {
-        const cal = this.calendarInitializers[s.type](s);
+        const cal = this.calendarInitializers[s.type](s, this.plugin.settings);
         return cal || [];
       })
       .forEach(cal => this.calendars.set(cal.id, cal));

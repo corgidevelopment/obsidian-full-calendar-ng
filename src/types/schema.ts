@@ -74,7 +74,8 @@ export const TimeSchema = z.discriminatedUnion('allDay', [
 
 export const CommonSchema = z.object({
   title: z.string(),
-  id: z.string().optional()
+  id: z.string().optional(),
+  timezone: z.string().optional()
 });
 
 export const EventSchema = z.discriminatedUnion('type', [

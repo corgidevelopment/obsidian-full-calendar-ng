@@ -1,10 +1,14 @@
+// src/core/EventCache.test.ts
+
 import { TFile } from 'obsidian';
 
 import { Calendar, EventResponse } from '../calendars/Calendar';
 import { EditableCalendar, EditableEventResponse } from '../calendars/EditableCalendar';
-import { CalendarInfo, EventLocation, OFCEvent } from 'src/types';
+import { CalendarInfo, EventLocation, OFCEvent } from '../types';
 import EventCache, { CacheEntry, CalendarInitializerMap, OFCEventSource } from './EventCache';
 import { EventPathLocation } from './EventStore';
+import { DEFAULT_SETTINGS, FullCalendarSettings } from '../ui/settings';
+import FullCalendarPlugin from '../main';
 
 jest.mock('../types/schema', () => ({
   validateEvent: (e: any) => e
@@ -27,8 +31,8 @@ class TestReadonlyCalendar extends Calendar {
   }
   private _id: string;
   events: OFCEvent[] = [];
-  constructor(color: string, id: string, events: OFCEvent[]) {
-    super(color);
+  constructor(color: string, id: string, events: OFCEvent[], settings: FullCalendarSettings) {
+    super(color, settings);
     this._id = id;
     this.events = events;
   }
@@ -46,7 +50,9 @@ class TestReadonlyCalendar extends Calendar {
 }
 
 // For tests, we only want test calendars to
-const initializerMap = (cb: (info: CalendarInfo) => Calendar | null): CalendarInitializerMap => ({
+const initializerMap = (
+  cb: (info: CalendarInfo, settings: FullCalendarSettings) => Calendar | null
+): CalendarInitializerMap => ({
   FOR_TEST_ONLY: cb,
   local: () => null,
   dailynote: () => null,
@@ -71,11 +77,12 @@ async function assertFailed(func: () => Promise<any>, message: RegExp) {
 describe('event cache with readonly calendar', () => {
   const makeCache = (events: OFCEvent[]) => {
     const cache = new EventCache(
-      initializerMap(info => {
+      { settings: DEFAULT_SETTINGS } as FullCalendarPlugin,
+      initializerMap((info, settings) => {
         if (info.type !== 'FOR_TEST_ONLY') {
           return null;
         }
-        return new TestReadonlyCalendar(info.color, info.id, info.events || []);
+        return new TestReadonlyCalendar(info.color, info.id, info.events || [], settings);
       })
     );
     cache.reset([{ type: 'FOR_TEST_ONLY', color: '#000000', id: 'test', events }]);
@@ -113,7 +120,7 @@ describe('event cache with readonly calendar', () => {
     expect(sources.length).toBe(1);
     expect(extractEvents(sources[0])).toEqual([event1, event2, event3]);
     expect(sources[0].color).toEqual('#000000');
-    expect(sources[0].editable);
+    expect(sources[0].editable).toBeFalsy();
   });
 
   it('properly sorts events into separate calendars', async () => {
@@ -140,10 +147,10 @@ describe('event cache with readonly calendar', () => {
     expect(sources.length).toBe(2);
     expect(extractEvents(sources[0])).toEqual(events1);
     expect(sources[0].color).toEqual('red');
-    expect(sources[0].editable);
+    expect(sources[0].editable).toBeFalsy();
     expect(extractEvents(sources[1])).toEqual(events2);
     expect(sources[1].color).toEqual('blue');
-    expect(sources[1].editable);
+    expect(sources[1].editable).toBeFalsy();
   });
 
   it.each([
@@ -160,14 +167,13 @@ describe('event cache with readonly calendar', () => {
   ])('does not allow editing via %p', async (_, f) => {
     const event = mockEvent();
     const cache = makeCache([event]);
-    cache.init();
     await cache.populate();
 
     const sources = cache.getAllEvents();
     expect(sources.length).toBe(1);
     const eventId = sources[0].events[0].id;
 
-    assertFailed(async () => await f(cache, eventId), /read-only/i);
+    await assertFailed(async () => await f(cache, eventId), /read-only/i);
   });
 });
 
@@ -178,8 +184,13 @@ class TestEditable extends EditableCalendar {
   private _directory: string;
   events: EditableEventResponse[];
   shouldContainPath = true;
-  constructor(color: string, directory: string, events: EditableEventResponse[]) {
-    super(color);
+  constructor(
+    color: string,
+    directory: string,
+    events: EditableEventResponse[],
+    settings: FullCalendarSettings
+  ) {
+    super(color, settings);
     this._directory = directory;
     this.events = events;
   }
@@ -199,7 +210,6 @@ class TestEditable extends EditableCalendar {
   deleteEvent = jest.fn();
   move = jest.fn();
   modifyEvent = jest.fn();
-  getNewLocation = jest.fn();
 
   get type(): 'FOR_TEST_ONLY' {
     return 'FOR_TEST_ONLY';
@@ -229,11 +239,12 @@ const assertCacheContentCounts = (
 describe('editable calendars', () => {
   const makeCache = (events: EditableEventResponse[]) => {
     const cache = new EventCache(
-      initializerMap(info => {
+      { settings: DEFAULT_SETTINGS } as FullCalendarPlugin,
+      initializerMap((info, settings) => {
         if (info.type !== 'FOR_TEST_ONLY') {
           return null;
         }
-        return new TestEditable(info.color, info.id, events);
+        return new TestEditable(info.color, info.id, events, settings);
       })
     );
     cache.reset([{ type: 'FOR_TEST_ONLY', id: 'test', events: [], color: 'black' }]);
@@ -460,7 +471,6 @@ describe('editable calendars', () => {
 
       const calendar = getCalendar(cache, 'test');
       calendar.modifyEvent.mockReturnValueOnce(new Promise(resolve => resolve(newLocation)));
-      calendar.getNewLocation.mockReturnValueOnce(new Promise(resolve => resolve(newLocation)));
 
       expect(cache._storeForTest.getEventsInFile(oldEvent[1].file).length).toBe(1);
 

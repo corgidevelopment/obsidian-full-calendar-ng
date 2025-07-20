@@ -29,6 +29,8 @@ import { ObsidianInterface } from '../ObsidianAdapter';
 import { OFCEvent, EventLocation, CalendarInfo, validateEvent } from '../types';
 import { EventResponse } from './Calendar';
 import { EditableCalendar, EditableEventResponse } from './EditableCalendar';
+import { FullCalendarSettings } from '../ui/settings';
+import { convertEvent } from '../core/Timezone';
 
 const DATE_FORMAT = 'YYYY-MM-DD';
 
@@ -225,8 +227,13 @@ export default class DailyNoteCalendar extends EditableCalendar {
   app: ObsidianInterface;
   heading: string;
 
-  constructor(app: ObsidianInterface, color: string, heading: string) {
-    super(color);
+  constructor(
+    app: ObsidianInterface,
+    color: string,
+    heading: string,
+    settings: FullCalendarSettings
+  ) {
+    super(color, settings);
     appHasDailyNotesPluginLoaded();
     this.app = app;
     this.heading = heading;
@@ -251,19 +258,120 @@ export default class DailyNoteCalendar extends EditableCalendar {
 
   async getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {
     // @ts-ignore
-    const date = getDateFromFile(file, 'day')?.format(DATE_FORMAT);
-    if (!date) {
-      return [];
-    }
+    const date = getDateFromFile(file, 'day')?.format('YYYY-MM-DD');
+    if (!date) return [];
+
     const cache = this.app.getMetadata(file);
-    if (!cache) {
-      return [];
-    }
+    if (!cache) return [];
+
     const listItems = getListsUnderHeading(this.heading, cache);
     const inlineEvents = await this.app.process(file, text =>
       getAllInlineEventsFromFile(text, listItems, { date })
     );
-    return inlineEvents.map(({ event, lineNumber }) => [event, { file, lineNumber }]);
+
+    const displayTimezone =
+      this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    return inlineEvents.map(({ event, lineNumber }) => {
+      let sourceTimezone: string;
+
+      // If mode is 'local', the event's source is always the current system time.
+      if (this.settings.dailyNotesTimezone === 'local') {
+        sourceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      }
+      // In 'strict' mode, the source is what's written in the note, with system as a fallback.
+      else {
+        sourceTimezone = event.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      }
+
+      let translatedEvent = event;
+      if (sourceTimezone !== displayTimezone) {
+        translatedEvent = convertEvent(event, sourceTimezone, displayTimezone);
+      }
+      return [translatedEvent, { file, lineNumber }];
+    });
+  }
+
+  async modifyEvent(
+    loc: EventPathLocation,
+    newEvent: OFCEvent,
+    updateCacheWithLocation: (loc: EventLocation) => void
+  ): Promise<void> {
+    if (newEvent.type !== 'single' && newEvent.type !== undefined) {
+      throw new Error('Recurring events in daily notes are not supported.');
+    }
+    if (newEvent.endDate) {
+      throw new Error('Multi-day events are not supported in daily notes.');
+    }
+
+    const displayTimezone =
+      this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    let eventToWrite = newEvent;
+
+    let targetTimezone: string;
+    // In 'local' mode, the target is always the current system time.
+    if (this.settings.dailyNotesTimezone === 'local') {
+      targetTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+    // In 'strict' mode, the target is whatever the original event's timezone was.
+    else {
+      const { file, lineNumber } = this.getConcreteLocation(loc);
+      const contents = await this.app.read(file);
+      const line = contents.split('\n')[lineNumber];
+      const sourceEvent = getInlineEventFromLine(line, {});
+      targetTimezone = sourceEvent?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+
+    if (displayTimezone !== targetTimezone && newEvent.type === 'single') {
+      eventToWrite = convertEvent(newEvent, displayTimezone, targetTimezone) as typeof newEvent;
+    }
+    // Always stamp the event with its target timezone before writing.
+    eventToWrite.timezone = targetTimezone;
+
+    // The rest of the file modification logic remains the same...
+    const { file, lineNumber } = this.getConcreteLocation(loc);
+    const oldDate = getDateFromFile(file as any, 'day')?.format('YYYY-MM-DD');
+    if (!oldDate) throw new Error(`Could not get date from file at path ${file.path}`);
+
+    if (eventToWrite.date !== oldDate) {
+      // ... Logic to move event to a new file
+      const m = moment(eventToWrite.date);
+      let newFile = getDailyNote(m, getAllDailyNotes()) as TFile;
+      if (!newFile) newFile = (await createDailyNote(m)) as TFile;
+      await this.app.read(newFile);
+
+      const metadata = this.app.getMetadata(newFile);
+      if (!metadata) throw new Error('No metadata for file ' + newFile.path);
+
+      const headingInfo = metadata.headings?.find(h => h.heading == this.heading);
+      if (!headingInfo)
+        throw new Error(`Could not find heading ${this.heading} in daily note ${newFile.path}.`);
+
+      await this.app.rewrite(file, async oldFileContents => {
+        let lines = oldFileContents.split('\n');
+        lines.splice(lineNumber, 1);
+        await this.app.rewrite(newFile, newFileContents => {
+          const { page, lineNumber: newLn } = addToHeading(newFileContents, {
+            heading: headingInfo,
+            item: eventToWrite,
+            headingText: this.heading
+          });
+          updateCacheWithLocation({ file: newFile, lineNumber: newLn });
+          return page;
+        });
+        return lines.join('\n');
+      });
+    } else {
+      // ... Logic to modify in place
+      updateCacheWithLocation({ file, lineNumber });
+      await this.app.rewrite(file, contents => {
+        const lines = contents.split('\n');
+        const newLine = modifyListItem(lines[lineNumber], eventToWrite);
+        if (!newLine) throw new Error('Did not successfully update line.');
+        lines[lineNumber] = newLine;
+        return lines.join('\n');
+      });
+    }
   }
 
   async getEvents(): Promise<EventResponse[]> {
@@ -277,7 +385,21 @@ export default class DailyNoteCalendar extends EditableCalendar {
       console.debug('tried creating a recurring event in a daily note', event);
       throw new Error('Cannot create a recurring event in a daily note.');
     }
-    const m = moment(event.date);
+
+    const eventToCreate = {
+      ...event,
+      // The native timezone of a new daily note event is always the current system time.
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+    const displayTimezone =
+      this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // If in strict mode, stamp the event with the display timezone.
+    if (this.settings.dailyNotesTimezone === 'strict') {
+      eventToCreate.timezone = displayTimezone;
+    }
+
+    const m = moment(eventToCreate.date);
     let file = getDailyNote(m, getAllDailyNotes()) as TFile;
     if (!file) {
       file = (await createDailyNote(m)) as TFile;
@@ -291,7 +413,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
     let lineNumber = await this.app.rewrite(file, contents => {
       const { page, lineNumber } = addToHeading(contents, {
         heading: headingInfo,
-        item: event,
+        item: eventToCreate, // Use the potentially modified event
         headingText: this.heading
       });
       return [page, lineNumber] as [string, number];
@@ -320,76 +442,6 @@ export default class DailyNoteCalendar extends EditableCalendar {
       lines.splice(lineNumber, 1);
       return lines.join('\n');
     });
-  }
-
-  async modifyEvent(
-    loc: EventPathLocation,
-    newEvent: OFCEvent,
-    updateCacheWithLocation: (loc: EventLocation) => void
-  ): Promise<void> {
-    console.debug('modified daily note event');
-    if (newEvent.type !== 'single' && newEvent.type !== undefined) {
-      throw new Error('Recurring events in daily notes are not supported.');
-    }
-    if (newEvent.endDate) {
-      throw new Error('Multi-day events are not supported in daily notes.');
-    }
-    const { file, lineNumber } = this.getConcreteLocation(loc);
-    const oldDate = getDateFromFile(file as any, 'day')?.format(DATE_FORMAT);
-    if (!oldDate) {
-      throw new Error(`Could not get date from file at path ${file.path}`);
-    }
-    if (newEvent.date !== oldDate) {
-      // Event needs to be moved to a new file.
-      console.debug('daily note event moving to a new file.');
-      // TODO: Factor this out with the createFile path.
-      const m = moment(newEvent.date);
-      let newFile = getDailyNote(m, getAllDailyNotes()) as TFile;
-      if (!newFile) {
-        newFile = (await createDailyNote(m)) as TFile;
-      }
-      await this.app.read(newFile);
-
-      const metadata = this.app.getMetadata(newFile);
-      if (!metadata) {
-        throw new Error('No metadata for file ' + file.path);
-      }
-      const headingInfo = metadata.headings?.find(h => h.heading == this.heading);
-      if (!headingInfo) {
-        throw new Error(`Could not find heading ${this.heading} in daily note ${file.path}.`);
-      }
-
-      await this.app.rewrite(file, async oldFileContents => {
-        // Open the old file and remove the event.
-        let lines = oldFileContents.split('\n');
-        lines.splice(lineNumber, 1);
-        await this.app.rewrite(newFile, newFileContents => {
-          // Before writing that change back to disk, open the new file and add the event.
-          const { page, lineNumber } = addToHeading(newFileContents, {
-            heading: headingInfo,
-            item: newEvent,
-            headingText: this.heading
-          });
-          // Before any file changes are committed, call the updateCacheWithLocation callback to ensure
-          // the cache is properly updated with the new location.
-          updateCacheWithLocation({ file: newFile, lineNumber });
-          return page;
-        });
-        return lines.join('\n');
-      });
-    } else {
-      console.debug('daily note event staying in same file.');
-      updateCacheWithLocation({ file, lineNumber });
-      await this.app.rewrite(file, contents => {
-        const lines = contents.split('\n');
-        const newLine = modifyListItem(lines[lineNumber], newEvent);
-        if (!newLine) {
-          throw new Error('Did not successfully update line.');
-        }
-        lines[lineNumber] = newLine;
-        return lines.join('\n');
-      });
-    }
   }
 
   move(from: EventPathLocation, to: EditableCalendar): Promise<EventLocation> {

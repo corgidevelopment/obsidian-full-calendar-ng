@@ -13,12 +13,15 @@
  * @license See LICENSE.md
  */
 
-import { TFile, TFolder, parseYaml } from 'obsidian';
+import { TFile, TFolder, Notice } from 'obsidian';
 import { rrulestr } from 'rrule';
 import { EventPathLocation } from '../core/EventStore';
 import { ObsidianInterface } from '../ObsidianAdapter';
 import { OFCEvent, EventLocation, validateEvent } from '../types';
 import { EditableCalendar, EditableEventResponse } from './EditableCalendar';
+import { FullCalendarSettings } from '../ui/settings';
+import { convertEvent } from '../core/Timezone';
+import { newFrontmatter, modifyFrontmatterString, replaceFrontmatter } from './frontmatter';
 
 const basenameFromEvent = (event: OFCEvent): string => {
   switch (event.type) {
@@ -34,127 +37,17 @@ const basenameFromEvent = (event: OFCEvent): string => {
 
 const filenameForEvent = (event: OFCEvent) => `${basenameFromEvent(event)}.md`;
 
-const FRONTMATTER_SEPARATOR = '---';
-
-/**
- * @param page Contents of a markdown file.
- * @returns Whether or not this page has a frontmatter section.
- */
-function hasFrontmatter(page: string): boolean {
-  return (
-    page.indexOf(FRONTMATTER_SEPARATOR) === 0 && page.slice(3).indexOf(FRONTMATTER_SEPARATOR) !== -1
-  );
-}
-
-/**
- * Return only frontmatter from a page.
- * @param page Contents of a markdown file.
- * @returns Frontmatter section of a page.
- */
-function extractFrontmatter(page: string): string | null {
-  if (hasFrontmatter(page)) {
-    return page.split(FRONTMATTER_SEPARATOR)[1];
-  }
-  return null;
-}
-
-/**
- * Remove frontmatter from a page.
- * @param page Contents of markdown file.
- * @returns Contents of a page without frontmatter.
- */
-function extractPageContents(page: string): string {
-  if (hasFrontmatter(page)) {
-    // Frontmatter lives between the first two --- linebreaks.
-    return page.split('---').slice(2).join('---');
-  } else {
-    return page;
-  }
-}
-
-function replaceFrontmatter(page: string, newFrontmatter: string): string {
-  return `---\n${newFrontmatter}---${extractPageContents(page)}`;
-}
-
-type PrintableAtom = Array<number | string> | number | string | boolean;
-
-function stringifyYamlAtom(v: PrintableAtom): string {
-  let result = '';
-  if (Array.isArray(v)) {
-    result += '[';
-    result += v.map(stringifyYamlAtom).join(',');
-    result += ']';
-  } else {
-    result += `${v}`;
-  }
-  return result;
-}
-
-function stringifyYamlLine(k: string | number | symbol, v: PrintableAtom): string {
-  return `${String(k)}: ${stringifyYamlAtom(v)}`;
-}
-
-function newFrontmatter(fields: Partial<OFCEvent>): string {
-  return (
-    '---\n' +
-    Object.entries(fields)
-      .filter(([_, v]) => v !== undefined)
-      .map(([k, v]) => stringifyYamlLine(k, v))
-      .join('\n') +
-    '\n---\n'
-  );
-}
-
-function modifyFrontmatterString(page: string, modifications: Partial<OFCEvent>): string {
-  const frontmatter = extractFrontmatter(page)?.split('\n');
-  let newFrontmatter: string[] = [];
-  if (!frontmatter) {
-    newFrontmatter = Object.entries(modifications)
-      .filter(([k, v]) => v !== undefined)
-      .map(([k, v]) => stringifyYamlLine(k, v));
-    page = '\n' + page;
-  } else {
-    const linesAdded: Set<string | number | symbol> = new Set();
-    // Modify rows in-place.
-    for (let i = 0; i < frontmatter.length; i++) {
-      const line: string = frontmatter[i];
-      const obj: Record<any, any> | null = parseYaml(line);
-      if (!obj) {
-        continue;
-      }
-
-      const keys = Object.keys(obj) as [keyof OFCEvent];
-      if (keys.length !== 1) {
-        throw new Error('One YAML line parsed to multiple keys.');
-      }
-      const key = keys[0];
-      linesAdded.add(key);
-      const newVal: PrintableAtom | undefined = modifications[key];
-      if (newVal !== undefined) {
-        newFrontmatter.push(stringifyYamlLine(key, newVal));
-      } else {
-        // Just push the old line if we don't have a modification.
-        newFrontmatter.push(line);
-      }
-    }
-
-    // Add all rows that were not originally in the frontmatter.
-    newFrontmatter.push(
-      ...(Object.keys(modifications) as [keyof OFCEvent])
-        .filter(k => !linesAdded.has(k))
-        .filter(k => modifications[k] !== undefined)
-        .map(k => stringifyYamlLine(k, modifications[k] as PrintableAtom))
-    );
-  }
-  return replaceFrontmatter(page, newFrontmatter.join('\n') + '\n');
-}
-
 export default class FullNoteCalendar extends EditableCalendar {
   app: ObsidianInterface;
   private _directory: string;
 
-  constructor(app: ObsidianInterface, color: string, directory: string) {
-    super(color);
+  constructor(
+    app: ObsidianInterface,
+    color: string,
+    directory: string,
+    settings: FullCalendarSettings
+  ) {
+    super(color, settings);
     this.app = app;
     this._directory = directory;
   }
@@ -180,9 +73,29 @@ export default class FullNoteCalendar extends EditableCalendar {
     if (!event) {
       return [];
     }
+
+    let eventTimezone = event.timezone;
+    const displayTimezone = this.settings.displayTimezone;
+
+    // Auto-upgrade legacy notes that don't have a timezone.
+    if (!eventTimezone && displayTimezone) {
+      eventTimezone = displayTimezone;
+      event.timezone = displayTimezone;
+      // Write the new timezone back to the file.
+      await this.app.rewrite(file, page =>
+        modifyFrontmatterString(page, { timezone: displayTimezone })
+      );
+    }
+
     if (!event.title) {
       event.title = file.basename;
     }
+
+    // If the event has a timezone and it's different from the display timezone, convert it.
+    if (eventTimezone && displayTimezone && eventTimezone !== displayTimezone) {
+      event = convertEvent(event, eventTimezone, displayTimezone);
+    }
+
     return [[event, { file, lineNumber: undefined }]];
   }
 
@@ -224,7 +137,26 @@ export default class FullNoteCalendar extends EditableCalendar {
     if (this.app.getAbstractFileByPath(path)) {
       throw new Error(`Event at ${path} already exists.`);
     }
-    const file = await this.app.create(path, newFrontmatter(event));
+
+    const displayTimezone =
+      this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const systemTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Notify the user if they are creating an event in a timezone different from their system's current zone.
+    if (displayTimezone !== systemTimezone) {
+      new Notice(
+        `Event created in ${displayTimezone}.\nYour system is currently in ${systemTimezone}.`
+      );
+    }
+
+    // Add the current display timezone to the event before creating it.
+    const eventToCreate = {
+      ...event,
+      timezone: displayTimezone
+    };
+
+    const newPage = replaceFrontmatter('', newFrontmatter(eventToCreate));
+    const file = await this.app.create(path, newPage);
     return { file, lineNumber: undefined };
   }
 
@@ -253,14 +185,35 @@ export default class FullNoteCalendar extends EditableCalendar {
     if (!file) {
       throw new Error(`File ${path} either doesn't exist or is a folder.`);
     }
-    const newLocation = this.getNewLocation(location, event);
+
+    // The incoming `event` object has its times in the `displayTimezone`.
+    // We need to convert it back to the file's native timezone before writing.
+    const fileMetadata = this.app.getMetadata(file);
+    const fileEvent = validateEvent(fileMetadata?.frontmatter);
+
+    // Determine the file's native timezone. Fallback to displayTimezone if not present (for safety).
+    const systemTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const displayTimezone = this.settings.displayTimezone || systemTimezone;
+    const fileTimezone = fileEvent?.timezone || displayTimezone;
+
+    let eventToWrite = event;
+    // Only perform conversion if the file's zone and the display zone are different.
+    if (fileTimezone !== displayTimezone) {
+      eventToWrite = convertEvent(event, displayTimezone, fileTimezone);
+    }
+
+    // Ensure the timezone property of the event being written matches the file's native timezone.
+    eventToWrite.timezone = fileTimezone;
+
+    // The rest of the logic determines if the file needs to be renamed.
+    const newLocation = this.getNewLocation(location, eventToWrite);
 
     updateCacheWithLocation(newLocation);
 
     if (file.path !== newLocation.file.path) {
       await this.app.rename(file, newLocation.file.path);
     }
-    await this.app.rewrite(file, page => modifyFrontmatterString(page, event));
+    await this.app.rewrite(file, page => modifyFrontmatterString(page, eventToWrite));
 
     return;
   }

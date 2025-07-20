@@ -11,7 +11,8 @@
  * @license See LICENSE.md
  */
 
-import { CalendarInfo, EventLocation, OFCEvent } from 'src/types';
+import { CalendarInfo, EventLocation, OFCEvent } from '../types';
+import { FullCalendarSettings } from '../ui/settings';
 
 export const ID_SEPARATOR = '::';
 
@@ -22,9 +23,12 @@ export type EventResponse = [OFCEvent, EventLocation | null];
  */
 export abstract class Calendar {
   color: string;
+  // This will be populated by the EventCache.
+  protected settings: FullCalendarSettings;
 
-  constructor(color: string) {
+  constructor(color: string, settings: FullCalendarSettings) {
     this.color = color;
+    this.settings = settings;
   }
 
   abstract get type(): CalendarInfo['type'];

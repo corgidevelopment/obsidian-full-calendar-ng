@@ -16,8 +16,9 @@
  */
 
 import { TFile } from 'obsidian';
-import { EventPathLocation } from 'src/core/EventStore';
-import { EventLocation, OFCEvent } from 'src/types';
+import { EventPathLocation } from '../core/EventStore';
+import { EventLocation, OFCEvent } from '../types';
+import { FullCalendarSettings } from '../ui/settings';
 import { Calendar } from './Calendar';
 
 export type EditableEventResponse = [OFCEvent, EventLocation];
@@ -31,8 +32,8 @@ export type EditableEventResponse = [OFCEvent, EventLocation];
  * as to parse events from files when the files are updated outside of Full Calendar.
  */
 export abstract class EditableCalendar extends Calendar {
-  constructor(color: string) {
-    super(color);
+  constructor(color: string, settings: FullCalendarSettings) {
+    super(color, settings);
   }
 
   /**

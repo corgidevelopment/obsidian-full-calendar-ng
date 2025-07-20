@@ -25,6 +25,7 @@ import FullNoteCalendar from './calendars/FullNoteCalendar';
 import DailyNoteCalendar from './calendars/DailyNoteCalendar';
 import ICSCalendar from './calendars/ICSCalendar';
 import CalDAVCalendar from './calendars/CalDAVCalendar';
+import { manageTimezone } from './core/Timezone';
 
 import { AnalysisView, ANALYSIS_VIEW_TYPE } from './chrono_analyser/AnalysisView';
 
@@ -32,17 +33,18 @@ export default class FullCalendarPlugin extends Plugin {
   settings: FullCalendarSettings = DEFAULT_SETTINGS;
 
   // To parse `data.json` file.`
-  cache: EventCache = new EventCache({
-    local: info =>
+  cache: EventCache = new EventCache(this, {
+    local: (info, settings) =>
       info.type === 'local'
-        ? new FullNoteCalendar(new ObsidianIO(this.app), info.color, info.directory)
+        ? new FullNoteCalendar(new ObsidianIO(this.app), info.color, info.directory, settings)
         : null,
-    dailynote: info =>
+    dailynote: (info, settings) =>
       info.type === 'dailynote'
-        ? new DailyNoteCalendar(new ObsidianIO(this.app), info.color, info.heading)
+        ? new DailyNoteCalendar(new ObsidianIO(this.app), info.color, info.heading, settings)
         : null,
-    ical: info => (info.type === 'ical' ? new ICSCalendar(info.color, info.url) : null),
-    caldav: info =>
+    ical: (info, settings) =>
+      info.type === 'ical' ? new ICSCalendar(info.color, info.url, settings) : null,
+    caldav: (info, settings) =>
       info.type === 'caldav'
         ? new CalDAVCalendar(
             info.color,
@@ -53,7 +55,8 @@ export default class FullCalendarPlugin extends Plugin {
               password: info.password
             },
             info.url,
-            info.homeUrl
+            info.homeUrl,
+            settings
           )
         : null,
     FOR_TEST_ONLY: () => null
@@ -94,6 +97,7 @@ export default class FullCalendarPlugin extends Plugin {
    */
   async onload() {
     await this.loadSettings();
+    await manageTimezone(this);
 
     this.cache.reset(this.settings.calendarSources);
 
