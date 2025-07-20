@@ -24,6 +24,6 @@ main.css
 obsidian-dev-vault/
 
 # Others
-src/chrono_analyser/export-to-txt.bat
+export-to-txt.*
 
 .DS_Store
