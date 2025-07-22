@@ -1,6 +1,7 @@
+# mkdocs.yaml
 site_name: Full Calendar
-repo_url: https://github.com/davish/obsidian-full-calendar
-repo_name: obsidian-full-calendar
+repo_url: https://github.com/YouFoundJK/plugin-full-calendar
+repo_name: YouFoundJK/plugin-full-calendar
 theme:
     name: material
     icon:
@@ -29,24 +30,27 @@ theme:
 markdown_extensions:
     - toc:
           permalink: true
+    - admonition # Add admonition for notes and warnings
 
 nav:
     - Introduction: index.md
-    - getting_started.md
+    - What's New: whats_new.md # New page
+    - Getting Started: getting_started.md
     - Calendar Types:
-          - calendars/local.md
-          - calendars/dailynote.md
-          - calendars/ics.md
-          - calendars/caldav.md
-    - Events:
-          - events/types.md
-          - events/manage.md
-          - events/recurring.md
-          - events/hover.md
-          - events/context-menu.md
-          - events/tasks.md
+          - Full Note Calendar: calendars/local.md
+          - Daily Note Calendar: calendars/dailynote.md
+          - Remote (ICS): calendars/ics.md
+          - Remote (CalDAV): calendars/caldav.md
+    - Events & Features:
+          - Event Management: events/manage.md
+          - Recurring Events: events/recurring.md
+          - Tasks: events/tasks.md
+          - Category Coloring: events/categories.md
+          - Timezone Support: events/timezones.md
+          - Hover & Context Menu: events/hover_context.md
+    - Chrono Analyser: chrono_analyser.md
     - Settings:
-          - settings/sources.md
-          - settings/fc_config.md
+          - Calendar Sources: settings/sources.md
+          - Display & Behavior: settings/fc_config.md
     - Advanced:
-          - Dataview integration: advanced/dataview.md
+          - Dataview Integration: advanced/dataview.md

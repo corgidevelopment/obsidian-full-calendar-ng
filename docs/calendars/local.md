@@ -1,9 +1,18 @@
-# Local calendar with full notes as events
+# Full Note Calendar
 
-Keep each event in a calendar as a separate note in your Obsidian vault. This is currently the only option for editable events in Full Calendar. Events are stored as frontmatter on notes that is set and updated by the Full Calendar plugin when [managing events](../events/manage.md) in the calendar.
+This is the most powerful and flexible calendar type. Each event is a separate note in your Obsidian vault, allowing you to add extensive notes, tasks, and links directly related to an event.
 
-You are free to add any additional frontmatter to the notes, as well as any text content, like a description of the event, meeting notes, or anything else.
+Events are defined by the YAML frontmatter at the top of the note. The plugin manages this frontmatter when you [create or edit events](../events/manage.md) in the calendar view.
 
-The note title is also managed by the plugin in the format `<YYYY-MM-DD> <Event title>`.md.
+The note's filename is also managed by the plugin to ensure it's easy to find, typically in the format `<YYYY-MM-DD> <Event title>.md`.
 
-![Add calendar](../assets/add-calendar-source.gif)
+!!! success "Best for..."
+    Users who want to treat events as first-class notes, adding rich context like meeting agendas, personal reflections, or related tasks. This is the only calendar type that supports all features, including multi-day events.
+
+## Setup
+
+1.  In Full Calendar settings, add a new calendar source.
+2.  Select the type **Full Note Calendar**.
+3.  Choose an existing folder in your vault where your event notes will be stored.
+
+![Add Full Note Calendar](../assets/add-calendar-source.gif)

@@ -1,23 +1,34 @@
-# Getting started
+# Getting Started
 
-## Welcome page
+## First-Time Setup
 
-Open Full Calendar from the command palette or the ribbon icon for the first time and you'll be prompted to add a calendar. It's recommended that you add either a [Daily Note calendar](calendars/dailynote) or a [full note calendar](calendars/local) based in a directory in your Vault so that you can create and modify events. Remote calendars are currently read-only.
+When you open Full Calendar for the first time, you'll be prompted to add your first calendar source.
+
+It's recommended to start with a local calendar type, as these are editable directly from the plugin.
+-   **[Full Note Calendar](calendars/local.md):** The most powerful option. Each event is a separate note in your vault.
+-   **[Daily Note Calendar](calendars/dailynote.md):** Store events as checklist items in your daily notes.
+
+Remote calendars (ICS/CalDAV) are read-only.
 
 ![Welcome page](assets/welcome-settings.gif)
 
-## Opening the calendar
+## Opening the Calendar
 
-Either click on the ribbon icon, or run the "Full Calendar: Open Calendar" command from the command palette.
+You can open the main calendar view in two ways:
+1.  Click the **Calendar icon** in the Obsidian ribbon (the left-hand bar).
+2.  Run the command `Full Calendar: Open Calendar` from the command palette (`Ctrl/Cmd + P`).
 
 ![Open calendar](assets/open-calendar.gif)
 
 ## Sidebar Calendar
 
-You can also open the calendar in the sidebar with the "Open in sidebar" command.
+For quick reference, you can open a more compact version of the calendar in the sidebar. Run the command `Full Calendar: Open in sidebar`.
 
 ![Sidebar calendar](assets/sidebar.gif)
 
 ## Troubleshooting
 
-If something is not working as expected, you should first try to clear the cache with the command `Full Calendar: Reset Event Cache`. If that didn't fix your problem, then feel free to [submit an issue on GitHub](https://github.com/obsidian-community/obsidian-full-calendar/issues).
+If something is not working as expected, the first thing to try is resetting the event cache.
+-   Run the command `Full Calendar: Reset Event Cache`.
+
+This forces the plugin to re-read all events from all your sources. If this doesn't fix the problem, please [submit an issue on GitHub](https://github.com/YouFoundJK/plugin-full-calendar/issues).

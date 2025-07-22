@@ -1,19 +1,22 @@
-# FullCalendar Configuration
+# Display & Behavior Settings
 
-There's a bunch of ways to configure how the underlying FullCalendar plugin displays events. Full Calendar exposes a few of these to users in settings.
+Configure the appearance and behavior of the FullCalendar view to match your workflow.
 
-![](../assets/settings.png)
+![Settings screenshot](../assets/settings.png)
 
-## First day of week
+## First Day of Week
+The first day of the week defaults to Sunday, but you can change it to Monday or any other day.
 
-The first day of the week defaults to Sunday, but you can change it to Monday, or any other day of the week.
+![Change First Day of Week](../assets/change-week-start.gif)
 
-![](../assets/change-week-start.gif)
+## Default Calendar Views
+Choose the initial view that Full Calendar will open to on desktop and mobile devices.
 
-## Default calendar views
+## 24-Hour Time
+Display all times in a 24-hour format instead of AM/PM.
 
-Change your default calendar views on Desktop and Mobile to match your preference.
+## Timezone Settings
+Manage how event times are displayed. See the dedicated [Timezone Support](../events/timezones.md) page for a full explanation.
 
-## 24-hour time
-
-Ditch AM/PM for 24-hour time.
+## Category Coloring
+Enable and manage colors for event categories. See the dedicated [Category Coloring](../events/categories.md) page for details.
