@@ -64,7 +64,7 @@ export default class CalDAVCalendar extends RemoteCalendar {
     let caldavEvents = await dav.listCalendarObjects(calendar, { xhr });
     this.events = caldavEvents
       .filter(vevent => vevent.calendarData)
-      .flatMap(vevent => getEventsFromICS(vevent.calendarData));
+      .flatMap(vevent => getEventsFromICS(vevent.calendarData, this.settings));
   }
 
   get type(): CalendarInfo['type'] {

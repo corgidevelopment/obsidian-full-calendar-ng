@@ -72,10 +72,12 @@ export const TimeSchema = z.discriminatedUnion('allDay', [
   })
 ]);
 
+// MODIFICATION HAPPENS HERE
 export const CommonSchema = z.object({
-  title: z.string(),
+  title: z.string(), // This will now store the CLEAN title.
   id: z.string().optional(),
-  timezone: z.string().optional()
+  timezone: z.string().optional(),
+  category: z.string().optional() // This will store the parsed category.
 });
 
 export const EventSchema = z.discriminatedUnion('type', [

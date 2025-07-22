@@ -33,7 +33,7 @@ import { activateAnalysisView } from '../chrono_analyser/AnalysisView';
 export const FULL_CALENDAR_VIEW_TYPE = 'full-calendar-view';
 export const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = 'full-calendar-sidebar-view';
 
-function getCalendarColors(color: string | null | undefined): {
+export function getCalendarColors(color: string | null | undefined): {
   color: string;
   textColor: string;
 } {
@@ -87,10 +87,12 @@ export class CalendarView extends ItemView {
    * Also calculates the correct text color for event backgrounds.
    */
   translateSources() {
+    const settings = this.plugin.settings; // Get settings
     return this.plugin.cache.getAllEvents().map(
       ({ events, editable, color, id }): EventSourceInput => ({
         id,
-        events: events.flatMap(e => toEventInput(e.id, e.event) || []),
+        // Pass settings to toEventInput
+        events: events.flatMap(e => toEventInput(e.id, e.event, settings) || []),
         editable,
         ...getCalendarColors(color)
       })
@@ -290,6 +292,8 @@ export class CalendarView extends ItemView {
       this.callback = null;
     }
     this.callback = this.plugin.cache.on('update', payload => {
+      // Get settings once to pass down to the parsers
+      const settings = this.plugin.settings;
       if (payload.type === 'resync') {
         this.fullCalendarView?.removeAllEventSources();
         const sources = this.translateSources();
@@ -313,7 +317,8 @@ export class CalendarView extends ItemView {
           }
         });
         toAdd.forEach(({ id, event, calendarId }) => {
-          const eventInput = toEventInput(id, event);
+          // Pass settings to toEventInput
+          const eventInput = toEventInput(id, event, settings);
           console.debug('adding event', {
             id,
             event,
@@ -331,7 +336,8 @@ export class CalendarView extends ItemView {
         this.fullCalendarView?.getEventSourceById(id)?.remove();
         this.fullCalendarView?.addEventSource({
           id,
-          events: events.flatMap(({ id, event }) => toEventInput(id, event) || []),
+          // Pass settings to toEventInput
+          events: events.flatMap(({ id, event }) => toEventInput(id, event, settings) || []),
           editable,
           ...getCalendarColors(color)
         });

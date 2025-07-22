@@ -24,7 +24,9 @@ import {
   PluginSettingTab,
   Setting,
   TFile,
-  TFolder
+  TFolder,
+  Modal,
+  TextComponent
 } from 'obsidian';
 import * as ReactDOM from 'react-dom/client';
 import { createElement, createRef } from 'react';
@@ -33,10 +35,11 @@ import ReactModal from './ReactModal';
 import { AddCalendarSource } from './components/AddCalendarSource';
 import { importCalendars } from '../calendars/parsing/caldav/import';
 import { getDailyNoteSettings } from 'obsidian-daily-notes-interface';
-import { makeDefaultPartialCalendarSource, CalendarInfo } from '../types';
+import { makeDefaultPartialCalendarSource, CalendarInfo } from '../types/calendar_settings';
 import { CalendarSettings, CalendarSettingsRef } from './components/CalendarSetting';
 import { changelogData } from './changelogData';
 import './changelog.css';
+import { CategorySettingsManager } from './components/CategorySetting';
 
 export interface FullCalendarSettings {
   calendarSources: CalendarInfo[];
@@ -51,6 +54,8 @@ export interface FullCalendarSettings {
   clickToCreateEventFromMonthView: boolean;
   displayTimezone: string | null;
   lastSystemTimezone: string | null;
+  enableCategoryColoring: boolean;
+  categorySettings: { name: string; color: string }[];
 }
 
 export const DEFAULT_SETTINGS: FullCalendarSettings = {
@@ -65,7 +70,9 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   dailyNotesTimezone: 'local',
   clickToCreateEventFromMonthView: true,
   displayTimezone: null,
-  lastSystemTimezone: null
+  lastSystemTimezone: null,
+  enableCategoryColoring: false,
+  categorySettings: []
 };
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -83,6 +90,90 @@ const INITIAL_VIEW_OPTIONS = {
     listWeek: 'List'
   }
 };
+
+// This modal presents the 3 bulk-update choices to the user.
+class BulkCategorizeModal extends Modal {
+  onSubmit: (choice: 'smart' | 'force_folder' | 'force_default', defaultCategory?: string) => void;
+
+  constructor(
+    app: App,
+    onSubmit: (choice: 'smart' | 'force_folder' | 'force_default', defaultCategory?: string) => void
+  ) {
+    super(app);
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl('h2', { text: 'Choose a Bulk-Update Method' });
+    contentEl.createEl('p', {
+      text: 'How would you like to automatically categorize existing events in your local calendars? Note that this is a one time operation that will modify your event notes to match the required formatting.'
+    });
+
+    // Option 1: Smart Folder Update
+    new Setting(contentEl)
+      .setName('Use Parent Folder (Smart)')
+      .setDesc(
+        "Use parent folder names as the category for UN-categorized events. Events that already look like 'Category - Title' will be skipped."
+      )
+      .addButton(button =>
+        button
+          .setButtonText('Run Smart Update')
+          .setCta()
+          .onClick(() => {
+            this.onSubmit('smart');
+            this.close();
+          })
+      );
+
+    // Option 2: Forced Folder Update
+    new Setting(contentEl)
+      .setName('Use Parent Folder (Forced)')
+      .setDesc(
+        'PREPENDS the parent folder name to ALL event titles, even if they already have a category. Warning: This creates nested categories.'
+      )
+      .addButton(button =>
+        button
+          .setButtonText('Run Forced Update')
+          .setWarning()
+          .onClick(() => {
+            this.onSubmit('force_folder');
+            this.close();
+          })
+      );
+
+    // Option 3: Forced Default Update
+    let textInput: TextComponent;
+    new Setting(contentEl)
+      .setName('Forced Default Update')
+      .setDesc(
+        'Prepends a category you provide to ALL event titles. If a category already exists, the new one will be added in front (e.g., New - Old - Title).'
+      )
+      .addText(text => {
+        textInput = text;
+        text.setPlaceholder('Enter default category');
+      })
+      .addButton(button =>
+        button
+          .setButtonText('Set Default')
+          .setWarning()
+          .onClick(() => {
+            const categoryValue = textInput.getValue().trim();
+            if (categoryValue === '') {
+              new Notice('Please enter a category name.');
+              return;
+            }
+            this.onSubmit('force_default', categoryValue);
+            this.close();
+          })
+      );
+  }
+
+  onClose() {
+    this.contentEl.empty();
+  }
+}
 
 export function addCalendarButton(
   app: App,
@@ -137,8 +228,13 @@ export function addCalendarButton(
             }
           }
 
+          const existingCalendarColors = plugin.settings.calendarSources.map(s => s.color);
+
           return createElement(AddCalendarSource, {
-            source: makeDefaultPartialCalendarSource(dropdown.getValue() as CalendarInfo['type']),
+            source: makeDefaultPartialCalendarSource(
+              dropdown.getValue() as CalendarInfo['type'],
+              existingCalendarColors
+            ),
             directories: directories.filter(dir => usedDirectories.indexOf(dir) === -1),
             headings,
             submit: async (source: CalendarInfo) => {
@@ -178,7 +274,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
-  async display(): Promise<void> {
+  display(): void {
     const { containerEl } = this;
     let showFullChangelog = false;
 
@@ -346,6 +442,142 @@ export class FullCalendarSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           });
         });
+
+      // ====================================================================
+      // CATEGORY COLORING SECTION
+      // ====================================================================
+      containerEl.createEl('h2', { text: 'Category Coloring' });
+
+      new Setting(containerEl)
+        .setName('Enable Category Coloring')
+        .setDesc('Color events based on a category in their title (e.g., "Work - My Event").')
+        .addToggle(toggle => {
+          toggle.setValue(this.plugin.settings.enableCategoryColoring).onChange(async value => {
+            const isTogglingOn = value;
+
+            if (isTogglingOn) {
+              const confirmModal = new Modal(this.app);
+              // Add a class to the modal's container for specific styling
+              confirmModal.modalEl.addClass('full-calendar-confirm-modal');
+
+              const { contentEl } = confirmModal;
+
+              contentEl.createEl('h2', { text: '⚠️ Permanent Vault Modification' });
+
+              contentEl.createEl('p', {
+                text: 'Enabling this feature will permanently modify event notes in your vault.'
+              });
+
+              // Use a highlighted div for the technical explanation
+              const highlightEl = contentEl.createDiv('fc-confirm-highlight');
+              const p1 = highlightEl.createEl('p');
+              p1.innerHTML =
+                'We use the delimiter <code> - </code> (a dash with space on either side) to add a category to event titles.';
+
+              const p2 = highlightEl.createEl('p');
+              p2.innerHTML =
+                'For example, an event named <strong>"My Meeting"</strong> will become <strong>"Category - My Meeting"</strong>.';
+
+              contentEl.createEl('p', {
+                text: 'This process will also rename the associated note files to match the new titles. This cannot be easily undone.'
+              });
+
+              const backupEl = contentEl.createEl('p');
+              backupEl.innerHTML =
+                'It is <strong>STRONGLY RECOMMENDED</strong> to <strong>BACKUP</strong> your vault before continuing.';
+
+              new Setting(contentEl)
+                .addButton(btn =>
+                  btn
+                    .setButtonText('Proceed and Modify My Notes')
+                    .setWarning() // Keep the warning class for button color
+                    .onClick(async () => {
+                      confirmModal.close();
+                      // ... (rest of the logic remains the same)
+                      new BulkCategorizeModal(this.app, async (choice, defaultCategory) => {
+                        // ...
+                      }).open();
+                    })
+                )
+                .addButton(btn => btn.setButtonText('Cancel').onClick(() => confirmModal.close()));
+
+              confirmModal.open();
+            } else {
+              // Logic for turning the feature OFF
+              const confirmModal = new Modal(this.app);
+              // Add the same class for consistent styling
+              confirmModal.modalEl.addClass('full-calendar-confirm-modal');
+
+              const { contentEl } = confirmModal;
+
+              contentEl.createEl('h2', { text: '⚠️ Disable and Clean Up' });
+
+              contentEl.createEl('p', {
+                text: 'Disabling this feature will remove known category prefixes from your event titles to restore the previous format.'
+              });
+
+              // Use a highlighted div for the technical explanation
+              const highlightEl = contentEl.createDiv('fc-confirm-highlight');
+              const p1 = highlightEl.createEl('p');
+              p1.innerHTML =
+                'For example, an event named <strong>"Work - My Meeting"</strong> will become <strong>"My Meeting"</strong> again.';
+
+              const p2 = highlightEl.createEl('p');
+              p2.innerHTML =
+                'This process will also <strong>permanently delete</strong> all of your saved category color settings.';
+
+              contentEl.createEl('p', {
+                text: 'This action cannot be easily undone.'
+              });
+
+              const backupEl = contentEl.createEl('p');
+              backupEl.innerHTML =
+                'It is <strong>STRONGLY RECOMMENDED</strong> to <strong>BACKUP</strong> your vault before continuing.';
+
+              new Setting(contentEl)
+                .addButton(btn =>
+                  btn
+                    .setButtonText('Disable and Clean Up Notes')
+                    .setWarning()
+                    .onClick(async () => {
+                      this.plugin.settings.enableCategoryColoring = false;
+                      this.plugin.settings.categorySettings = [];
+                      await this.plugin.saveData(this.plugin.settings);
+                      await this.plugin.categorizationManager.bulkRemoveCategories();
+                      confirmModal.close();
+                      this.display();
+                    })
+                )
+                .addButton(btn => btn.setButtonText('Cancel').onClick(() => confirmModal.close()));
+
+              confirmModal.open();
+            }
+          });
+        });
+
+      if (this.plugin.settings.enableCategoryColoring) {
+        const categoryDiv = containerEl.createDiv();
+        const categoryRoot = ReactDOM.createRoot(categoryDiv);
+
+        const allCategoriesInVault = this.plugin.cache.getAllCategories();
+        const configuredCategoryNames = new Set(
+          this.plugin.settings.categorySettings.map(s => s.name)
+        );
+        const availableSuggestions = allCategoriesInVault.filter(
+          cat => !configuredCategoryNames.has(cat)
+        );
+
+        categoryRoot.render(
+          createElement(CategorySettingsManager, {
+            settings: this.plugin.settings.categorySettings,
+            suggestions: availableSuggestions,
+            onSave: async newSettings => {
+              this.plugin.settings.categorySettings = newSettings;
+              await this.plugin.saveSettings();
+            }
+          })
+        );
+      }
 
       // ====================================================================
       // "What's New" Section

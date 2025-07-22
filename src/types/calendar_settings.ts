@@ -14,6 +14,7 @@
 
 import { ZodError, z } from 'zod';
 import { OFCEvent } from './schema';
+import { getNextColor } from '../ui/colors';
 
 const calendarOptionsSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('local'), directory: z.string() }),
@@ -62,21 +63,25 @@ export function safeParseCalendarInfo(obj: unknown): CalendarInfo | null {
 }
 
 /**
- * Construct a partial calendar source of the specified type
+ * Construct a partial calendar source of the specified type.
+ * ACCEPTS TWO ARGUMENTS.
  */
 export function makeDefaultPartialCalendarSource(
-  type: CalendarInfo['type'] | 'icloud'
+  type: CalendarInfo['type'] | 'icloud',
+  existingColors: string[]
 ): Partial<CalendarInfo> {
+  const newColor = getNextColor(existingColors);
+
   if (type === 'icloud') {
     return {
       type: 'caldav',
-      color: getComputedStyle(document.body).getPropertyValue('--interactive-accent').trim(),
+      color: newColor,
       url: 'https://caldav.icloud.com'
     };
   }
 
   return {
     type: type,
-    color: getComputedStyle(document.body).getPropertyValue('--interactive-accent').trim()
+    color: newColor
   };
 }

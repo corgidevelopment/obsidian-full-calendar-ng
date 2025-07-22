@@ -16,8 +16,8 @@ import ical from 'ical.js';
 import { OFCEvent, validateEvent } from '../../types';
 import { DateTime } from 'luxon';
 import { rrulestr } from 'rrule';
-
-// In src/calendars/parsing/ics.ts
+import { FullCalendarSettings } from '../../ui/settings';
+import { parseTitle } from '../../core/categoryParser';
 
 /**
  * Converts an ical.js Time object into a Luxon DateTime object.
@@ -66,18 +66,20 @@ function specifiesEnd(iCalEvent: ical.Event) {
   );
 }
 
-function icsToOFC(input: ical.Event): OFCEvent {
-  // For debugging specific events from your ICS feed.
-  // if (input.summary.includes('YOUR_EVENT_TITLE_HERE')) {
-  //   console.log('--- STAGE 1: Raw ical.Event object ---');
-  //   console.log('Event Summary:', input.summary);
-  //   console.log('Start Date Object:', input.startDate);
-  //   console.log('Start Date Timezone:', input.startDate.timezone);
-  //   console.log('Start Date as JS Date (local to system):', input.startDate.toJSDate());
-  //   console.log('--------------------------------------');
-  // }
-
+// MODIFICATION: Pass settings to icsToOFC
+function icsToOFC(input: ical.Event, settings: FullCalendarSettings): OFCEvent {
   const summary = input.summary || '';
+
+  let eventData: any = {};
+  if (settings.enableCategoryColoring) {
+    const { category, title } = parseTitle(summary);
+    eventData.title = title;
+    eventData.category = category;
+  } else {
+    eventData.title = summary;
+  }
+
+  // ... (rest of the function now uses `eventData.title` instead of `title`)
   const startDate = icalTimeToLuxon(input.startDate);
   const endDate = input.endDate ? icalTimeToLuxon(input.endDate) : startDate;
   const uid = input.uid;
@@ -101,7 +103,8 @@ function icsToOFC(input: ical.Event): OFCEvent {
 
     return {
       type: 'rrule',
-      title: summary,
+      title: eventData.title,
+      category: eventData.category,
       id: `ics::${uid}::${getLuxonDate(startDate)}::recurring`,
       rrule: rrule.toString(),
       skipDates: exdates.flatMap(d => (d ? [d] : [])),
@@ -121,8 +124,8 @@ function icsToOFC(input: ical.Event): OFCEvent {
 
     return {
       type: 'single',
-      id: `ics::${uid}::${date}::single`,
-      title: summary,
+      title: eventData.title,
+      category: eventData.category,
       date: date!,
       endDate: date !== finalEndDate ? finalEndDate || null : null,
       timezone,
@@ -137,7 +140,8 @@ function icsToOFC(input: ical.Event): OFCEvent {
   }
 }
 
-export function getEventsFromICS(text: string): OFCEvent[] {
+// MODIFICATION: Change signature of getEventsFromICS
+export function getEventsFromICS(text: string, settings: FullCalendarSettings): OFCEvent[] {
   const jCalData = ical.parse(text);
   const component = new ical.Component(jCalData);
 
@@ -159,12 +163,12 @@ export function getEventsFromICS(text: string): OFCEvent[] {
   // Events with RECURRENCE-ID will have duplicated UIDs.
   // We need to modify the base event to exclude those recurrence exceptions.
   const baseEvents = Object.fromEntries(
-    events.filter(e => e.recurrenceId === null).map(e => [e.uid, icsToOFC(e)])
+    events.filter(e => e.recurrenceId === null).map(e => [e.uid, icsToOFC(e, settings)]) // <-- Pass settings
   );
 
   const recurrenceExceptions = events
     .filter(e => e.recurrenceId !== null)
-    .map((e): [string, OFCEvent] => [e.uid, icsToOFC(e)]);
+    .map((e): [string, OFCEvent] => [e.uid, icsToOFC(e, settings)]); // <-- Pass settings
 
   for (const [uid, event] of recurrenceExceptions) {
     const baseEvent = baseEvents[uid];

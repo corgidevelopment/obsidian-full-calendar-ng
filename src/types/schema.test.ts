@@ -10,6 +10,7 @@ import {
 } from './schema';
 import fc from 'fast-check';
 import { ZodFastCheck } from 'zod-fast-check';
+import { z } from 'zod';
 
 describe('schema parsing tests', () => {
   describe('single events', () => {
@@ -21,51 +22,37 @@ describe('schema parsing tests', () => {
           allDay: true
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "date": "2021-01-01",
-                  "endDate": null,
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
+        {
+          "allDay": true,
+          "category": undefined,
+          "date": "2021-01-01",
+          "endDate": null,
+          "title": "Test",
+          "type": "single",
+        }
+      `);
     });
-    it('explicit type', () => {
+
+    it('with category', () => {
       expect(
         parseEvent({
           title: 'Test',
-          type: 'single',
+          category: 'Work',
           date: '2021-01-01',
           allDay: true
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "date": "2021-01-01",
-                  "endDate": null,
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
+          {
+            "allDay": true,
+            "category": "Work",
+            "date": "2021-01-01",
+            "endDate": null,
+            "title": "Test",
+            "type": "single",
+          }
+        `);
     });
-    it('truncates time from date', () => {
-      expect(
-        parseEvent({
-          title: 'Test',
-          type: 'single',
-          date: '2021-01-01',
-          allDay: true
-        })
-      ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "date": "2021-01-01",
-                  "endDate": null,
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
-    });
+
     it('start time', () => {
       expect(
         parseEvent({
@@ -77,17 +64,19 @@ describe('schema parsing tests', () => {
           endTime: null
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": false,
-                  "date": "2021-01-01T10:30:00.000Z",
-                  "endDate": null,
-                  "endTime": null,
-                  "startTime": "10:30",
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
+        {
+          "allDay": false,
+          "category": undefined,
+          "date": "2021-01-01T10:30:00.000Z",
+          "endDate": null,
+          "endTime": null,
+          "startTime": "10:30",
+          "title": "Test",
+          "type": "single",
+        }
+      `);
     });
+
     it('am/pm start time', () => {
       expect(
         parseEvent({
@@ -99,16 +88,17 @@ describe('schema parsing tests', () => {
           endTime: null
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": false,
-                  "date": "2021-01-01",
-                  "endDate": null,
-                  "endTime": null,
-                  "startTime": "10:30 pm",
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
+          {
+            "allDay": false,
+            "category": undefined,
+            "date": "2021-01-01",
+            "endDate": null,
+            "endTime": null,
+            "startTime": "10:30 pm",
+            "title": "Test",
+            "type": "single",
+          }
+        `);
     });
     it('end time', () => {
       expect(
@@ -121,16 +111,17 @@ describe('schema parsing tests', () => {
           endTime: '11:45'
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": false,
-                  "date": "2021-01-01",
-                  "endDate": null,
-                  "endTime": "11:45",
-                  "startTime": "10:30",
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
+          {
+            "allDay": false,
+            "category": undefined,
+            "date": "2021-01-01",
+            "endDate": null,
+            "endTime": "11:45",
+            "startTime": "10:30",
+            "title": "Test",
+            "type": "single",
+          }
+        `);
     });
     it('multi-day events', () => {
       expect(
@@ -142,14 +133,15 @@ describe('schema parsing tests', () => {
           allDay: true
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "date": "2021-01-01",
-                  "endDate": "2021-01-03",
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
+          {
+            "allDay": true,
+            "category": undefined,
+            "date": "2021-01-01",
+            "endDate": "2021-01-03",
+            "title": "Test",
+            "type": "single",
+          }
+        `);
     });
     it('to-do', () => {
       expect(
@@ -161,15 +153,16 @@ describe('schema parsing tests', () => {
           completed: null
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "completed": null,
-                  "date": "2021-01-01",
-                  "endDate": null,
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
+          {
+            "allDay": true,
+            "category": undefined,
+            "completed": null,
+            "date": "2021-01-01",
+            "endDate": null,
+            "title": "Test",
+            "type": "single",
+          }
+        `);
     });
     it('to-do unchecked', () => {
       expect(
@@ -181,15 +174,16 @@ describe('schema parsing tests', () => {
           completed: false
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "completed": false,
-                  "date": "2021-01-01",
-                  "endDate": null,
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
+          {
+            "allDay": true,
+            "category": undefined,
+            "completed": false,
+            "date": "2021-01-01",
+            "endDate": null,
+            "title": "Test",
+            "type": "single",
+          }
+        `);
     });
     it('to-do completed', () => {
       expect(
@@ -201,17 +195,19 @@ describe('schema parsing tests', () => {
           completed: '2021-01-01T10:30:00.000Z'
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "completed": "2021-01-01T10:30:00.000Z",
-                  "date": "2021-01-01",
-                  "endDate": null,
-                  "title": "Test",
-                  "type": "single",
-                }
-            `);
+          {
+            "allDay": true,
+            "category": undefined,
+            "completed": "2021-01-01T10:30:00.000Z",
+            "date": "2021-01-01",
+            "endDate": null,
+            "title": "Test",
+            "type": "single",
+          }
+        `);
     });
   });
+
   describe('simple recurring events', () => {
     it('recurs once per week', () => {
       expect(
@@ -222,15 +218,16 @@ describe('schema parsing tests', () => {
           daysOfWeek: ['M']
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "daysOfWeek": [
-                    "M",
-                  ],
-                  "title": "Test",
-                  "type": "recurring",
-                }
-            `);
+        {
+          "allDay": true,
+          "category": undefined,
+          "daysOfWeek": [
+            "M",
+          ],
+          "title": "Test",
+          "type": "recurring",
+        }
+      `);
     });
     it('recurs twice per week', () => {
       expect(
@@ -241,16 +238,17 @@ describe('schema parsing tests', () => {
           daysOfWeek: ['M', 'W']
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "daysOfWeek": [
-                    "M",
-                    "W",
-                  ],
-                  "title": "Test",
-                  "type": "recurring",
-                }
-            `);
+        {
+          "allDay": true,
+          "category": undefined,
+          "daysOfWeek": [
+            "M",
+            "W",
+          ],
+          "title": "Test",
+          "type": "recurring",
+        }
+      `);
     });
     it('recurs with start date', () => {
       expect(
@@ -262,16 +260,17 @@ describe('schema parsing tests', () => {
           startRecur: '2023-01-05'
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "daysOfWeek": [
-                    "M",
-                  ],
-                  "startRecur": "2023-01-05",
-                  "title": "Test",
-                  "type": "recurring",
-                }
-            `);
+        {
+          "allDay": true,
+          "category": undefined,
+          "daysOfWeek": [
+            "M",
+          ],
+          "startRecur": "2023-01-05",
+          "title": "Test",
+          "type": "recurring",
+        }
+      `);
     });
     it('recurs with end date', () => {
       expect(
@@ -283,16 +282,17 @@ describe('schema parsing tests', () => {
           endRecur: '2023-01-05'
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "daysOfWeek": [
-                    "M",
-                  ],
-                  "endRecur": "2023-01-05",
-                  "title": "Test",
-                  "type": "recurring",
-                }
-            `);
+        {
+          "allDay": true,
+          "category": undefined,
+          "daysOfWeek": [
+            "M",
+          ],
+          "endRecur": "2023-01-05",
+          "title": "Test",
+          "type": "recurring",
+        }
+      `);
     });
     it('recurs with both start and end dates', () => {
       expect(
@@ -305,19 +305,21 @@ describe('schema parsing tests', () => {
           endRecur: '2023-05-12'
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "daysOfWeek": [
-                    "M",
-                  ],
-                  "endRecur": "2023-05-12",
-                  "startRecur": "2023-01-05",
-                  "title": "Test",
-                  "type": "recurring",
-                }
-            `);
+        {
+          "allDay": true,
+          "category": undefined,
+          "daysOfWeek": [
+            "M",
+          ],
+          "endRecur": "2023-05-12",
+          "startRecur": "2023-01-05",
+          "title": "Test",
+          "type": "recurring",
+        }
+      `);
     });
   });
+
   describe('rrule events', () => {
     it('basic rrule', () => {
       expect(
@@ -331,16 +333,17 @@ describe('schema parsing tests', () => {
           startDate: '2023-01-05'
         })
       ).toMatchInlineSnapshot(`
-                {
-                  "allDay": true,
-                  "id": "hi",
-                  "rrule": "RRULE",
-                  "skipDates": [],
-                  "startDate": "2023-01-05",
-                  "title": "Test",
-                  "type": "rrule",
-                }
-            `);
+        {
+          "allDay": true,
+          "category": undefined,
+          "id": "hi",
+          "rrule": "RRULE",
+          "skipDates": [],
+          "startDate": "2023-01-05",
+          "title": "Test",
+          "type": "rrule",
+        }
+      `);
     });
   });
 
@@ -375,7 +378,7 @@ describe('schema parsing tests', () => {
       );
 
     it('parses', () => {
-      const CommonArb = zfc.inputOf(CommonSchema);
+      const CommonArb = zfc.inputOf(CommonSchema.extend({ category: z.string() }));
       const TimeArb = zfc.inputOf(TimeSchema);
       const EventArb = zfc.inputOf(EventSchema);
       const EventInputArbitrary = fc
@@ -394,9 +397,11 @@ describe('schema parsing tests', () => {
     });
 
     it('roundtrips', () => {
-      const CommonArb = zfc.outputOf(CommonSchema);
+      const ExtendedCommonSchema = CommonSchema.extend({ category: z.string().optional() });
+      const CommonArb = zfc.outputOf(ExtendedCommonSchema);
       const TimeArb = zfc.outputOf(TimeSchema);
       const EventArb = zfc.outputOf(EventSchema);
+
       const OFCEventArbitrary: fc.Arbitrary<OFCEvent> = fc
         .tuple(CommonArb, TimeArb, EventArb)
         .map(([common, time, event]) => ({

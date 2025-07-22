@@ -64,7 +64,7 @@ export default class ICSCalendar extends RemoteCalendar {
       return []; // Cannot process without a target timezone.
     }
 
-    return getEventsFromICS(this.response).map(event => {
+    return getEventsFromICS(this.response, this.settings).map(event => {
       // For debugging specific events from your ICS feed.
       // if (event.title.includes('PDE II exam')) {
       //   console.log('--- STAGE 2: OFCEvent before conversion ---');

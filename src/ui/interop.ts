@@ -20,6 +20,8 @@ import { OFCEvent } from '../types';
 
 import { DateTime, Duration } from 'luxon';
 import { rrulestr } from 'rrule';
+import { FullCalendarSettings } from './settings';
+import { getCalendarColors } from './view';
 
 /**
  * Functions for converting between the types used by the FullCalendar view plugin and
@@ -133,22 +135,42 @@ export function dateEndpointsToFrontmatter(
  * formats dates, times, and recurrence rules.
  *
  * @param id The unique ID of the event.
- * @param frontmatter The OFCEvent object.
+ * @param frontmatter The OFCEvent object, which has a CLEAN title.
+ * @param settings The plugin settings, used for category coloring.
  * @returns An `EventInput` object, or `null` if the event data is invalid.
  */
-export function toEventInput(id: string, frontmatter: OFCEvent): EventInput | null {
+export function toEventInput(
+  id: string,
+  frontmatter: OFCEvent,
+  settings: FullCalendarSettings
+): EventInput | null {
   let event: EventInput = {
     id,
-    title: frontmatter.title,
-    allDay: frontmatter.allDay
+    title: frontmatter.title, // Use the clean title for display
+    allDay: frontmatter.allDay,
+    extendedProps: {
+      category: frontmatter.category
+    }
   };
+
+  if (settings.enableCategoryColoring && frontmatter.category) {
+    const categorySetting = (settings.categorySettings || []).find(
+      (c: any) => c.name === frontmatter.category
+    );
+    if (categorySetting) {
+      const { color, textColor } = getCalendarColors(categorySetting.color);
+      event.color = color;
+      event.textColor = textColor;
+    }
+  }
+
   if (frontmatter.type === 'recurring') {
     event = {
       ...event,
       daysOfWeek: frontmatter.daysOfWeek.map(c => DAYS.indexOf(c)),
       startRecur: frontmatter.startRecur,
       endRecur: frontmatter.endRecur,
-      extendedProps: { isTask: false }
+      extendedProps: { ...event.extendedProps, isTask: false }
     };
     if (!frontmatter.allDay) {
       event = {
@@ -229,6 +251,7 @@ export function toEventInput(id: string, frontmatter: OFCEvent): EventInput | nu
         start,
         end,
         extendedProps: {
+          ...event.extendedProps,
           isTask: frontmatter.completed !== undefined && frontmatter.completed !== null,
           taskCompleted: frontmatter.completed
         }
@@ -239,6 +262,7 @@ export function toEventInput(id: string, frontmatter: OFCEvent): EventInput | nu
         start: frontmatter.date,
         end: frontmatter.endDate || undefined,
         extendedProps: {
+          ...event.extendedProps,
           isTask: frontmatter.completed !== undefined && frontmatter.completed !== null,
           taskCompleted: frontmatter.completed
         }
@@ -258,11 +282,17 @@ export function toEventInput(id: string, frontmatter: OFCEvent): EventInput | nu
  * @returns An `OFCEvent` object.
  */
 export function fromEventApi(event: EventApi): OFCEvent {
+  // We need the category from the original event, as it's not stored on the EventApi object.
+  // This is a limitation. We assume the category does not change on drag/resize.
+  // The edit modal is the only place to change a category.
+  const originalCategory = event.extendedProps.category;
+
   const isRecurring: boolean = event.extendedProps.daysOfWeek !== undefined;
   const startDate = getDate(event.start as Date);
   const endDate = getDate(event.end as Date);
   return {
     title: event.title,
+    category: originalCategory, // Preserve the category
     ...(event.allDay
       ? { allDay: true }
       : {

@@ -12,10 +12,10 @@
  */
 
 import { MarkdownView, TFile, Vault, Workspace } from 'obsidian';
-import EventCache from 'src/core/EventCache';
+import EventCache from '../core/EventCache';
 
 /**
- * Open a file in the editor to a given event.
+ * Open a file in a NEW PANE (split view) to a given event.
  * @param cache
  * @param param1 App
  * @param id event ID
@@ -33,18 +33,18 @@ export async function openFileForEvent(
   const {
     location: { path, lineNumber }
   } = details;
-  let leaf = workspace.getMostRecentLeaf();
+
   const file = vault.getAbstractFileByPath(path);
   if (!(file instanceof TFile)) {
     return;
   }
-  if (!leaf) {
-    return;
-  }
-  if (leaf.getViewState().pinned) {
-    leaf = workspace.getLeaf('tab');
-  }
+
+  // The new logic:
+  // Use 'split' to create a new pane to the side.
+  // Alternative: Use `workspace.getLeaf(true)` to open in a new tab.
+  const leaf = workspace.getLeaf(true);
   await leaf.openFile(file);
+
   if (lineNumber && leaf.view instanceof MarkdownView) {
     leaf.view.editor.setCursor({ line: lineNumber, ch: 0 });
   }

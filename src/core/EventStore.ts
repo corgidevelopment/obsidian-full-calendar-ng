@@ -192,6 +192,15 @@ export default class EventStore {
   }
 
   /**
+   * Returns all events currently in the store.
+   * NOTE: This can be inefficient if the store is very large.
+   * Use with caution.
+   */
+  getAllEvents(): StoredEvent[] {
+    return this.fetch([...this.store.keys()]);
+  }
+
+  /**
    * Given a list of event IDs, return all information the store contains on those events.
    * @param ids IDs of events to retrieve information about
    * @returns List of event information contained in the cache.

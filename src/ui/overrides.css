@@ -80,3 +80,135 @@
 	border-color: black !important;
 	border-width: 1px !important;
 }
+
+/* Styles for the new Edit/Create Event Modal */
+.full-calendar-edit-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5em;
+}
+
+.full-calendar-edit-modal .modal-header h2 {
+    margin: 0;
+}
+
+/* POINT 1: LAYOUT REFINEMENT */
+.full-calendar-edit-modal .setting-item {
+    display: flex;
+    align-items: center; /* Vertically align label and control */
+    gap: 1em; /* Space between label and control */
+}
+
+.full-calendar-edit-modal .setting-item-info {
+    flex: 0 0 100px; /* Give labels a fixed width of 100px */
+    font-weight: 500;
+}
+
+.full-calendar-edit-modal .setting-item-control {
+    flex: 1; /* Allow controls to take up the remaining space */
+    display: flex;
+}
+
+.full-calendar-edit-modal .setting-item-control input[type="text"],
+.full-calendar-edit-modal .setting-item-control input[type="date"],
+.full-calendar-edit-modal .setting-item-control select {
+    width: 100%;
+}
+
+.full-calendar-edit-modal hr.modal-hr {
+    margin: 1.2em 0;
+    border-color: var(--background-modifier-border);
+}
+
+.full-calendar-edit-modal .time-group,
+.full-calendar-edit-modal .options-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.full-calendar-edit-modal .options-group label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+/* POINT 4: DISABLED STATE STYLING */
+.full-calendar-edit-modal .time-setting-item.is-disabled {
+    opacity: 0.5;
+    pointer-events: none; /* Ignore clicks */
+}
+.full-calendar-edit-modal .time-setting-item.is-disabled .setting-item-info {
+    /* Optional: slightly different color for disabled label */
+    color: var(--text-muted);
+}
+
+
+.full-calendar-edit-modal .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5em;
+}
+
+.full-calendar-edit-modal .footer-actions-left {
+    display: flex;
+    gap: 10px;
+}
+
+/* src/ui/overrides.css */
+
+/* ... (keep all existing styles) ... */
+
+/* Styles for the confirmation/warning modal in settings */
+.full-calendar-confirm-modal .modal-content {
+    padding: 1.5rem;
+}
+
+.full-calendar-confirm-modal h2 {
+    color: var(--text-error); /* Use error color for warning titles */
+    text-align: center;
+    margin-bottom: 1.2rem;
+}
+
+.full-calendar-confirm-modal p {
+    color: var(--text-normal);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.full-calendar-confirm-modal .fc-confirm-highlight {
+    background-color: var(--background-modifier-accent);
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-m);
+    border-left: 4px solid var(--interactive-accent);
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+}
+
+.full-calendar-confirm-modal .fc-confirm-highlight p {
+    margin-bottom: 0.5rem;
+}
+.full-calendar-confirm-modal .fc-confirm-highlight p:last-child {
+    margin-bottom: 0;
+}
+
+
+.full-calendar-confirm-modal code {
+    background-color: var(--background-modifier-hover);
+    padding: 0.1em 0.4em;
+    border-radius: var(--radius-s);
+    font-size: 0.9em;
+}
+
+.full-calendar-confirm-modal strong {
+    color: var(--text-accent);
+}
+
+.full-calendar-confirm-modal .setting-item {
+    justify-content: center; /* Center the buttons */
+    margin-top: 1.5rem;
+}

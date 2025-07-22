@@ -211,6 +211,10 @@ class TestEditable extends EditableCalendar {
   move = jest.fn();
   modifyEvent = jest.fn();
 
+  // ADD THE MOCK IMPLEMENTATIONS HERE
+  bulkAddCategories = jest.fn(async () => {});
+  bulkRemoveCategories = jest.fn(async () => {});
+
   get type(): 'FOR_TEST_ONLY' {
     return 'FOR_TEST_ONLY';
   }

@@ -20,9 +20,9 @@
 
 import { Notice } from 'obsidian';
 import * as React from 'react';
-import { EditableCalendar } from 'src/calendars/EditableCalendar';
-import FullCalendarPlugin from 'src/main';
-import { OFCEvent } from 'src/types';
+import { EditableCalendar } from '../calendars/EditableCalendar';
+import FullCalendarPlugin from '../main';
+import { OFCEvent } from '../types';
 import { openFileForEvent } from './actions';
 import { EditEvent } from './components/EditEvent';
 import ReactModal from './ReactModal';
@@ -37,14 +37,22 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
         name: cal.name
       };
     });
+
+  // MODIFICATION: Get available categories
+  const availableCategories = plugin.cache.getAllCategories();
+
   new ReactModal(plugin.app, async closeModal =>
     React.createElement(EditEvent, {
       initialEvent: partialEvent,
       calendars,
       defaultCalendarIndex: 0,
+      availableCategories,
+      enableCategory: plugin.settings.enableCategoryColoring,
       submit: async (data, calendarIndex) => {
         const calendarId = calendars[calendarIndex].id;
         try {
+          // Note: The data source layer is now responsible for constructing the full title.
+          // The `data` object here has a clean title and category.
           await plugin.cache.addEvent(calendarId, data);
         } catch (e) {
           if (e instanceof Error) {
@@ -77,11 +85,16 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
 
   const calIdx = calendars.findIndex(({ id }) => id === calId);
 
+  // MODIFICATION: Get available categories
+  const availableCategories = plugin.cache.getAllCategories();
+
   new ReactModal(plugin.app, async closeModal =>
     React.createElement(EditEvent, {
       initialEvent: eventToEdit,
       calendars,
-      defaultCalendarIndex: calIdx,
+      defaultCalendarIndex: calIdx, // <-- RESTORED THIS PROP
+      availableCategories,
+      enableCategory: plugin.settings.enableCategoryColoring,
       submit: async (data, calendarIndex) => {
         try {
           if (calendarIndex !== calIdx) {
@@ -98,6 +111,7 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
       },
       open: async () => {
         openFileForEvent(plugin.cache, plugin.app, eventId);
+        closeModal();
       },
       deleteEvent: async () => {
         try {

@@ -12,7 +12,7 @@
  * @license See LICENSE.md
  */
 
-import { MarkdownView, Notice, Plugin, TFile } from 'obsidian';
+import { Notice, Plugin, TFile, TFolder, TAbstractFile } from 'obsidian';
 import { CalendarView, FULL_CALENDAR_SIDEBAR_VIEW_TYPE, FULL_CALENDAR_VIEW_TYPE } from './ui/view';
 import { renderCalendar } from './ui/calendar';
 import { toEventInput } from './ui/interop';
@@ -26,21 +26,34 @@ import DailyNoteCalendar from './calendars/DailyNoteCalendar';
 import ICSCalendar from './calendars/ICSCalendar';
 import CalDAVCalendar from './calendars/CalDAVCalendar';
 import { manageTimezone } from './core/Timezone';
-
 import { AnalysisView, ANALYSIS_VIEW_TYPE } from './chrono_analyser/AnalysisView';
+import { CategorizationManager } from './core/CategorizationManager';
 
 export default class FullCalendarPlugin extends Plugin {
   settings: FullCalendarSettings = DEFAULT_SETTINGS;
+  categorizationManager!: CategorizationManager;
 
   // To parse `data.json` file.`
   cache: EventCache = new EventCache(this, {
     local: (info, settings) =>
       info.type === 'local'
-        ? new FullNoteCalendar(new ObsidianIO(this.app), info.color, info.directory, settings)
+        ? new FullNoteCalendar(
+            new ObsidianIO(this.app),
+            this, // Pass plugin instance
+            info.color,
+            info.directory,
+            settings
+          )
         : null,
     dailynote: (info, settings) =>
       info.type === 'dailynote'
-        ? new DailyNoteCalendar(new ObsidianIO(this.app), info.color, info.heading, settings)
+        ? new DailyNoteCalendar(
+            new ObsidianIO(this.app),
+            this, // Pass plugin instance
+            info.color,
+            info.heading,
+            settings
+          )
         : null,
     ical: (info, settings) =>
       info.type === 'ical' ? new ICSCalendar(info.color, info.url, settings) : null,
@@ -96,6 +109,7 @@ export default class FullCalendarPlugin extends Plugin {
    * listeners for Vault file changes (create, rename, delete).
    */
   async onload() {
+    this.categorizationManager = new CategorizationManager(this);
     await this.loadSettings();
     await manageTimezone(this);
 
@@ -220,10 +234,52 @@ export default class FullCalendarPlugin extends Plugin {
    * to ensure all calendars are using the new settings.
    */
   async saveSettings() {
-    new Notice('Resetting the event cache with new settings...');
     await this.saveData(this.settings);
     this.cache.reset(this.settings.calendarSources);
     await this.cache.populate();
     this.cache.resync();
+  }
+
+  /**
+   * Performs a non-blocking iteration over a list of files to apply a processor function.
+   * Shows a progress notice to the user.
+   * @param files The array of TFile objects to process.
+   * @param processor The async function to apply to each file.
+   * @param description A description of the operation for the notice.
+   */
+  async nonBlockingProcess(
+    files: TFile[],
+    processor: (file: TFile) => Promise<void>,
+    description: string
+  ) {
+    const BATCH_SIZE = 10;
+    let index = 0;
+    const notice = new Notice('', 0); // Indefinite notice
+
+    const processBatch = () => {
+      // End condition
+      if (index >= files.length) {
+        notice.hide();
+        // The calling function will show the final completion notice.
+        return;
+      }
+
+      notice.setMessage(`${description}: ${index}/${files.length}`);
+      const batch = files.slice(index, index + BATCH_SIZE);
+
+      Promise.all(batch.map(processor))
+        .then(() => {
+          index += BATCH_SIZE;
+          // Yield to the main thread before processing the next batch
+          setTimeout(processBatch, 20);
+        })
+        .catch(err => {
+          console.error('Error during bulk processing batch', err);
+          notice.hide();
+          new Notice('Error during bulk update. Check console for details.');
+        });
+    };
+
+    processBatch();
   }
 }

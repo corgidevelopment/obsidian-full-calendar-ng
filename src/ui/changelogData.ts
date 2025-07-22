@@ -14,6 +14,41 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.11.1', // This would be our current version with the timezone fixes
+    changes: [
+      {
+        type: 'new',
+        title: 'Category Coloring Engine and Settings UI',
+        description:
+          "A new optional setting, 'Enable Category Coloring,' allows you to color events based on a category defined in the event's title (e.g., 'Work - Project Meeting'). This overrides the default calendar color for fine-grained visual organization."
+      },
+      {
+        type: 'new',
+        title: 'Category-Aware Event Modal',
+        description:
+          "The Edit/Create Event modal now features a dedicated 'Category' input field. It provides intelligent autocomplete suggestions based on all your previously used categories, making categorization fast and consistent."
+      },
+      {
+        type: 'improvement',
+        title: 'Redesigned Event Modal UI/UX',
+        description:
+          'The Edit/Create Event modal has been completely redesigned with a polished two-column layout, logical grouping of fields, and a dedicated footer for actions, improving clarity and ergonomics.'
+      },
+      {
+        type: 'improvement',
+        title: 'Color Palette Enhancements',
+        description:
+          'Colors no longer defaults to black, but is now rotated from a carefully choosen Palette.'
+      },
+      {
+        type: 'improvement',
+        title: '"Open Note" Workflow Enhancement',
+        description:
+          "Clicking 'Open Note' in the modal now opens the note in a split view, improving calendar-note navigation."
+      }
+    ]
+  },
+  {
     version: '0.10.13-beta', // This would be our current version with the timezone fixes
     changes: [
       {

@@ -24,6 +24,12 @@ import { Calendar } from './Calendar';
 export type EditableEventResponse = [OFCEvent, EventLocation];
 
 /**
+ * A function that determines the category for a given event, used in bulk updates.
+ * This gives us flexibility to get the category from a folder name, a default string, etc.
+ */
+export type CategoryProvider = (event: OFCEvent, location: EventLocation) => string | undefined;
+
+/**
  * Abstract class representing the interface for an Calendar whose source-of-truth
  * is the Obsidian Vault.
  *
@@ -85,4 +91,26 @@ export abstract class EditableCalendar extends Calendar {
     newEvent: OFCEvent,
     updateCacheWithLocation: (loc: EventLocation) => void
   ): Promise<void>;
+
+  /**
+   * Optional: Returns a list of category names that are derived from this
+   * calendar's configuration, such as its folder path.
+   * This is used during de-categorization to identify all possible categories to remove.
+   */
+  public getFolderCategoryNames(): string[] {
+    return []; // Default implementation returns no names.
+  }
+
+  /**
+   * Performs a bulk operation to add categories to events in this calendar.
+   * @param getCategory A function that returns the desired category for a given event.
+   * @param force If true, overwrites existing categories. If false, skips events that already have a category.
+   */
+  abstract bulkAddCategories(getCategory: CategoryProvider, force: boolean): Promise<void>;
+
+  /**
+   * Performs a bulk operation to remove all known categories from event titles in this calendar.
+   * @param knownCategories A set of all category names to look for and remove.
+   */
+  abstract bulkRemoveCategories(knownCategories: Set<string>): Promise<void>;
 }

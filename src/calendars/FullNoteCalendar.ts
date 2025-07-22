@@ -18,37 +18,47 @@ import { rrulestr } from 'rrule';
 import { EventPathLocation } from '../core/EventStore';
 import { ObsidianInterface } from '../ObsidianAdapter';
 import { OFCEvent, EventLocation, validateEvent } from '../types';
-import { EditableCalendar, EditableEventResponse } from './EditableCalendar';
+import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
 import { FullCalendarSettings } from '../ui/settings';
 import { convertEvent } from '../core/Timezone';
 import { newFrontmatter, modifyFrontmatterString, replaceFrontmatter } from './frontmatter';
+import { constructTitle, parseTitle } from '../core/categoryParser';
+import FullCalendarPlugin from '../main';
 
-const basenameFromEvent = (event: OFCEvent): string => {
+const basenameFromEvent = (event: OFCEvent, settings: FullCalendarSettings): string => {
+  // Use the full, constructed title for the filename IF the feature is enabled.
+  const fullTitle = settings.enableCategoryColoring
+    ? constructTitle(event.category, event.title)
+    : event.title;
   switch (event.type) {
     case undefined:
     case 'single':
-      return `${event.date} ${event.title}`;
+      return `${event.date} ${fullTitle}`;
     case 'recurring':
-      return `(Every ${event.daysOfWeek.join(',')}) ${event.title}`;
+      return `(Every ${event.daysOfWeek.join(',')}) ${fullTitle}`;
     case 'rrule':
-      return `(${rrulestr(event.rrule).toText()}) ${event.title}`;
+      return `(${rrulestr(event.rrule).toText()}) ${fullTitle}`;
   }
 };
 
-const filenameForEvent = (event: OFCEvent) => `${basenameFromEvent(event)}.md`;
+const filenameForEvent = (event: OFCEvent, settings: FullCalendarSettings) =>
+  `${basenameFromEvent(event, settings)}.md`;
 
 export default class FullNoteCalendar extends EditableCalendar {
   app: ObsidianInterface;
+  plugin: FullCalendarPlugin;
   private _directory: string;
 
   constructor(
     app: ObsidianInterface,
+    plugin: FullCalendarPlugin,
     color: string,
     directory: string,
     settings: FullCalendarSettings
   ) {
     super(color, settings);
     this.app = app;
+    this.plugin = plugin;
     this._directory = directory;
   }
   get directory(): string {
@@ -69,10 +79,29 @@ export default class FullNoteCalendar extends EditableCalendar {
 
   async getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {
     const metadata = this.app.getMetadata(file);
-    let event = validateEvent(metadata?.frontmatter);
+    let frontmatter = metadata?.frontmatter;
+    if (!frontmatter) {
+      return [];
+    }
+
+    // MODIFICATION: Conditional Parsing
+    let eventData: any = { ...frontmatter };
+    const rawTitle = frontmatter.title || file.basename;
+
+    if (this.settings.enableCategoryColoring) {
+      const { category, title } = parseTitle(rawTitle);
+      eventData.title = title;
+      eventData.category = category;
+    } else {
+      eventData.title = rawTitle;
+    }
+
+    let event = validateEvent(eventData);
+
     if (!event) {
       return [];
     }
+    // END MODIFICATION
 
     let eventTimezone = event.timezone;
     const displayTimezone = this.settings.displayTimezone;
@@ -87,9 +116,8 @@ export default class FullNoteCalendar extends EditableCalendar {
       );
     }
 
-    if (!event.title) {
-      event.title = file.basename;
-    }
+    // If title was not in frontmatter, it has already been set from the filename.
+    // No extra step needed.
 
     // If the event has a timezone and it's different from the display timezone, convert it.
     if (eventTimezone && displayTimezone && eventTimezone !== displayTimezone) {
@@ -133,27 +161,25 @@ export default class FullNoteCalendar extends EditableCalendar {
   }
 
   async createEvent(event: OFCEvent): Promise<EventLocation> {
-    const path = `${this.directory}/${filenameForEvent(event)}`;
+    const path = `${this.directory}/${filenameForEvent(event, this.settings)}`;
     if (this.app.getAbstractFileByPath(path)) {
       throw new Error(`Event at ${path} already exists.`);
     }
 
     const displayTimezone =
       this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const systemTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // Notify the user if they are creating an event in a timezone different from their system's current zone.
-    if (displayTimezone !== systemTimezone) {
-      new Notice(
-        `Event created in ${displayTimezone}.\nYour system is currently in ${systemTimezone}.`
-      );
-    }
+    // MODIFICATION: Conditional Title Construction
+    const titleToWrite = this.settings.enableCategoryColoring
+      ? constructTitle(event.category, event.title)
+      : event.title;
 
-    // Add the current display timezone to the event before creating it.
     const eventToCreate = {
       ...event,
+      title: titleToWrite,
       timezone: displayTimezone
     };
+    delete (eventToCreate as Partial<OFCEvent>).category;
 
     const newPage = replaceFrontmatter('', newFrontmatter(eventToCreate));
     const file = await this.app.create(path, newPage);
@@ -161,6 +187,7 @@ export default class FullNoteCalendar extends EditableCalendar {
   }
 
   getNewLocation(location: EventPathLocation, event: OFCEvent): EventLocation {
+    // ... (This logic needs to pass settings to filenameForEvent)
     const { path, lineNumber } = location;
     if (lineNumber !== undefined) {
       throw new Error('Note calendar cannot handle inline events.');
@@ -170,8 +197,8 @@ export default class FullNoteCalendar extends EditableCalendar {
       throw new Error(`File ${path} either doesn't exist or is a folder.`);
     }
 
-    const parentPath = file.parent?.path ?? ''; // If file.parent is null, parentPath becomes an empty string.
-    const updatedPath = `${parentPath}/${filenameForEvent(event)}`;
+    const parentPath = file.parent?.path ?? '';
+    const updatedPath = `${parentPath}/${filenameForEvent(event, this.settings)}`;
     return { file: { path: updatedPath }, lineNumber: undefined };
   }
 
@@ -186,26 +213,29 @@ export default class FullNoteCalendar extends EditableCalendar {
       throw new Error(`File ${path} either doesn't exist or is a folder.`);
     }
 
-    // The incoming `event` object has its times in the `displayTimezone`.
-    // We need to convert it back to the file's native timezone before writing.
+    // Timezone logic remains the same...
     const fileMetadata = this.app.getMetadata(file);
     const fileEvent = validateEvent(fileMetadata?.frontmatter);
-
-    // Determine the file's native timezone. Fallback to displayTimezone if not present (for safety).
-    const systemTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const displayTimezone = this.settings.displayTimezone || systemTimezone;
+    const displayTimezone =
+      this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     const fileTimezone = fileEvent?.timezone || displayTimezone;
-
     let eventToWrite = event;
-    // Only perform conversion if the file's zone and the display zone are different.
     if (fileTimezone !== displayTimezone) {
       eventToWrite = convertEvent(event, displayTimezone, fileTimezone);
     }
-
-    // Ensure the timezone property of the event being written matches the file's native timezone.
     eventToWrite.timezone = fileTimezone;
 
-    // The rest of the logic determines if the file needs to be renamed.
+    // MODIFICATION: Conditional Title Construction
+    const titleToWrite = this.settings.enableCategoryColoring
+      ? constructTitle(eventToWrite.category, eventToWrite.title)
+      : eventToWrite.title;
+
+    const eventWithFullTitle = {
+      ...eventToWrite,
+      title: titleToWrite
+    };
+    delete (eventWithFullTitle as Partial<OFCEvent>).category;
+
     const newLocation = this.getNewLocation(location, eventToWrite);
 
     updateCacheWithLocation(newLocation);
@@ -213,7 +243,7 @@ export default class FullNoteCalendar extends EditableCalendar {
     if (file.path !== newLocation.file.path) {
       await this.app.rename(file, newLocation.file.path);
     }
-    await this.app.rewrite(file, page => modifyFrontmatterString(page, eventToWrite));
+    await this.app.rewrite(file, page => modifyFrontmatterString(page, eventWithFullTitle));
 
     return;
   }
@@ -254,5 +284,89 @@ export default class FullNoteCalendar extends EditableCalendar {
       throw new Error(`File ${path} not found.`);
     }
     return this.app.delete(file);
+  }
+
+  private async getAllFiles(): Promise<TFile[]> {
+    const eventFolder = this.app.getAbstractFileByPath(this.directory);
+    if (!(eventFolder instanceof TFolder)) return [];
+
+    const files: TFile[] = [];
+    const walk = async (folder: TFolder) => {
+      for (const child of folder.children) {
+        if (child instanceof TFile) {
+          files.push(child);
+        } else if (child instanceof TFolder) {
+          await walk(child);
+        }
+      }
+    };
+    await walk(eventFolder);
+    return files;
+  }
+
+  public getFolderCategoryNames(): string[] {
+    const dir = this.directory.split('/').pop();
+    return dir ? [dir] : [];
+  }
+
+  async bulkAddCategories(getCategory: CategoryProvider, force: boolean): Promise<void> {
+    const allFiles = await this.getAllFiles();
+    const processor = async (file: TFile) => {
+      await this.plugin.app.fileManager.processFrontMatter(file, frontmatter => {
+        const event = validateEvent(frontmatter);
+        if (!event || !event.title) return;
+
+        const { category: existingCategory, title: cleanTitle } = parseTitle(event.title);
+
+        if (existingCategory && !force) {
+          return; // Smart mode: skip if category exists.
+        }
+
+        const newCategory = getCategory(event, { file, lineNumber: undefined });
+        if (!newCategory) {
+          return;
+        }
+
+        // CORRECTED LOGIC:
+        // If forcing, we use the FULL existing title (e.g., "OldCat - Event").
+        // If not forcing (smart mode), we use the clean title.
+        const titleToCategorize = force ? event.title : cleanTitle;
+        frontmatter.title = constructTitle(newCategory, titleToCategorize);
+      });
+    };
+
+    await this.plugin.nonBlockingProcess(
+      allFiles,
+      processor,
+      `Categorizing notes in ${this.directory}`
+    );
+  }
+
+  async bulkRemoveCategories(knownCategories: Set<string>): Promise<void> {
+    // Create a new set to avoid modifying the original set passed to other calendars.
+    const categoriesToRemove = new Set(knownCategories);
+
+    // Add this calendar's own folder-based categories to the set.
+    for (const name of this.getFolderCategoryNames()) {
+      categoriesToRemove.add(name);
+    }
+
+    const allFiles = await this.getAllFiles();
+    const processor = async (file: TFile) => {
+      await this.plugin.app.fileManager.processFrontMatter(file, frontmatter => {
+        if (!frontmatter.title) return;
+
+        const { category, title: cleanTitle } = parseTitle(frontmatter.title);
+        // Use the expanded, local set for the check.
+        if (category && categoriesToRemove.has(category)) {
+          frontmatter.title = cleanTitle;
+        }
+      });
+    };
+    await this.plugin.nonBlockingProcess(
+      allFiles,
+      processor,
+      `De-categorizing notes in ${this.directory}`
+    );
   }
 }
