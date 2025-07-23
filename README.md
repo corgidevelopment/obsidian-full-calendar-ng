@@ -2,7 +2,7 @@
 
 ![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22obsidian-full-calendar%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)
 
-[![Version](https://img.shields.io/badge/Version-v_0.11.1-blue)](https://youfoundjk.github.io/Time-Analyser-Full-Calender/)
+[![Version](https://img.shields.io/badge/Version-v_0.11.2-blue)](https://youfoundjk.github.io/Time-Analyser-Full-Calender/)
 
 Keep your calendar in your vault! This plugin integrates the [FullCalendar](https://github.com/fullcalendar/fullcalendar) library into your Obsidian Vault so that you can keep your ever-changing daily schedule and special events and plans alongside your tasks and notes, and link freely between all of them. Each event is stored as a separate note with special frontmatter so you can take notes, form connections and add context to any event on your calendar.
 

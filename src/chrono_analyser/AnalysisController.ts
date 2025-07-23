@@ -1,19 +1,19 @@
-// src/chrono_analyser/controller.ts
-
 /**
  * @file The main orchestrator for the Chrono Analyser.
  * This class connects the DataService and UIService, managing the flow of data
  * from the main plugin's EventCache and triggering UI updates in response.
  */
 
-import { App, Notice, TFolder } from 'obsidian';
-import FullCalendarPlugin from 'src/main';
-import * as Plotter from './modules/plotter';
-import * as Aggregator from './modules/aggregator';
-import { DataManager } from './modules/DataManager';
-import { UIService } from './modules/UIService';
-import { DataService } from './modules/DataService';
-import { PieData, TimeRecord } from './modules/types';
+import { App, Notice } from 'obsidian';
+import FullCalendarPlugin from '../main';
+import * as Plotter from './ui/plotter';
+import * as Aggregator from './data/aggregator';
+import { DataManager } from './data/DataManager';
+import { UIService } from './ui/UIService';
+import { DataService } from './data/DataService';
+import { PieData, TimeRecord } from './data/types';
+import { InsightsEngine } from './data/InsightsEngine';
+import { InsightConfigModal, InsightsConfig } from './ui/ui'; // Import necessary types
 
 interface IChartStrategy {
   analysisName: string;
@@ -29,6 +29,7 @@ export class AnalysisController {
   public uiService: UIService;
   public dataService: DataService;
   public dataManager: DataManager;
+  public insightsEngine: InsightsEngine;
   public rootEl: HTMLElement;
 
   private activeChartType: string | null = null;
@@ -47,32 +48,71 @@ export class AnalysisController {
   ) {
     this.rootEl = rootEl;
     this.dataManager = new DataManager();
-    this.uiService = new UIService(app, rootEl, () => this.updateAnalysis());
-    this.dataService = new DataService(this.plugin.cache, this.dataManager, () =>
-      this.handleDataReady()
+    this.insightsEngine = new InsightsEngine();
+
+    this.uiService = new UIService(
+      app,
+      rootEl,
+      plugin,
+      () => this.updateAnalysis(),
+      () => this.handleGenerateInsights(),
+      () => this.openInsightsConfigModal()
+    );
+
+    this.dataService = new DataService(
+      this.plugin.cache,
+      this.dataManager,
+      this.plugin.settings,
+      () => this.handleDataReady()
     );
   }
 
-  /**
-   * Initializes all services. Crucially, it checks if the main plugin's
-   * event cache has been populated and triggers it if not.
-   */
-  public async initialize(): Promise<void> {
-    this.uiService.initialize();
+  private async handleGenerateInsights() {
+    const config = this.uiService.insightsConfig;
+    if (!config || Object.keys(config.insightGroups).length === 0) {
+      new Notice('Please configure your Insight Groups first using the ⚙️ icon.', 5000);
+      return;
+    }
+    new Notice(
+      `Using insights rules last updated on ${new Date(config.lastUpdated).toLocaleString()}.`
+    );
+    this.uiService.setInsightsLoading(true);
 
-    // --- THIS IS THE KEY FIX ---
-    // Check if the main EventCache has been populated.
+    const allRecords = this.dataManager.getAllRecords();
+    try {
+      const insights = await this.insightsEngine.generateInsights(allRecords, config);
+      this.uiService.renderInsights(insights);
+    } catch (error) {
+      console.error('Error generating insights:', error);
+      new Notice('Failed to generate insights. Check the developer console for errors.');
+    } finally {
+      this.uiService.setInsightsLoading(false);
+    }
+  }
+
+  private openInsightsConfigModal() {
+    new InsightConfigModal(
+      this.app,
+      this.uiService.insightsConfig,
+      this.dataManager.getKnownHierarchies(),
+      this.dataManager.getKnownProjects(),
+      (newConfig: InsightsConfig) => {
+        this.plugin.settings.chrono_analyser_config = newConfig;
+        this.plugin.saveSettings();
+        this.uiService.insightsConfig = newConfig;
+        new Notice('Insights configuration saved!');
+      }
+    ).open();
+  }
+
+  public async initialize(): Promise<void> {
+    await this.uiService.initialize();
+
     if (!this.plugin.cache.initialized) {
-      // If not, it means this view is loading before the main calendar view.
-      // We must take responsibility for populating the cache.
       new Notice('Chrono Analyser: Initializing event cache...', 2000);
       await this.plugin.cache.populate();
     }
-    // --- END OF FIX ---
 
-    // Now that we're sure the cache is either populated or will be soon,
-    // we can initialize our data service, which subscribes to it and
-    // performs an initial data pull.
     this.dataService.initialize();
   }
 
@@ -122,7 +162,14 @@ export class AnalysisController {
     }
 
     filters.pattern = chartSpecificFilters.pattern;
-    const { records, totalHours, fileCount } = this.dataManager.getAnalyzedData(filters, null);
+
+    // REFACTOR: Tell DataManager to expand events for time-based charts
+    const expandRecurring = ['time-series', 'activity'].includes(newChartType || '');
+    const { records, totalHours, fileCount } = this.dataManager.getAnalyzedData(
+      filters,
+      null, // breakdown is handled by the chart strategy if needed
+      { expandRecurring }
+    );
 
     this.renderUI(records, totalHours, fileCount, useReact, isNewChartType);
 
@@ -161,7 +208,7 @@ export class AnalysisController {
       this.uiService.renderStats('-', '-');
       this.uiService.updateActiveAnalysisStat('N/A');
       Plotter.renderChartMessage(this.rootEl, 'No data matches the current filters.');
-      this.isChartRendered = false; // The chart was purged
+      this.isChartRendered = false;
       return;
     }
 
@@ -186,21 +233,39 @@ export class AnalysisController {
 
     strategies.set('pie', {
       analysisName: 'Category Breakdown',
-      render(
+      render: (
         controller: AnalysisController,
         useReact: boolean,
         filteredRecords: TimeRecord[],
         isNewChartType: boolean
-      ) {
+      ) => {
         const pieFilters = controller.uiService.getChartSpecificFilter('pie');
-        const { aggregation, recordsByCategory, error } = controller.dataManager.getAnalyzedData(
-          { ...controller.uiService.getFilterState().filters, pattern: pieFilters.pattern },
-          pieFilters.breakdownBy
-        );
-        if (error) {
-          Plotter.renderChartMessage(controller.rootEl, `Regex Error: ${error}`);
-          return;
+        const breakdownBy = pieFilters.breakdownBy as keyof TimeRecord;
+        let regex: RegExp | null = null;
+        if (pieFilters.pattern) {
+          try {
+            regex = new RegExp(pieFilters.pattern, 'i');
+          } catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
+            Plotter.renderChartMessage(controller.rootEl, `Regex Error: ${message}`);
+            return;
+          }
         }
+
+        const aggregation = new Map<string, number>();
+        const recordsByCategory = new Map<string, TimeRecord[]>();
+
+        for (const record of filteredRecords) {
+          const key = String(record[breakdownBy] || `(No ${breakdownBy})`);
+          if (regex && !regex.test(key)) continue;
+
+          const duration = record._effectiveDurationInPeriod || 0;
+          aggregation.set(key, (aggregation.get(key) || 0) + duration);
+
+          if (!recordsByCategory.has(key)) recordsByCategory.set(key, []);
+          recordsByCategory.get(key)!.push(record);
+        }
+
         const pieData: PieData = { hours: aggregation, recordsByCategory, error: false };
         Plotter.renderPieChartDisplay(
           controller.rootEl,
@@ -214,12 +279,12 @@ export class AnalysisController {
 
     strategies.set('sunburst', {
       analysisName: 'Hierarchical Breakdown',
-      render(
+      render: (
         controller: AnalysisController,
         useReact: boolean,
         filteredRecords: TimeRecord[],
         isNewChartType: boolean
-      ) {
+      ) => {
         const sunburstFilters = controller.uiService.getChartSpecificFilter('sunburst');
         const sunburstData = Aggregator.aggregateForSunburst(
           filteredRecords,
@@ -237,44 +302,29 @@ export class AnalysisController {
 
     strategies.set('time-series', {
       analysisName: 'Time-Series Trend',
-      render(
+      render: (
         controller: AnalysisController,
         useReact: boolean,
         filteredRecords: TimeRecord[],
         isNewChartType: boolean
-      ) {
-        const { filters } = controller.uiService.getFilterState();
-        const filterDates = {
-          filterStartDate: filters.filterStartDate ?? null,
-          filterEndDate: filters.filterEndDate ?? null
-        };
-        Plotter.renderTimeSeriesChart(
-          controller.rootEl,
-          filteredRecords,
-          filterDates,
-          useReact,
-          isNewChartType
-        );
+      ) => {
+        // No extra data fetching needed, plotter will use the pre-expanded records
+        Plotter.renderTimeSeriesChart(controller.rootEl, filteredRecords, useReact, isNewChartType);
       }
     });
 
     strategies.set('activity', {
       analysisName: 'Activity Patterns',
-      render(
+      render: (
         controller: AnalysisController,
         useReact: boolean,
         filteredRecords: TimeRecord[],
         isNewChartType: boolean
-      ) {
-        const { filters } = controller.uiService.getFilterState();
-        const filterDates = {
-          filterStartDate: filters.filterStartDate ?? null,
-          filterEndDate: filters.filterEndDate ?? null
-        };
+      ) => {
+        // No extra data fetching needed, plotter will use the pre-expanded records
         Plotter.renderActivityPatternChart(
           controller.rootEl,
           filteredRecords,
-          filterDates,
           controller.uiService.showDetailPopup,
           useReact,
           isNewChartType

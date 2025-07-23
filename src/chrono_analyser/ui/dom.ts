@@ -11,21 +11,36 @@ export function createDOMStructure(rootEl: HTMLElement): void {
           <p>Interactive analysis of your time tracking data</p>
         </div>
 
+        <!-- --- NEW: Insights Panel --- -->
+        <div class="insights-panel" id="insightsPanel">
+            <div class="insights-header">
+                <div class="insights-title">💡 Insights</div>
+                <div class="insights-actions">
+                    <button class="mod-cta" id="generateInsightsBtn">Generate Insights</button>
+                    <button id="configureInsightsBtn" class="clickable-icon" aria-label="Configure Insights">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="insights-body" id="insightsResultContainer">
+                <div class="insights-placeholder">Click "Generate Insights" to analyze your data.</div>
+            </div>
+        </div>
+        <!-- --- END: Insights Panel --- -->
+
         <div class="controls">
-          <!-- Row 1: Global Filters -->
+          <!-- ... rest of the controls section is unchanged ... -->
           <div class="control-group">
             <div class="control-item">
               <label for="hierarchyFilterInput">📂 Filter by Hierarchy (Calendar Source)</label>
               <div class="autocomplete-wrapper">
                 <input type="text" id="hierarchyFilterInput" placeholder="All Hierarchies (type to filter...)">
-                <div class="autocomplete-suggestions" id="hierarchySuggestions"></div>
               </div>
             </div>
             <div class="control-item">
               <label for="projectFilterInput">📋 Filter by Project</label>
               <div class="autocomplete-wrapper">
                 <input type="text" id="projectFilterInput" placeholder="All Projects (type to filter...)">
-                <div class="autocomplete-suggestions" id="projectSuggestions"></div>
               </div>
             </div>
           </div>
@@ -76,7 +91,6 @@ export function createDOMStructure(rootEl: HTMLElement): void {
                 <option value="subproject">Sub-projects by Project</option>
               </select>
             </div>
-
             <div class="control-item hidden-controls" id="pieCategoryFilterContainer">
               <label for="patternInput">🔍 Category Filter (Regex)</label>
               <input type="text" id="patternInput" placeholder="e.g., Task.*">
@@ -120,7 +134,6 @@ export function createDOMStructure(rootEl: HTMLElement): void {
         </div>
 
         <div class="dashboard-layout-container">
-          <!-- THIS IS THE MISSING PART -->
           <div class="stats-grid" id="statsGrid" style="display: none;">
             <div class="stat-card">
               <div class="stat-value" id="totalHours">0</div>
@@ -135,11 +148,9 @@ export function createDOMStructure(rootEl: HTMLElement): void {
               <div class="stat-label">Active Analysis</div>
             </div>
           </div>
-
           <div class="main-chart-container" id="mainChartContainer" style="display: none; padding: 15px;">
             <div id="mainChart" style="flex-grow: 1; min-width: 0;"></div>
           </div>
-          <!-- END OF MISSING PART -->
         </div>
 
         <div class="log-container" id="errorLogContainer" style="display: none;">
@@ -162,11 +173,11 @@ export function createDOMStructure(rootEl: HTMLElement): void {
               <table class="detail-table" id="popupDetailTable">
                 <thead>
                   <tr>
-                    <th>File Path</th>
-                    <th>Date</th>
-                    <th>Duration (hrs)</th>
                     <th>Project</th>
                     <th>Sub-project (Full)</th>
+                    <th>Duration (hrs)</th>
+                    <th>Date</th>
+                    <th>File Path</th>
                   </tr>
                 </thead>
                 <tbody id="popupTableBody"></tbody>

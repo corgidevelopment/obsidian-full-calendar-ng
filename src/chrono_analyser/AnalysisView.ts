@@ -1,11 +1,11 @@
 import { ItemView, App, WorkspaceLeaf } from 'obsidian';
-import { createDOMStructure } from './dom';
-import { AnalysisController } from './controller';
+import { createDOMStructure } from './ui/dom';
+import { AnalysisController } from './AnalysisController';
 import FullCalendarPlugin from '../main';
 
 // Importing styles for the AnalysisView
 import 'flatpickr/dist/themes/dark.css';
-import './chrono_styles.css';
+import './ui/styles/styles.css';
 
 export const ANALYSIS_VIEW_TYPE = 'full-calendar-analysis-view';
 

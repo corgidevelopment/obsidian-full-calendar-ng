@@ -48,7 +48,8 @@ nav:
           - Category Coloring: events/categories.md
           - Timezone Support: events/timezones.md
           - Hover & Context Menu: events/hover_context.md
-    - Chrono Analyser: chrono_analyser.md
+    - ChronoAnalyser: 
+          - Chrono Analyser: chrono_analyser/introduction.md
     - Settings:
           - Calendar Sources: settings/sources.md
           - Display & Behavior: settings/fc_config.md

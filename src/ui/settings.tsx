@@ -40,6 +40,7 @@ import { CalendarSettings, CalendarSettingsRef } from './components/CalendarSett
 import { changelogData } from './changelogData';
 import './changelog.css';
 import { CategorySettingsManager } from './components/CategorySetting';
+import { InsightsConfig } from '../chrono_analyser/ui/ui';
 
 export interface FullCalendarSettings {
   calendarSources: CalendarInfo[];
@@ -55,6 +56,7 @@ export interface FullCalendarSettings {
   displayTimezone: string | null;
   lastSystemTimezone: string | null;
   enableCategoryColoring: boolean;
+  chrono_analyser_config: InsightsConfig | null;
   categorySettings: { name: string; color: string }[];
 }
 
@@ -72,6 +74,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   displayTimezone: null,
   lastSystemTimezone: null,
   enableCategoryColoring: false,
+  chrono_analyser_config: null,
   categorySettings: []
 };
 
@@ -493,9 +496,17 @@ export class FullCalendarSettingTab extends PluginSettingTab {
                     .setWarning() // Keep the warning class for button color
                     .onClick(async () => {
                       confirmModal.close();
-                      // ... (rest of the logic remains the same)
+                      // Show the second, choice modal
                       new BulkCategorizeModal(this.app, async (choice, defaultCategory) => {
-                        // ...
+                        this.plugin.settings.enableCategoryColoring = true;
+                        await this.plugin.saveData(this.plugin.settings);
+
+                        await this.plugin.categorizationManager.bulkUpdateCategories(
+                          choice,
+                          defaultCategory
+                        );
+
+                        this.display(); // Re-render the settings tab
                       }).open();
                     })
                 )

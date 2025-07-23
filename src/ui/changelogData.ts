@@ -14,6 +14,29 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.11.2', // This would be our current version with the timezone fixes
+    changes: [
+      {
+        type: 'new',
+        title: 'Insights Engine in ChronoAnalyser',
+        description:
+          'New intelligent engine that an Analyse your calender for past events and give you cool insights.'
+      },
+      {
+        type: 'improvement',
+        title: 'Redesigned ChronoAnalyser UI/UX',
+        description:
+          'Chronoanalyser now much more elegant. Check it using the `Analysis` button in the Full-Calendar Window.'
+      },
+      {
+        type: 'fix',
+        title: 'Multiple Bugfixes in ChronoAnalyser',
+        description:
+          'Make CHronoAnalyser more stable and reliable. Plotting and Insights now work more reliably.'
+      }
+    ]
+  },
+  {
     version: '0.11.1', // This would be our current version with the timezone fixes
     changes: [
       {

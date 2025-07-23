@@ -3,7 +3,8 @@
  * These helpers are used for date manipulation, duration calculation, and other reusable logic.
  */
 
-import { OFCEvent } from 'src/types'; // No other imports from './types'
+import { OFCEvent } from '../../types';
+import { TimeRecord } from './types';
 
 export function getISODate(date: Date | null): string | null {
   if (!date || isNaN(date.getTime())) return null;
@@ -52,16 +53,6 @@ export function getDayOfWeekNumber(dayChar: string): number | undefined {
   return mapping[String(dayChar).trim().toUpperCase()];
 }
 
-/**
- * Calculates the duration in hours between a start and end time.
- * It can handle overnight events (e.g., 22:00 to 02:00) and multiplies
- * the result by the number of days.
- *
- * @param startTime - The start time, can be a string (HH:mm) or a number.
- * @param endTime - The end time, can be a string (HH:mm) or a number.
- * @param days - The number of days the event spans. Defaults to 1.
- * @returns The total duration in hours.
- */
 export function calculateDuration(
   startTime: any,
   endTime: any,
@@ -103,27 +94,20 @@ export function calculateDuration(
   }
 }
 
-/**
- * Calculates how many times a recurring event occurs within a given date range.
- *
- * @param metadata - The metadata of the time record, containing recurrence rules.
- * @param filterStartDate - The start date of the filter period.
- * @param filterEndDate - The end date of the filter period.
- * @returns The total number of occurrences within the range.
- */
-export function calculateRecurringInstancesInDateRange(
+function getRecurrenceDateRange(
   metadata: OFCEvent,
   filterStartDate: Date | null,
   filterEndDate: Date | null
-): number {
-  if (metadata.type !== 'recurring') return 0;
+): { effectiveStart: Date; effectiveEnd: Date; targetDays: number[] } | null {
+  // TYPE GUARD: Ensure we are dealing with a recurring event.
+  if (metadata.type !== 'recurring') return null;
 
   const {
     startRecur: metaStartRecurStr,
     endRecur: metaEndRecurStr,
     daysOfWeek: metaDaysOfWeek
   } = metadata;
-  if (!metaStartRecurStr || !metaDaysOfWeek) return 0;
+  if (!metaStartRecurStr || !metaDaysOfWeek) return null;
 
   let recurrenceStart: Date | null = null;
   const tempStartDate = new Date(metaStartRecurStr);
@@ -132,7 +116,7 @@ export function calculateRecurringInstancesInDateRange(
       Date.UTC(tempStartDate.getFullYear(), tempStartDate.getMonth(), tempStartDate.getDate())
     );
   }
-  if (!recurrenceStart) return 0;
+  if (!recurrenceStart) return null;
 
   let recurrenceEnd: Date = new Date(Date.UTC(9999, 11, 31));
   if (metaEndRecurStr) {
@@ -151,7 +135,7 @@ export function calculateRecurringInstancesInDateRange(
     Math.min(recurrenceEnd.getTime(), filterEndDate?.getTime() || recurrenceEnd.getTime())
   );
 
-  if (effectiveStart > effectiveEnd) return 0;
+  if (effectiveStart > effectiveEnd) return null;
 
   const targetDays = (
     Array.isArray(metaDaysOfWeek)
@@ -163,8 +147,48 @@ export function calculateRecurringInstancesInDateRange(
     .map(d => getDayOfWeekNumber(d))
     .filter((d): d is number => d !== undefined);
 
-  if (targetDays.length === 0) return 0;
+  if (targetDays.length === 0) return null;
 
+  return { effectiveStart, effectiveEnd, targetDays };
+}
+
+/**
+ * NEW FUNCTION: Returns an array of dates for each occurrence of a recurring event within a range.
+ */
+export function getRecurringInstances(
+  record: TimeRecord,
+  filterStartDate: Date | null,
+  filterEndDate: Date | null
+): Date[] {
+  if (record.metadata.type !== 'recurring') return [];
+  const rangeInfo = getRecurrenceDateRange(record.metadata, filterStartDate, filterEndDate);
+  if (!rangeInfo) return [];
+
+  const { effectiveStart, effectiveEnd, targetDays } = rangeInfo;
+  const instances: Date[] = [];
+  const currentDate = new Date(effectiveStart.getTime());
+  while (currentDate.getTime() <= effectiveEnd.getTime()) {
+    if (targetDays.includes(currentDate.getUTCDay())) {
+      instances.push(new Date(currentDate.getTime()));
+    }
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+  }
+  return instances;
+}
+
+/**
+ * Calculates how many times a recurring event occurs within a given date range.
+ */
+export function calculateRecurringInstancesInDateRange(
+  metadata: OFCEvent,
+  filterStartDate: Date | null,
+  filterEndDate: Date | null
+): number {
+  if (metadata.type !== 'recurring') return 0;
+  const rangeInfo = getRecurrenceDateRange(metadata, filterStartDate, filterEndDate);
+  if (!rangeInfo) return 0;
+
+  const { effectiveStart, effectiveEnd, targetDays } = rangeInfo;
   let count = 0;
   const currentDate = new Date(effectiveStart.getTime());
   while (currentDate.getTime() <= effectiveEnd.getTime()) {

@@ -1,5 +1,3 @@
-// src/chrono_analyser/modules/DataManager.ts
-
 /**
  * @file Manages the state of all parsed TimeRecords, providing indexed lookups and efficient filtering.
  * This class is the single source of truth for all analytical data.
@@ -7,6 +5,7 @@
 
 import { TimeRecord } from './types';
 import * as Utils from './utils';
+import { OFCEvent } from '../../types';
 
 export interface AnalysisFilters {
   hierarchy?: string;
@@ -14,6 +13,15 @@ export interface AnalysisFilters {
   filterStartDate?: Date | null;
   filterEndDate?: Date | null;
   pattern?: string;
+}
+
+export interface DataManagerOptions {
+  /**
+   * If true, recurring events will be expanded into individual, dated records.
+   * If false (default), they will be returned as a single record with a calculated
+   * total duration for the period.
+   */
+  expandRecurring?: boolean;
 }
 
 /**
@@ -76,7 +84,7 @@ export class DataManager {
    * (Currently empty, but kept for future optimizations like sorting indexes).
    */
   public finalize(): void {
-    // No-op for now. Date index has been removed in favor of a more robust filter logic.
+    // No-op for now.
   }
 
   public removeRecord(filePath: string): void {
@@ -109,16 +117,22 @@ export class DataManager {
   public getKnownProjects = (): string[] => Array.from(this.#originalProjectCasing.values()).sort();
   public getTotalRecordCount = (): number => this.#records.size;
 
+  public getAllRecords(): TimeRecord[] {
+    return Array.from(this.#records.values());
+  }
+
   /**
    * Performs a high-performance, single-pass filter AND aggregation of the data.
    * This is the primary query method for the analyzer.
    * @param filters - The filter criteria to apply.
    * @param breakdownBy - The TimeRecord property to use for aggregation/categorization.
+   * @param options - Options to control data processing, like expanding recurring events.
    * @returns An AnalysisResult object containing filtered records, stats, and aggregated data.
    */
   public getAnalyzedData(
     filters: AnalysisFilters,
-    breakdownBy: keyof TimeRecord | null
+    breakdownBy: keyof TimeRecord | null,
+    options: DataManagerOptions = {}
   ): AnalysisResult {
     const result: AnalysisResult = {
       records: [],
@@ -129,6 +143,7 @@ export class DataManager {
       error: null
     };
     let regex: RegExp | null = null;
+    const { expandRecurring = false } = options;
 
     if (filters.pattern) {
       try {
@@ -139,8 +154,6 @@ export class DataManager {
       }
     }
 
-    // --- NEW FILTERING LOGIC ---
-    // 1. Get a set of candidate paths using the fastest non-date indexes first.
     let candidatePaths: Set<string> | null = null;
 
     if (filters.hierarchy) {
@@ -151,13 +164,11 @@ export class DataManager {
     if (filters.project) {
       const projectKey = filters.project.toLowerCase();
       const projectPaths = this.#projectIndex.get(projectKey) || new Set();
-      // Intersect with existing candidates or use as the primary filter
       candidatePaths = candidatePaths
         ? new Set([...candidatePaths].filter(path => projectPaths.has(path)))
         : projectPaths;
     }
 
-    // 2. Determine which records to scan. If we have candidates, use them. Otherwise, scan all.
     const recordsToScan: Iterable<TimeRecord> = candidatePaths
       ? Array.from(candidatePaths)
           .map(path => this.#records.get(path)!)
@@ -169,60 +180,106 @@ export class DataManager {
     const endDate = filters.filterEndDate ?? null;
     const hasDateFilter = !!(startDate || endDate);
 
-    // 3. Loop through the candidates and apply the date filter logic.
     for (const record of recordsToScan) {
-      let effectiveDuration = 0;
-      let includeRecord = false;
+      if (record.metadata.type === 'recurring' && hasDateFilter) {
+        if (expandRecurring) {
+          // EXPAND MODE: Create a new record for each instance in the date range.
+          const instances = Utils.getRecurringInstances(record, startDate, endDate);
+          for (const instanceDate of instances) {
+            // When expanding, create a new metadata object that conforms to the SingleEvent shape.
+            // This is a type-safe transformation from a RecurringEvent to a SingleEvent.
+            let newMetadata: OFCEvent;
+            const commonProperties = {
+              title: record.metadata.title,
+              id: record.metadata.id,
+              category: record.metadata.category,
+              timezone: record.metadata.timezone,
+              type: 'single' as const,
+              date: Utils.getISODate(instanceDate)!,
+              endDate: Utils.getISODate(instanceDate)!
+            };
 
-      if (record.metadata.type === 'recurring') {
-        if (hasDateFilter) {
+            if (record.metadata.allDay) {
+              // It's an all-day event. startTime and endTime are not allowed.
+              newMetadata = {
+                ...commonProperties,
+                allDay: true
+              };
+            } else {
+              // It's a timed event. startTime and endTime are required.
+              newMetadata = {
+                ...commonProperties,
+                allDay: false,
+                startTime: 'startTime' in record.metadata ? record.metadata.startTime : '00:00', // Provide a fallback to satisfy type
+                endTime: 'endTime' in record.metadata ? record.metadata.endTime : '00:00' // Provide a fallback to satisfy type
+              };
+            }
+
+            const instanceRecord: TimeRecord = {
+              ...record,
+              date: instanceDate, // This instance has a specific date
+              metadata: newMetadata, // Use the new, correctly-shaped metadata
+              _effectiveDurationInPeriod: record.duration // Duration of a single instance
+            };
+
+            this.processRecord(
+              instanceRecord,
+              record.duration,
+              breakdownBy,
+              regex,
+              result,
+              uniqueFiles
+            );
+          }
+        } else {
+          // AGGREGATE MODE: Calculate total duration for the single recurring record.
           const numInstances = Utils.calculateRecurringInstancesInDateRange(
             record.metadata,
             startDate,
             endDate
           );
           if (numInstances > 0) {
-            effectiveDuration = record.duration * numInstances;
-            includeRecord = true;
+            const effectiveDuration = record.duration * numInstances;
+            const finalRecord = { ...record, _effectiveDurationInPeriod: effectiveDuration };
+            this.processRecord(
+              finalRecord,
+              effectiveDuration,
+              breakdownBy,
+              regex,
+              result,
+              uniqueFiles
+            );
           }
-        } else {
-          // If no date filter, recurring events are conceptually "infinite"
-          // We can't sum them, so we exclude them from totals unless a date range is specified.
-          // For charts, we use their base duration. Here we choose to exclude from totals.
-          // Let's decide to include them with a single instance duration for non-date-filtered views.
-          effectiveDuration = record.duration;
-          includeRecord = true;
         }
       } else {
-        // It's a single, dated event
-        if (hasDateFilter) {
-          if (this.isWithinDateRange(record.date, startDate, endDate)) {
-            effectiveDuration = record.duration;
-            includeRecord = true;
-          }
-        } else {
-          // No date filter, so include all single events
-          effectiveDuration = record.duration;
+        // Handle single, dated events, or any event if there's no date filter.
+        const effectiveDuration = record.duration;
+        let includeRecord = false;
+        if (record.metadata.type === 'recurring' && !hasDateFilter) {
+          // For non-date-filtered views, include recurring events with a single instance duration.
           includeRecord = true;
-        }
-      }
-
-      if (includeRecord && effectiveDuration > 0) {
-        const finalRecord = { ...record, _effectiveDurationInPeriod: effectiveDuration };
-
-        if (breakdownBy) {
-          const key = String(record[breakdownBy] || `(No ${breakdownBy})`);
-          if (regex && !regex.test(key)) {
-            continue;
+        } else if (record.metadata.type !== 'recurring') {
+          // It's a single, dated event
+          if (hasDateFilter) {
+            if (this.isWithinDateRange(record.date, startDate, endDate)) {
+              includeRecord = true;
+            }
+          } else {
+            includeRecord = true; // No date filter, so include all single events
           }
-          result.aggregation.set(key, (result.aggregation.get(key) || 0) + effectiveDuration);
-          if (!result.recordsByCategory.has(key)) result.recordsByCategory.set(key, []);
-          result.recordsByCategory.get(key)!.push(finalRecord);
         }
 
-        result.records.push(finalRecord);
-        result.totalHours += effectiveDuration;
-        uniqueFiles.add(record.path);
+        if (includeRecord && effectiveDuration > 0) {
+          const finalRecord = { ...record, _effectiveDurationInPeriod: effectiveDuration };
+          this.processRecord(
+            finalRecord,
+            effectiveDuration,
+            breakdownBy,
+            regex,
+            result,
+            uniqueFiles
+          );
+        }
       }
     }
 
@@ -231,21 +288,41 @@ export class DataManager {
   }
 
   /**
-   * Simple, robust check if a record's date falls within a range.
-   * Handles inclusive start/end dates.
+   * Helper function to process a single record (real or expanded) and add it to the result set.
+   * This avoids logic duplication within getAnalyzedData.
    */
+  private processRecord(
+    record: TimeRecord,
+    duration: number,
+    breakdownBy: keyof TimeRecord | null,
+    regex: RegExp | null,
+    result: AnalysisResult,
+    uniqueFiles: Set<string>
+  ): void {
+    if (breakdownBy) {
+      const key = String(record[breakdownBy] || `(No ${breakdownBy})`);
+      if (regex && !regex.test(key)) {
+        return; // Skip if it doesn't match the category regex
+      }
+      result.aggregation.set(key, (result.aggregation.get(key) || 0) + duration);
+      if (!result.recordsByCategory.has(key)) result.recordsByCategory.set(key, []);
+      result.recordsByCategory.get(key)!.push(record);
+    }
+
+    result.records.push(record);
+    result.totalHours += duration;
+    uniqueFiles.add(record.path);
+  }
+
   private isWithinDateRange(
     recordDate: Date | null,
     startDate: Date | null,
     endDate: Date | null
   ): boolean {
     if (!recordDate || isNaN(recordDate.getTime())) return false;
-
-    // Use a date-only comparison by zeroing out time parts.
     const recordTime = new Date(recordDate.valueOf());
     recordTime.setUTCHours(0, 0, 0, 0);
     const recordTimestamp = recordTime.getTime();
-
     if (startDate) {
       const startTime = new Date(startDate.valueOf());
       startTime.setUTCHours(0, 0, 0, 0);
@@ -256,7 +333,6 @@ export class DataManager {
       endTime.setUTCHours(0, 0, 0, 0);
       if (recordTimestamp > endTime.getTime()) return false;
     }
-
     return true;
   }
 }

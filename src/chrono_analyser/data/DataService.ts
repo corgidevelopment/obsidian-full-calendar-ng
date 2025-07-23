@@ -6,11 +6,12 @@
  * into a format suitable for analysis.
  */
 
-import EventCache, { UpdateViewCallback } from 'src/core/EventCache';
-import { DataManager } from './DataManager';
+import EventCache, { UpdateViewCallback } from '../../core/EventCache';
+import { DataManager } from '../data/DataManager';
 import * as Translator from './translator';
 import { TimeRecord } from './types';
-import FullNoteCalendar from 'src/calendars/FullNoteCalendar';
+import FullNoteCalendar from '../../calendars/FullNoteCalendar';
+import { FullCalendarSettings } from '../../ui/settings';
 
 export class DataService {
   public processingErrors: any[] = [];
@@ -19,6 +20,7 @@ export class DataService {
   constructor(
     private eventCache: EventCache,
     private dataManager: DataManager,
+    private settings: FullCalendarSettings,
     private onDataReady: () => void
   ) {
     this.eventCacheUpdateCallback = () => {
@@ -29,31 +31,38 @@ export class DataService {
 
   public initialize(): void {
     this.eventCache.on('update', this.eventCacheUpdateCallback);
-    // Initial population
     this.repopulateDataManager();
     this.onDataReady();
   }
 
   /**
-   * Clears the DataManager and refills it by translating events from all
-   * "Full Note" calendars in the main EventCache.
+   * Clears the DataManager and refills it. The source of events depends on
+   * the `enableCategoryColoring` setting.
    */
   private repopulateDataManager(): void {
     this.dataManager.clear();
     const records: TimeRecord[] = [];
+    const useCategoryFeature = this.settings.enableCategoryColoring;
 
-    // Iterate through the main plugin's configured calendars
     for (const calendar of this.eventCache.calendars.values()) {
-      // We only analyze "Full Note" (local) calendars, as they have a folder structure.
-      if (calendar instanceof FullNoteCalendar) {
-        const calendarSourcePath = calendar.directory;
-        const eventsInCalendar = this.eventCache._storeForTest.getEventsInCalendar(calendar);
+      if (!useCategoryFeature && !(calendar instanceof FullNoteCalendar)) {
+        continue;
+      }
 
-        for (const storedEvent of eventsInCalendar) {
-          const timeRecord = Translator.storedEventToTimeRecord(storedEvent, calendarSourcePath);
-          if (timeRecord) {
-            records.push(timeRecord);
-          }
+      const calendarSource =
+        calendar instanceof FullNoteCalendar ? calendar.directory : calendar.name;
+
+      const eventsInCalendar = this.eventCache._storeForTest.getEventsInCalendar(calendar);
+
+      for (const storedEvent of eventsInCalendar) {
+        const timeRecord = Translator.storedEventToTimeRecord(
+          storedEvent,
+          useCategoryFeature,
+          calendarSource
+        );
+
+        if (timeRecord) {
+          records.push(timeRecord);
         }
       }
     }
