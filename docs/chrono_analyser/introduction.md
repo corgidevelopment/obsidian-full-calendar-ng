@@ -8,6 +8,14 @@ Whether you're tracking complex work projects, building consistent habits, or ai
 
 ---
 
+**Explore real-world scenarios:**  
+➡️ [See User Use Cases](usecases.md)
+
+**Got questions?**  
+➡️ [Read the FAQ & Troubleshooting Guide](faq.md)
+
+---
+
 ### Two Powerful Modes of Analysis
 
 The Chrono Analyser adapts to your workflow. It operates in one of two modes, depending on your main Full Calendar plugin settings.

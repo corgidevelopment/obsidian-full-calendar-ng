@@ -34,7 +34,8 @@ markdown_extensions:
 
 nav:
     - Introduction: index.md
-    - What's New: whats_new.md # New page
+    - What's New: whats_new.md
+    - Changelog: changelog.md
     - Getting Started: getting_started.md
     - Calendar Types:
           - Full Note Calendar: calendars/local.md
@@ -50,6 +51,8 @@ nav:
           - Hover & Context Menu: events/hover_context.md
     - ChronoAnalyser: 
           - Chrono Analyser: chrono_analyser/introduction.md
+          - Use Cases: chrono_analyser/usecases.md
+          - FAQ & Troubleshooting: chrono_analyser/faq.md
     - Settings:
           - Calendar Sources: settings/sources.md
           - Display & Behavior: settings/fc_config.md

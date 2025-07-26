@@ -9,7 +9,9 @@ This is the most important setting. It determines the timezone that the entire c
 You can override this in **Settings → Display & Behavior → Display Timezone**.
 
 Changing this is useful for:
+
 -   **Trip Planning:** Set the display timezone to your destination's timezone to see your schedule as it will be locally.
+
 -   **Remote Collaboration:** Set it to a colleague's timezone to easily schedule meetings.
 
 <!-- ![Set Display Timezone](assets/set-display-timezone.gif) -->

@@ -1,15 +1,20 @@
 // src/chrono_analyser/modules/ui.ts
 
-import { App, Modal, Setting, TFolder, SuggestModal } from 'obsidian';
+import { App, Modal, Setting, TFolder, SuggestModal, Notice } from 'obsidian';
 
 // DATA STRUCTURES
 interface InsightRule {
   hierarchies: string[];
   projects: string[];
   subprojectKeywords: string[];
+  mutedSubprojectKeywords: string[];
+  mutedProjects: string[];
 }
 interface InsightGroups {
-  [groupName: string]: { rules: InsightRule };
+  [groupName: string]: {
+    rules: InsightRule;
+    persona: 'productivity' | 'wellness' | 'none'; // <-- ADD THIS LINE
+  };
 }
 export interface InsightsConfig {
   version: number;
@@ -137,6 +142,14 @@ export class InsightConfigModal extends Modal {
   private onSave: (newConfig: InsightsConfig) => void;
   private knownHierarchies: string[];
   private knownProjects: string[];
+  private expandedGroupName: string | null = null; // Collapsible state
+
+  // --- ADD/MODIFY THESE PROPERTIES ---
+  private groupsContainerEl!: HTMLElement; // Our stable container
+  private originalConfigString: string = '';
+  private hasUnsavedChanges: boolean = false;
+  private isSaving: boolean = false;
+  // --- END ---
 
   constructor(
     app: App,
@@ -150,15 +163,65 @@ export class InsightConfigModal extends Modal {
     this.knownHierarchies = knownHierarchies;
     this.knownProjects = knownProjects;
 
-    this.config = existingConfig || {
+    const defaultConfig: InsightsConfig = {
       version: 1,
       lastUpdated: new Date().toISOString(),
       insightGroups: {
-        Work: { rules: { hierarchies: ['Work'], projects: [], subprojectKeywords: [] } },
-        Personal: { rules: { hierarchies: ['Personal'], projects: [], subprojectKeywords: [] } }
+        Work: {
+          persona: 'productivity', // <-- ADD DEFAULT PERSONA
+          rules: {
+            hierarchies: ['Work'],
+            projects: [],
+            subprojectKeywords: [],
+            mutedSubprojectKeywords: [],
+            mutedProjects: []
+          }
+        },
+        Personal: {
+          persona: 'wellness', // <-- ADD DEFAULT PERSONA
+          rules: {
+            hierarchies: ['Personal'],
+            projects: [],
+            subprojectKeywords: [],
+            mutedSubprojectKeywords: [],
+            mutedProjects: []
+          }
+        }
       }
     };
+
+    // --- MIGRATION LOGIC: add persona if missing ---
+    let loadedConfig = existingConfig || defaultConfig;
+    if (loadedConfig && loadedConfig.insightGroups) {
+      Object.values(loadedConfig.insightGroups).forEach(group => {
+        if (group) {
+          if ((group as any).persona === undefined) {
+            (group as any).persona = 'productivity';
+          }
+          // Existing migration for muted fields
+          if (group.rules.mutedProjects === undefined) {
+            group.rules.mutedProjects = [];
+          }
+          if (group.rules.mutedSubprojectKeywords === undefined) {
+            if ((group.rules as any).subprojectKeywords_exclude) {
+              group.rules.mutedSubprojectKeywords = (group.rules as any).subprojectKeywords_exclude;
+            } else {
+              group.rules.mutedSubprojectKeywords = [];
+            }
+          }
+          delete (group.rules as any).subprojectKeywords_exclude;
+        }
+      });
+    }
+    this.config = loadedConfig;
+    // --- END MIGRATION LOGIC ---
   }
+
+  // --- ADD THIS HELPER METHOD ---
+  private rerender() {
+    this.renderGroups(this.groupsContainerEl);
+  }
+  // --- END ---
 
   onOpen() {
     const { contentEl } = this;
@@ -169,8 +232,9 @@ export class InsightConfigModal extends Modal {
       text: 'Create groups to categorize your activities. The engine will use these rules to generate personalized insights.'
     });
 
-    const groupsContainer = contentEl.createDiv();
-    this.renderGroups(groupsContainer);
+    // --- INITIALIZE THE STABLE CONTAINER ---
+    this.groupsContainerEl = contentEl.createDiv();
+    this.rerender(); // Initial render
 
     new Setting(contentEl)
       .addButton(btn =>
@@ -182,101 +246,249 @@ export class InsightConfigModal extends Modal {
             Object.keys(this.config.insightGroups).forEach(name => {
               if (!name) delete this.config.insightGroups[name];
             });
+
             this.config.lastUpdated = new Date().toISOString();
             this.onSave(this.config);
+
+            this.isSaving = true;
             this.close();
           })
       )
       .addButton(btn => btn.setButtonText('Cancel').onClick(() => this.close()));
+
+    // Track original config for unsaved changes
+    this.originalConfigString = JSON.stringify(this.config);
+    this.hasUnsavedChanges = false;
+    this.isSaving = false;
   }
 
   private renderGroups(container: HTMLElement) {
     container.empty();
     const groupsEl = container.createDiv('insight-groups-container');
     for (const groupName in this.config.insightGroups) {
-      this.renderGroupSetting(groupsEl, groupName, this.config.insightGroups[groupName].rules);
+      const groupData = this.config.insightGroups[groupName];
+      if (groupData && groupData.rules) {
+        this.renderGroupSetting(groupsEl, groupName, groupData); // Pass groupData (with persona)
+      } else {
+        // Clean up corrupt group
+        console.warn(`[Chrono Analyser] Found and removed corrupt insight group: "${groupName}"`);
+        delete this.config.insightGroups[groupName];
+      }
     }
     new Setting(container).addButton(btn =>
       btn.setButtonText('Add New Insight Group').onClick(() => {
         const newGroupName = `New Group ${Object.keys(this.config.insightGroups).length + 1}`;
         this.config.insightGroups[newGroupName] = {
-          rules: { hierarchies: [], projects: [], subprojectKeywords: [] }
+          persona: 'productivity', // <-- ADD persona to new groups
+          rules: {
+            hierarchies: [],
+            projects: [],
+            subprojectKeywords: [],
+            mutedSubprojectKeywords: [],
+            mutedProjects: []
+          }
         };
-        this.renderGroupSetting(
-          groupsEl,
-          newGroupName,
-          this.config.insightGroups[newGroupName].rules
-        );
+        this.checkForUnsavedChanges();
+        this.expandedGroupName = newGroupName; // Expand the new group by default
+        this.rerender();
       })
     );
   }
 
-  private renderGroupSetting(container: HTMLElement, groupName: string, rules: InsightRule) {
+  // --- REPLACE THE ENTIRE renderGroupSetting METHOD ---
+  private renderGroupSetting(
+    container: HTMLElement,
+    groupName: string,
+    groupData: { rules: InsightRule; persona: 'productivity' | 'wellness' | 'none' }
+  ) {
+    let currentGroupName = groupName;
+    const { rules, persona } = groupData;
+    const isExpanded = this.expandedGroupName === currentGroupName;
+
     const groupContainer = container.createDiv({ cls: 'insight-group-setting' });
+    groupContainer.toggleClass('is-expanded', isExpanded);
+
+    groupContainer.addEventListener('click', evt => {
+      // Only expand if collapsed. Collapsing is handled by the header's click listener.
+      if (!isExpanded) {
+        this.expandedGroupName = currentGroupName;
+        this.rerender();
+      }
+    });
+
     const nameSetting = new Setting(groupContainer)
       .setName('Group Name')
-      .addText(text =>
-        text.setValue(groupName).onChange(newName => {
-          if (newName && newName !== groupName && !this.config.insightGroups[newName]) {
-            const oldGroup = this.config.insightGroups[groupName];
-            delete this.config.insightGroups[groupName];
-            this.config.insightGroups[newName] = oldGroup;
+      .addText(text => {
+        text
+          .setValue(currentGroupName)
+          .setPlaceholder('e.g., Work')
+          .setDisabled(!isExpanded)
+          .onChange(() => {
+            this.checkForUnsavedChanges();
+          });
+
+        // Use 'blur' to finalize the rename
+        text.inputEl.addEventListener('blur', () => {
+          // --- ADD THIS CHECK AT THE VERY TOP ---
+          // If the group was deleted while this input had focus, do nothing.
+          if (!this.config.insightGroups[currentGroupName]) {
+            return;
           }
-        })
-      )
-      .addExtraButton(btn =>
+          // --- END OF ADDITION ---
+
+          const newNameTrimmed = text.inputEl.value.trim();
+          if (!newNameTrimmed || newNameTrimmed === currentGroupName) {
+            text.inputEl.value = currentGroupName;
+            return;
+          }
+          if (this.config.insightGroups[newNameTrimmed]) {
+            new Notice(`Group name "${newNameTrimmed}" already exists.`);
+            text.inputEl.value = currentGroupName;
+            return;
+          }
+          const groupData = this.config.insightGroups[currentGroupName];
+          if (groupData) {
+            delete this.config.insightGroups[currentGroupName];
+            this.config.insightGroups[newNameTrimmed] = groupData;
+            this.expandedGroupName = newNameTrimmed;
+            this.rerender();
+          }
+        });
+      })
+      .addExtraButton(btn => {
         btn
           .setIcon('trash')
           .setTooltip('Delete this group')
+          .setDisabled(!isExpanded)
+          // --- FIX: REMOVE 'evt' and 'stopPropagation' ---
           .onClick(() => {
-            const currentName =
-              nameSetting.nameEl.nextElementSibling?.querySelector('input')?.value || groupName;
-            delete this.config.insightGroups[currentName];
-            groupContainer.remove();
-          })
-      );
+            delete this.config.insightGroups[currentGroupName];
+            this.checkForUnsavedChanges();
 
+            // If we deleted the currently expanded group, no group should be expanded.
+            if (this.expandedGroupName === currentGroupName) {
+              this.expandedGroupName = null;
+            }
+
+            this.rerender();
+          });
+      });
+
+    // Make the header clickable to collapse the group
+    nameSetting.settingEl.addEventListener('click', evt => {
+      const target = evt.target as HTMLElement;
+      if (target.closest('input, button, .tag-remove')) return;
+
+      if (isExpanded) {
+        this.expandedGroupName = null;
+        this.rerender();
+      }
+    });
+
+    // Foldable content container
+    const foldableContent = groupContainer.createDiv('foldable-content');
+
+    // --- ADD Persona Dropdown ---
+    new Setting(foldableContent)
+      .setName('Analyze as Persona')
+      .setDesc('Choose the analytical model to apply to this group.')
+      .setDisabled(!isExpanded)
+      .addDropdown(dd => {
+        dd.addOption('productivity', '🎯 Productivity')
+          .addOption('wellness', '❤️ Wellness & Routine')
+          .addOption('none', '⚪ (Ignore in Dashboard)')
+          .setValue(persona || 'productivity')
+          .onChange(value => {
+            groupData.persona = value as any;
+            this.checkForUnsavedChanges();
+          });
+      });
+
+    // --- The rest of the settings ---
     this.createTagInput(
-      groupContainer,
+      foldableContent,
       'Matching Hierarchies',
-      'Press Enter or select a suggestion.',
-      rules.hierarchies,
-      this.knownHierarchies
+      'e.g., Work Calendar, Personal Calendar',
+      'Add hierarchy...',
+      rules.hierarchies || [],
+      this.knownHierarchies,
+      () => this.checkForUnsavedChanges()
     );
     this.createTagInput(
-      groupContainer,
+      foldableContent,
       'Matching Projects',
-      'Press Enter or select a suggestion.',
-      rules.projects,
-      this.knownProjects
+      'e.g., Project Phoenix, Q4 Report',
+      'Add project...',
+      rules.projects || [],
+      this.knownProjects,
+      () => this.checkForUnsavedChanges()
+    );
+    this.createTagInput(
+      foldableContent,
+      'Muted Projects',
+      'Mute specific projects (case-sensitive, exact match) to exclude them from Habit Consistency checks.',
+      'Add muted project...',
+      rules.mutedProjects || [],
+      this.knownProjects,
+      () => this.checkForUnsavedChanges()
     );
 
-    new Setting(groupContainer)
+    new Setting(foldableContent)
       .setName('Matching Sub-project Keywords')
       .setDesc('Add keywords that will match if found anywhere in a sub-project.')
       .addTextArea(text => {
-        text.setValue(rules.subprojectKeywords.join('\n')).onChange(value => {
-          rules.subprojectKeywords = value
-            .split('\n')
-            .map(s => s.trim())
-            .filter(Boolean);
-        });
+        text
+          .setValue((rules.subprojectKeywords || []).join('\n'))
+          .setPlaceholder('eg., design\nresearch\nmeeting')
+          .setDisabled(!isExpanded)
+          .onChange(value => {
+            rules.subprojectKeywords = value
+              .split('\n')
+              .map(s => s.trim())
+              .filter(Boolean);
+            this.checkForUnsavedChanges();
+          });
+      });
+
+    new Setting(foldableContent)
+      .setName('Muted Sub-project Keywords')
+      .setDesc(
+        'Mute activities by keyword. If a sub-project contains any of these (case-insensitive) keywords, it will be excluded from Habit Consistency checks.'
+      )
+      .addTextArea(text => {
+        text
+          .setValue((rules.mutedSubprojectKeywords || []).join('\n'))
+          .setPlaceholder('e.g., completed\narchive\nold')
+          .setDisabled(!isExpanded)
+          .onChange(value => {
+            rules.mutedSubprojectKeywords = value
+              .split('\n')
+              .map(s => s.trim())
+              .filter(Boolean);
+            this.checkForUnsavedChanges();
+          });
       });
   }
+  // --- END OF REPLACEMENT ---
 
   private createTagInput(
     container: HTMLElement,
     name: string,
     desc: string,
+    placeholder: string,
     values: string[],
-    suggestions: string[]
+    suggestions: string[],
+    onChange?: () => void
   ) {
     const setting = new Setting(container).setName(name).setDesc(desc);
-    // The wrapper now only needs this one class. The component does the rest.
     const wrapper = setting.controlEl.createDiv({ cls: 'autocomplete-wrapper' });
     const tagInputContainer = wrapper.createDiv({ cls: 'tag-input-container' });
     const tagsEl = tagInputContainer.createDiv({ cls: 'tags' });
-    const inputEl = tagInputContainer.createEl('input', { type: 'text', cls: 'tag-input' });
+    const inputEl = tagInputContainer.createEl('input', {
+      type: 'text',
+      cls: 'tag-input',
+      placeholder
+    });
 
     const renderTags = () => {
       tagsEl.empty();
@@ -288,6 +500,7 @@ export class InsightConfigModal extends Modal {
         removeEl.onClickEvent(() => {
           values.splice(index, 1);
           renderTags();
+          if (onChange) onChange();
         });
       });
     };
@@ -298,20 +511,23 @@ export class InsightConfigModal extends Modal {
         const newTag = inputEl.value.trim();
         if (newTag && !values.includes(newTag)) {
           values.push(newTag);
+
           renderTags();
+          if (onChange) onChange();
         }
         inputEl.value = '';
       }
     });
 
-    // Use the new, clean setup function.
     setupAutocomplete(
       wrapper,
       value => {
         const newTag = value.trim();
         if (newTag && !values.includes(newTag)) {
           values.push(newTag);
+
           renderTags();
+          if (onChange) onChange();
         }
         inputEl.value = '';
         inputEl.focus();
@@ -320,6 +536,51 @@ export class InsightConfigModal extends Modal {
     );
 
     renderTags();
+  }
+
+  private checkForUnsavedChanges() {
+    const currentConfigString = JSON.stringify(this.config);
+    this.hasUnsavedChanges = currentConfigString !== this.originalConfigString;
+  }
+
+  close() {
+    this.checkForUnsavedChanges();
+    if (this.hasUnsavedChanges && !this.isSaving) {
+      this.showConfirmationModal();
+    } else {
+      super.close();
+    }
+  }
+
+  private showConfirmationModal() {
+    const confirmationModal = new Modal(this.app);
+    confirmationModal.contentEl.addClass('chrono-analyser-modal');
+    confirmationModal.contentEl.createEl('h2', { text: 'Unsaved Changes' });
+    confirmationModal.contentEl.createEl('p', {
+      text: 'You have unsaved changes. Would you like to save them before closing?'
+    });
+
+    new Setting(confirmationModal.contentEl)
+      .addButton(btn =>
+        btn
+          .setButtonText('Save and Close')
+          .setCta()
+          .onClick(() => {
+            this.isSaving = true;
+            const saveButton = this.modalEl.querySelector('.mod-cta') as HTMLButtonElement;
+            saveButton?.click();
+            confirmationModal.close();
+          })
+      )
+      .addButton(btn =>
+        btn.setButtonText('Discard Changes').onClick(() => {
+          this.isSaving = true;
+          confirmationModal.close();
+          this.close();
+        })
+      );
+
+    confirmationModal.open();
   }
 
   onClose() {

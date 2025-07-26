@@ -77,16 +77,64 @@ export class InsightsRenderer {
 
   private renderSubItem(parentEl: HTMLElement, item: InsightPayloadItem): void {
     const subItem = parentEl.createDiv({ cls: 'insight-sub-item' });
-    subItem.createEl('span', { cls: 'insight-sub-item-project', text: item.project });
-    subItem.createEl('span', {
-      cls: 'insight-sub-item-details',
-      text: `(logged ${item.count} times in the month prior)`
-    });
+    const subItemHeader = subItem.createDiv({ cls: 'insight-sub-item-header' });
 
+    // This container ensures the icon and project name are grouped together
+    const leftGroup = subItemHeader.createDiv({ cls: 'insight-sub-item-left-group' });
+
+    if (item.subItems && item.subItems.length > 0) {
+      const expander = leftGroup.createDiv({ cls: 'insight-sub-item-expander' });
+      expander.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>`;
+      subItem.classList.add('is-expandable');
+    }
+
+    leftGroup.createEl('span', { cls: 'insight-sub-item-project', text: item.project });
+
+    // Details text is now a separate flex item, creating the second column
+    if (item.details) {
+      const detailsSpan = subItemHeader.createEl('span', { cls: 'insight-sub-item-details' });
+      detailsSpan.innerHTML = this.formatDetails(item.details);
+    }
+
+    // Button is the last flex item, pushed to the right
     const subItemGraphButton = this.createGraphButton(item.action);
     if (subItemGraphButton) {
-      subItem.appendChild(subItemGraphButton);
+      subItemHeader.appendChild(subItemGraphButton);
     }
+
+    if (item.subItems && item.subItems.length > 0) {
+      const nestedContainer = subItem.createDiv({ cls: 'insight-nested-container' });
+      item.subItems.forEach(nestedItem => {
+        this.renderNestedItem(nestedContainer, nestedItem);
+      });
+      subItemHeader.addEventListener('click', () => {
+        subItem.classList.toggle('is-expanded');
+      });
+    }
+  }
+
+  private renderNestedItem(parentEl: HTMLElement, item: InsightPayloadItem): void {
+    const nestedItemEl = parentEl.createDiv({ cls: 'insight-nested-item' });
+
+    // Project column
+    nestedItemEl.createEl('span', { cls: 'insight-nested-item-project', text: item.project });
+
+    // Details column
+    if (item.details) {
+      const detailsEl = nestedItemEl.createEl('span', { cls: 'insight-nested-item-details' });
+      detailsEl.innerHTML = this.formatDetails(item.details);
+    }
+
+    // Action button column
+    const graphButton = this.createGraphButton(item.action);
+    if (graphButton) {
+      nestedItemEl.appendChild(graphButton);
+    }
+  }
+
+  private formatDetails(details: string): string {
+    // General bold conversion: **text** to <strong>text</strong>
+    return details.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   }
 
   private createGraphButton(action: FilterPayload | null): HTMLButtonElement | null {

@@ -73,6 +73,7 @@ export class AnalysisController {
       new Notice('Please configure your Insight Groups first using the ⚙️ icon.', 5000);
       return;
     }
+
     new Notice(
       `Using insights rules last updated on ${new Date(config.lastUpdated).toLocaleString()}.`
     );
@@ -161,7 +162,7 @@ export class AnalysisController {
       }
     }
 
-    filters.pattern = chartSpecificFilters.pattern;
+    // filters.pattern = chartSpecificFilters.pattern; // DELETE THIS LINE
 
     // REFACTOR: Tell DataManager to expand events for time-based charts
     const expandRecurring = ['time-series', 'activity'].includes(newChartType || '');
@@ -241,24 +242,13 @@ export class AnalysisController {
       ) => {
         const pieFilters = controller.uiService.getChartSpecificFilter('pie');
         const breakdownBy = pieFilters.breakdownBy as keyof TimeRecord;
-        let regex: RegExp | null = null;
-        if (pieFilters.pattern) {
-          try {
-            regex = new RegExp(pieFilters.pattern, 'i');
-          } catch (e) {
-            const message = e instanceof Error ? e.message : String(e);
-            Plotter.renderChartMessage(controller.rootEl, `Regex Error: ${message}`);
-            return;
-          }
-        }
 
         const aggregation = new Map<string, number>();
         const recordsByCategory = new Map<string, TimeRecord[]>();
 
         for (const record of filteredRecords) {
           const key = String(record[breakdownBy] || `(No ${breakdownBy})`);
-          if (regex && !regex.test(key)) continue;
-
+          // No more regex checks needed here
           const duration = record._effectiveDurationInPeriod || 0;
           aggregation.set(key, (aggregation.get(key) || 0) + duration);
 

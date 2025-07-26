@@ -124,7 +124,7 @@ export default class FullCalendarPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on('rename', (file, oldPath) => {
         if (file instanceof TFile) {
-          console.debug('FILE RENAMED', file.path);
+          // console.debug('FILE RENAMED', file.path);
           this.cache.deleteEventsAtPath(oldPath);
         }
       })
@@ -132,7 +132,7 @@ export default class FullCalendarPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on('delete', file => {
         if (file instanceof TFile) {
-          console.debug('FILE DELETED', file.path);
+          // console.debug('FILE DELETED', file.path);
           this.cache.deleteEventsAtPath(file.path);
         }
       })

@@ -40,6 +40,20 @@ export class UIService {
   private uiStateKey = 'ChronoAnalyzerUIState_v5';
   public insightsConfig: InsightsConfig | null = null;
 
+  // --- PRO-TIPS PANEL PROPERTIES ---
+  private proTipsPanel: HTMLElement | null = null;
+  private proTipTextEl: HTMLElement | null = null;
+  private currentTipIndex = -1;
+  private readonly proTips: string[] = [
+    'Enable "Category Coloring" in the main Full Calendar settings for the best experience. This allows ChronoAnalyser to group activities by their assigned category.',
+    'Log your activities for at least a month to unlock more powerful and accurate trend insights, like the "Lapsed Habits" detector.',
+    'Use the ⚙️ icon to create "Insight Groups" like "Work", "Learning", or "Exercise". This helps the engine understand your time on a deeper level.',
+    'Click on any item in an insight card (e.g., "Project Phoenix") to instantly filter the main chart and explore the data behind the insight.',
+    'The "Filter by Category" input is a powerful search tool. Use it to find specific tasks (e.g., "meeting") or exclude others (e.g., "-break -lunch").',
+    'Combine filters! You can filter by Hierarchy, Project, Date Range, and Category all at once to drill down into your data.'
+  ];
+  // --- END PRO-TIPS PANEL PROPERTIES ---
+
   constructor(
     private app: App,
     private rootEl: HTMLElement,
@@ -55,6 +69,7 @@ export class UIService {
     this.setupEventListeners();
     this.loadFilterState();
     await this.loadInsightsConfig();
+    this.setupProTips(); // <-- ADD THIS LINE
   }
 
   private async loadInsightsConfig() {
@@ -137,12 +152,15 @@ export class UIService {
     const dates = this.flatpickrInstance?.selectedDates;
     const filterStartDate = dates && dates.length === 2 ? dates[0] : null;
     const filterEndDate = dates && dates.length === 2 ? dates[1] : null;
+    // ADDED: Pattern is now a global filter
+    const pattern = this.rootEl.querySelector<HTMLInputElement>('#patternInput')?.value ?? '';
 
     const filters: AnalysisFilters = {
       hierarchy: hierarchyFilter,
       project: projectFilter,
       filterStartDate,
-      filterEndDate
+      filterEndDate,
+      pattern: pattern // Now part of the main filter object
     };
 
     const newChartType =
@@ -155,13 +173,13 @@ export class UIService {
       case 'pie':
         return {
           breakdownBy: (this.rootEl.querySelector<HTMLSelectElement>('#levelSelect_pie')?.value ||
-            'hierarchy') as keyof TimeRecord,
-          pattern: this.rootEl.querySelector<HTMLInputElement>('#patternInput')?.value ?? ''
+            'hierarchy') as keyof TimeRecord
+          // The 'pattern' property is now removed from here
         };
       case 'sunburst':
         return {
-          level: this.rootEl.querySelector<HTMLSelectElement>('#levelSelect')?.value ?? '',
-          pattern: this.rootEl.querySelector<HTMLInputElement>('#patternInput')?.value ?? ''
+          level: this.rootEl.querySelector<HTMLSelectElement>('#levelSelect')?.value ?? ''
+          // The 'pattern' property is now removed from here
         };
       case 'time-series':
         return {
@@ -330,7 +348,7 @@ export class UIService {
     const specificControlContainers = [
       'sunburstBreakdownLevelContainer',
       'pieBreakdownLevelContainer',
-      'pieCategoryFilterContainer',
+      // 'pieCategoryFilterContainer', // This line should be deleted
       'timeSeriesGranularityContainer',
       'timeSeriesTypeContainer',
       'timeSeriesStackingLevelContainer',
@@ -345,10 +363,10 @@ export class UIService {
       this.rootEl
         .querySelector('#sunburstBreakdownLevelContainer')
         ?.classList.remove('hidden-controls');
-      this.rootEl.querySelector('#pieCategoryFilterContainer')?.classList.remove('hidden-controls');
+      // this.rootEl.querySelector('#pieCategoryFilterContainer')?.classList.remove('hidden-controls'); // removed
     } else if (analysisType === 'pie') {
       this.rootEl.querySelector('#pieBreakdownLevelContainer')?.classList.remove('hidden-controls');
-      this.rootEl.querySelector('#pieCategoryFilterContainer')?.classList.remove('hidden-controls');
+      // this.rootEl.querySelector('#pieCategoryFilterContainer')?.classList.remove('hidden-controls'); // removed
     } else if (analysisType === 'time-series') {
       this.rootEl
         .querySelector('#timeSeriesGranularityContainer')
@@ -441,4 +459,26 @@ export class UIService {
       );
     }
   }
+
+  // --- PRO-TIPS PANEL LOGIC ---
+  private setupProTips = () => {
+    this.proTipsPanel = this.rootEl.querySelector<HTMLElement>('#proTipsPanel');
+    this.proTipTextEl = this.rootEl.querySelector<HTMLElement>('#proTipText');
+
+    if (!this.proTipsPanel || !this.proTipTextEl) return;
+
+    const showNextTip = () => {
+      if (!this.proTipTextEl) return;
+      this.proTipTextEl.style.opacity = '0';
+      setTimeout(() => {
+        if (!this.proTipTextEl) return;
+        this.currentTipIndex = (this.currentTipIndex + 1) % this.proTips.length;
+        this.proTipTextEl.textContent = this.proTips[this.currentTipIndex];
+        this.proTipTextEl.style.opacity = '1';
+      }, 150);
+    };
+
+    showNextTip();
+    this.proTipsPanel.addEventListener('click', showNextTip);
+  };
 }

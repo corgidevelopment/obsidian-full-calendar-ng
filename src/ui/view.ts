@@ -26,8 +26,8 @@ import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from './intero
 import { renderOnboarding } from './onboard';
 import { openFileForEvent } from './actions';
 import { launchCreateModal, launchEditModal } from './event_modal';
-import { isTask, toggleTask, unmakeTask } from 'src/ui/tasks';
-import { UpdateViewCallback } from 'src/core/EventCache';
+import { isTask, toggleTask, unmakeTask } from '../ui/tasks';
+import { UpdateViewCallback } from '../core/EventCache';
 import { activateAnalysisView } from '../chrono_analyser/AnalysisView';
 
 export const FULL_CALENDAR_VIEW_TYPE = 'full-calendar-view';
@@ -301,14 +301,14 @@ export class CalendarView extends ItemView {
         return;
       } else if (payload.type === 'events') {
         const { toRemove, toAdd } = payload;
-        console.debug('updating view from cache...', {
-          toRemove,
-          toAdd
-        });
+        // console.debug('updating view from cache...', {
+        //   toRemove,
+        //   toAdd
+        // });
         toRemove.forEach(id => {
           const event = this.fullCalendarView?.getEventById(id);
           if (event) {
-            console.debug('removing event', event.toPlainObject());
+            // console.debug('removing event', event.toPlainObject());
             event.remove();
           } else {
             console.warn(
@@ -319,20 +319,20 @@ export class CalendarView extends ItemView {
         toAdd.forEach(({ id, event, calendarId }) => {
           // Pass settings to toEventInput
           const eventInput = toEventInput(id, event, settings);
-          console.debug('adding event', {
-            id,
-            event,
-            eventInput,
-            calendarId
-          });
+          // console.debug('adding event', {
+          //   id,
+          //   event,
+          //   eventInput,
+          //   calendarId
+          // });
           const addedEvent = this.fullCalendarView?.addEvent(eventInput!, calendarId);
-          console.debug('event that was added', addedEvent);
+          // console.debug('event that was added', addedEvent);
         });
       } else if (payload.type == 'calendar') {
         const {
           calendar: { id, events, editable, color }
         } = payload;
-        console.debug('replacing calendar with id', payload.calendar);
+        // console.debug('replacing calendar with id', payload.calendar);
         this.fullCalendarView?.getEventSourceById(id)?.remove();
         this.fullCalendarView?.addEventSource({
           id,

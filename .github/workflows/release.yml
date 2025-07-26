@@ -6,7 +6,7 @@ on:
             - "*"
 
 env:
-    PLUGIN_NAME: obsidian-full-calendar
+    PLUGIN_NAME: plugin-full-calendar
 
 jobs:
     build:

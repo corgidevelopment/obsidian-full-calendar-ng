@@ -14,6 +14,22 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.11.3', // This would be our current version with the timezone fixes
+    changes: [
+      {
+        type: 'new',
+        title: 'Insights Engine has smarter Dashboard with Personas',
+        description:
+          'Adding persona (predefined rules like "Productivity", "Routine") to Categories in Insight Config Setting now cater to more powerful analysis.'
+      },
+      {
+        type: 'fix',
+        title: 'Insights Panel and Dashboard Bugfixes',
+        description: 'Multiple bugfixes and UI adjustments focused on the Insights panel.'
+      }
+    ]
+  },
+  {
     version: '0.11.2', // This would be our current version with the timezone fixes
     changes: [
       {

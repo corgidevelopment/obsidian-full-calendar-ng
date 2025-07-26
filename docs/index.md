@@ -8,4 +8,9 @@ This documentation site will guide you through setup and advanced features. If s
 
 ![Sample Calendar](assets/sample-calendar.png)
 
+---
+
+**See what's new:** [What's New](whats_new.md)  
+**Full version history:** [Changelog](changelog.md)
+
 <!-- [![Support me on Ko-Fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M1GQ84A) -->

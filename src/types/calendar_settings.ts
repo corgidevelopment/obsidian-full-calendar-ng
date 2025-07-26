@@ -53,10 +53,10 @@ export function safeParseCalendarInfo(obj: unknown): CalendarInfo | null {
     return parseCalendarInfo(obj);
   } catch (e) {
     if (e instanceof ZodError) {
-      console.debug('Parsing calendar info failed with errors', {
-        obj,
-        error: e.message
-      });
+      // console.debug('Parsing calendar info failed with errors', {
+      //   obj,
+      //   error: e.message
+      // });
     }
     return null;
   }

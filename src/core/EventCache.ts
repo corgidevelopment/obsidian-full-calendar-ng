@@ -69,7 +69,7 @@ export const eventsAreDifferent = (oldEvents: OFCEvent[], newEvents: OFCEvent[])
   oldEvents = oldEvents.flatMap(e => validateEvent(e) || []);
   newEvents = newEvents.flatMap(e => validateEvent(e) || []);
 
-  console.debug('comparing events', oldEvents, newEvents);
+  // console.debug('comparing events', oldEvents, newEvents);
 
   if (oldEvents.length !== newEvents.length) {
     return true;
@@ -80,7 +80,7 @@ export const eventsAreDifferent = (oldEvents: OFCEvent[], newEvents: OFCEvent[])
     .filter(({ oldEvent, newEvent }) => !equal(oldEvent, newEvent));
 
   if (unmatchedEvents.length > 0) {
-    console.debug('unmached events when comparing', unmatchedEvents);
+    // console.debug('unmached events when comparing', unmatchedEvents);
   }
 
   return unmatchedEvents.length > 0;
@@ -386,7 +386,7 @@ export default class EventCache {
   async updateEventWithId(eventId: string, newEvent: OFCEvent): Promise<boolean> {
     const { calendar, location: oldLocation } = this.getInfoForEditableEvent(eventId);
     const { path, lineNumber } = oldLocation;
-    console.debug('updating event with ID', eventId);
+    // console.debug('updating event with ID', eventId);
 
     await calendar.modifyEvent({ path, lineNumber }, newEvent, newLocation => {
       this.store.delete(eventId);
@@ -418,7 +418,7 @@ export default class EventCache {
       throw new Error('Event does not exist');
     }
     const newEvent = process(event);
-    console.debug('process', newEvent, process);
+    // console.debug('process', newEvent, process);
     return this.updateEventWithId(id, newEvent);
   }
 
@@ -488,10 +488,10 @@ export default class EventCache {
   async fileUpdated(file: TFile): Promise<void> {
     if (this.isBulkUpdating) {
       // <-- ADD THIS CHECK
-      console.debug('Bulk update in progress, ignoring file update for', file.path);
+      // console.debug('Bulk update in progress, ignoring file update for', file.path);
       return;
     }
-    console.debug('fileUpdated() called for file', file.path);
+    // console.debug('fileUpdated() called for file', file.path);
 
     // Get all calendars that contain events stored in this file.
     const calendars = [...this.calendars.values()].flatMap(c =>
@@ -511,21 +511,21 @@ export default class EventCache {
       // TODO: Relying on calendars for file I/O means that we're potentially
       // reading the file from disk multiple times. Could be more effecient if
       // we break the abstraction layer here.
-      console.debug('get events in file', file.path);
+      // console.debug('get events in file', file.path);
       const newEvents = await calendar.getEventsInFile(file);
 
       const oldEventsMapped = oldEvents.map(({ event }) => event);
       const newEventsMapped = newEvents.map(([event, _]) => event);
-      console.debug('comparing events', file.path, oldEvents, newEvents);
+      // console.debug('comparing events', file.path, oldEvents, newEvents);
       // TODO: It's possible events are not different, but the location has changed.
       const eventsHaveChanged = eventsAreDifferent(oldEventsMapped, newEventsMapped);
 
       // If no events have changed from what's in the cache, then there's no need to update the event store.
       if (!eventsHaveChanged) {
-        console.debug('events have not changed, do not update store or view.');
+        // console.debug('events have not changed, do not update store or view.');
         return;
       }
-      console.debug('events have changed, updating store and views...', oldEvents, newEvents);
+      // console.debug('events have changed, updating store and views...', oldEvents, newEvents);
 
       const newEventsWithIds = newEvents.map(([event, location]) => ({
         event,
@@ -573,7 +573,7 @@ export default class EventCache {
     const now = Date.now();
 
     if (!force && now - this.lastRevalidation < MILLICONDS_BETWEEN_REVALIDATIONS) {
-      console.debug('Last revalidation was too soon.');
+      // console.debug('Last revalidation was too soon.');
       return;
     }
 
@@ -613,7 +613,7 @@ export default class EventCache {
     Promise.allSettled(promises).then(results => {
       this.revalidating = false;
       this.lastRevalidation = Date.now();
-      console.debug('All remote calendars have been fetched.');
+      // console.debug('All remote calendars have been fetched.');
       const errors = results.flatMap(result => (result.status === 'rejected' ? result.reason : []));
       if (errors.length > 0) {
         new Notice('A remote calendar failed to load. Check the console for more details.');

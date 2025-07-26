@@ -1,0 +1,1314 @@
+/*
+ * Chrono Analyser - Professional Obsidian Theme Stylesheet
+ * Version: 3.0
+ * 
+ * Features:
+ * - Full Obsidian theme compatibility (dark/light)
+ * - Clean, professional design system
+ * - Responsive layout
+ * - Modern UI components
+ * - Accessibility compliant
+ * - Performance optimized
+ */
+
+/* =================================================================
+   BASE STYLES & RESET
+   ================================================================= */
+
+.chrono-analyser-view,
+.chrono-analyser-view * {
+    box-sizing: border-box;
+}
+
+.chrono-analyser-view {
+    font-family: var(--font-ui-medium);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    line-height: var(--line-height-normal);
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* =================================================================
+   MODERN BACKGROUND ANIMATION
+   ================================================================= */
+
+.chrono-analyser-view::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+        radial-gradient(circle at 25% 25%, var(--color-accent) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, var(--color-purple) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, var(--interactive-accent) 0%, transparent 50%);
+    opacity: 0.03;
+    z-index: -1;
+    animation: backgroundFlow 30s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes backgroundFlow {
+    0%, 100% { 
+        opacity: 0.03; 
+        transform: scale(1) rotate(0deg); 
+    }
+    33% { 
+        opacity: 0.05; 
+        transform: scale(1.1) rotate(120deg); 
+    }
+    66% { 
+        opacity: 0.04; 
+        transform: scale(0.9) rotate(240deg); 
+    }
+}
+
+/* =================================================================
+   LAYOUT CONTAINER
+   ================================================================= */
+
+.chrono-analyser-view .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--size-4-6);
+    width: 100%;
+    position: relative;
+}
+
+/* =================================================================
+   HEADER SECTION
+   ================================================================= */
+
+.chrono-analyser-view .header {
+    text-align: center;
+    margin-bottom: var(--size-4-8);
+    position: relative;
+    padding: var(--size-4-4) 0;
+}
+
+.chrono-analyser-view .header h1 {
+    font-size: var(--h1-size);
+    font-weight: var(--h1-weight);
+    color: var(--h1-color);
+    margin: 0 0 var(--size-4-3) 0;
+    letter-spacing: -0.02em;
+    text-align: center;
+}
+
+.chrono-analyser-view .header p {
+    font-size: var(--font-ui-medium);
+    color: var(--text-muted);
+    margin: 0;
+    font-weight: 400;
+}
+
+.chrono-analyser-view .header-action-button {
+    position: absolute;
+    top: var(--size-4-2);
+    left: var(--size-4-2);
+    z-index: 100;
+    padding: var(--size-2-2) var(--size-4-3);
+    font-size: var(--font-ui-small);
+    font-weight: 500;
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+    background-color: var(--background-secondary);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    display: flex;
+    align-items: center;
+    gap: var(--size-2-1);
+}
+
+.chrono-analyser-view .header-action-button:hover {
+    background-color: var(--background-modifier-hover);
+    border-color: var(--background-modifier-border-hover);
+    transform: translateY(-1px);
+}
+
+/* =================================================================
+   CONTROLS SECTION
+   ================================================================= */
+
+.chrono-analyser-view .controls {
+    background: var(--background-secondary);
+    border-radius: var(--radius-l);
+    padding: var(--size-4-6);
+    margin-bottom: var(--size-4-6);
+    border: 1px solid var(--background-modifier-border);
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.chrono-analyser-view .controls::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        135deg,
+        var(--interactive-accent) 0%,
+        transparent 100%
+    );
+    opacity: 0.02;
+    pointer-events: none;
+}
+
+.chrono-analyser-view .control-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--size-4-6);
+    align-items: end;
+    padding-bottom: var(--size-4-4);
+    margin-bottom: var(--size-4-4);
+    border-bottom: 1px solid var(--background-modifier-border);
+    position: relative;
+}
+
+.chrono-analyser-view .control-group:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.chrono-analyser-view .control-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-2);
+}
+
+.chrono-analyser-view .control-item label {
+    font-weight: 600;
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    margin: 0;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* =================================================================
+   FORM INPUTS
+   ================================================================= */
+
+.chrono-analyser-view select,
+.chrono-analyser-view input[type="text"],
+.chrono-analyser-view input.flatpickr-input {
+    width: 100%;
+    padding: var(--size-4-2) var(--size-4-3);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    font-size: var(--font-ui-medium);
+    font-family: var(--font-ui-medium);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+    outline: none;
+    height: auto;
+}
+
+.chrono-analyser-view select:focus,
+.chrono-analyser-view input[type="text"]:focus,
+.chrono-analyser-view input.flatpickr-input:focus {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.chrono-analyser-view select:hover,
+.chrono-analyser-view input[type="text"]:hover,
+.chrono-analyser-view input.flatpickr-input:hover {
+    border-color: var(--background-modifier-border-hover);
+}
+
+.chrono-analyser-view input::placeholder {
+    color: var(--text-faint);
+    opacity: 1;
+}
+
+/* File Input Styling */
+.chrono-analyser-view .file-input-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.chrono-analyser-view .file-input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.chrono-analyser-view .file-input-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--size-2-2);
+    padding: var(--size-4-2) var(--size-4-4);
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    font-size: var(--font-ui-medium);
+    font-weight: 600;
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+    width: 100%;
+    height: var(--input-height);
+    text-align: center;
+}
+
+.chrono-analyser-view .file-input-button:hover {
+    background: var(--interactive-accent-hover);
+    transform: translateY(-1px);
+}
+
+/* Date Preset Buttons */
+.chrono-analyser-view .date-preset-buttons {
+    display: flex;
+    gap: var(--size-2-2);
+    margin-top: var(--size-2-3);
+    color: var(--text-normal);
+    flex-wrap: wrap;
+}
+
+.chrono-analyser-view .date-preset-buttons button {
+    padding: var(--size-2-1) var(--size-4-2);
+    font-size: var(--font-ui-small);
+    font-weight: 500;
+    border-radius: var(--radius-s);
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    cursor: pointer;
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+}
+
+.chrono-analyser-view .date-preset-buttons button:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+    border-color: var(--background-modifier-border-hover);
+}
+
+.chrono-analyser-view .date-preset-buttons .clear-dates-btn {
+    background: var(--background-modifier-error);
+    color: var(--text-normal);
+    border-color: var(--background-modifier-border);
+    flex: 0 0 auto;
+}
+
+.chrono-analyser-view .date-preset-buttons .clear-dates-btn:hover {
+    background: var(--background-modifier-error-hover);
+    color: var(--text-on-accent);
+}
+
+/* =================================================================
+   MAIN CONTENT CARDS
+   ================================================================= */
+
+.chrono-analyser-view .main-chart-container,
+.chrono-analyser-view .stat-card,
+.chrono-analyser-view .log-container {
+    background: var(--background-secondary);
+    border-radius: var(--radius-l);
+    padding: var(--size-4-6);
+    border: 1px solid var(--background-modifier-border);
+    margin-bottom: var(--size-4-6);
+    position: relative;
+    overflow: hidden;
+}
+
+.chrono-analyser-view .main-chart-container {
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =================================================================
+   STATISTICS GRID
+   ================================================================= */
+
+.chrono-analyser-view .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--size-4-4);
+    margin-bottom: var(--size-4-6);
+}
+
+.chrono-analyser-view .stats-grid .stat-card {
+    padding: var(--size-4-4);
+    text-align: center;
+    margin-bottom: 0;
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+    cursor: pointer;
+}
+
+.chrono-analyser-view .stat-card:hover {
+    border-color: var(--interactive-accent);
+    transform: translateY(-2px);
+}
+
+.chrono-analyser-view .stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-accent);
+    margin-bottom: var(--size-2-2);
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+}
+
+.chrono-analyser-view .stat-value .small-text {
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.chrono-analyser-view .stat-label {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* =================================================================
+   PLOTLY CHART OVERRIDES
+   ================================================================= */
+
+.chrono-analyser-view .main-chart-container .plotly {
+    flex: 1;
+}
+
+.chrono-analyser-view .main-chart-container .plotly .legendtext {
+    fill: var(--text-normal) !important;
+    font-size: var(--font-ui-medium) !important;
+    font-family: var(--font-ui-medium) !important;
+}
+
+.chrono-analyser-view .main-chart-container .plotly .slicetext {
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    stroke-width: 1.5px !important; /* Slightly thicker stroke for better readability */
+    paint-order: stroke !important;
+}
+
+/* Light Theme: Dark text with a light outline */
+body.theme-light .chrono-analyser-view .main-chart-container .plotly .slicetext {
+    fill: var(--text-normal) !important;         /* e.g., a dark grey */
+    stroke: var(--background-primary) !important; /* e.g., white */
+}
+
+/* Dark Theme: Light text with a dark outline */
+body.theme-dark .chrono-analyser-view .main-chart-container .plotly .slicetext {
+    fill: var(--text-on-accent) !important;     /* e.g., a light grey or white */
+    stroke: var(--background-primary) !important; /* e.g., a dark grey */
+}
+
+.chrono-analyser-view .main-chart-container .plotly .g-gtitle .titletext {
+    fill: var(--text-normal) !important;
+    font-size: var(--font-ui-large) !important;
+    font-weight: 600 !important;
+    font-family: var(--font-ui-medium) !important;
+}
+
+.chrono-analyser-view .main-chart-container .plotly .xtick text,
+.chrono-analyser-view .main-chart-container .plotly .ytick text {
+    fill: var(--text-muted) !important;
+    font-size: var(--font-ui-small) !important;
+    font-family: var(--font-ui-medium) !important;
+}
+
+.chrono-analyser-view .main-chart-container .plotly .xaxislayer-above .axistext,
+.chrono-analyser-view .main-chart-container .plotly .yaxislayer-above .axistext {
+    fill: var(--text-normal) !important;
+    font-family: var(--font-ui-medium) !important;
+}
+
+/* =================================================================
+   CHART MESSAGES
+   ================================================================= */
+
+.chrono-analyser-view .chart-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    height: 100%;
+    min-height: 300px;
+    text-align: center;
+    font-size: var(--font-ui-medium);
+    color: var(--text-faint);
+    gap: var(--size-4-2);
+}
+
+.chrono-analyser-view .chart-message .error {
+    color: var(--text-error);
+    font-weight: 600;
+}
+
+/* =================================================================
+   CUSTOM LEGEND
+   ================================================================= */
+
+.chrono-analyser-view .legend-section {
+    margin-bottom: var(--size-4-4);
+}
+
+.chrono-analyser-view .legend-title {
+    font-weight: 600;
+    color: var(--text-normal);
+    margin-bottom: var(--size-2-3);
+    font-size: var(--font-ui-small);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-bottom: var(--size-2-1);
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chrono-analyser-view .legend-item {
+    display: flex;
+    align-items: center;
+    padding: var(--size-2-2) var(--size-4-2);
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+    font-size: var(--font-ui-medium);
+    margin-bottom: var(--size-2-1);
+}
+
+.chrono-analyser-view .legend-item:hover {
+    background: var(--background-modifier-hover);
+}
+
+.chrono-analyser-view .legend-item.legend-item-active {
+    background: var(--background-modifier-hover);
+    border-left: 3px solid var(--interactive-accent);
+    padding-left: calc(var(--size-4-2) - 3px);
+}
+
+.chrono-analyser-view .legend-color-box {
+    width: 14px;
+    height: 14px;
+    border-radius: var(--radius-s);
+    margin-right: var(--size-4-2);
+    flex-shrink: 0;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.chrono-analyser-view .legend-label {
+    flex-grow: 1;
+    color: var(--text-normal);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chrono-analyser-view .legend-value {
+    font-weight: 600;
+    color: var(--text-accent);
+    font-size: var(--font-ui-small);
+}
+
+.chrono-analyser-view #customLegend {
+    height: 480px;
+    overflow-y: auto;
+    padding-right: var(--size-2-2);
+}
+
+/* =================================================================
+   LOG CONTAINER
+   ================================================================= */
+
+.chrono-analyser-view .log-container h2 {
+    font-size: var(--h3-size);
+    font-weight: var(--h3-weight);
+    color: var(--h3-color);
+    margin: 0 0 var(--size-4-4) 0;
+    padding-bottom: var(--size-4-2);
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chrono-analyser-view .log-summary {
+    font-size: var(--font-ui-medium);
+    color: var(--text-muted);
+    margin-bottom: var(--size-4-4);
+    padding: var(--size-4-3);
+    background: var(--background-primary) !important;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--background-modifier-border) !important;
+}
+
+.chrono-analyser-view .log-entry {
+    margin-bottom: var(--size-4-3);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    overflow: hidden;
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+}
+
+.chrono-analyser-view .log-entry:hover {
+    border-color: var(--background-modifier-border-hover);
+}
+
+.chrono-analyser-view .log-entry summary {
+    padding: var(--size-4-3) var(--size-4-4);
+    font-weight: 600;
+    font-size: var(--font-ui-medium);
+    background: var(--background-secondary);
+    cursor: pointer;
+    color: var(--text-normal);
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+    display: flex;
+    align-items: center;
+    gap: var(--size-2-2);
+}
+
+.chrono-analyser-view .log-entry summary:hover {
+    background: var(--background-modifier-hover);
+}
+
+.chrono-analyser-view .log-entry-content {
+    padding: var(--size-4-4);
+    background: var(--background-primary);
+    font-size: var(--font-ui-medium);
+    color: var(--text-muted);
+    border-top: 1px solid var(--background-modifier-border);
+    line-height: var(--line-height-normal);
+}
+
+.chrono-analyser-view .log-entry-content strong {
+    color: var(--text-normal);
+    font-weight: 600;
+}
+
+/* =================================================================
+   LOADING SPINNER
+   ================================================================= */
+
+.chrono-analyser-view .loading {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--background-modifier-border);
+    border-top-color: var(--interactive-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: var(--size-2-2);
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* =================================================================
+   MODAL/POPUP
+   ================================================================= */
+
+.chrono-analyser-view .overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--background-translucent);
+    z-index: 1000;
+    display: none;
+    opacity: 0;
+    transition: opacity var(--anim-duration-moderate) var(--anim-motion-smooth);
+}
+
+.chrono-analyser-view .overlay.visible {
+    display: block;
+    opacity: 1;
+}
+
+.chrono-analyser-view .detail-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    background: var(--background-primary);
+    border-radius: var(--radius-l);
+    box-shadow: var(--shadow-l);
+    z-index: 1001;
+    max-width: 90vw;
+    width: 900px;
+    max-height: 85vh;
+    display: none;
+    opacity: 0;
+    transition: all var(--anim-duration-moderate) var(--anim-motion-smooth);
+    border: 1px solid var(--background-modifier-border);
+    overflow: hidden;
+}
+
+.chrono-analyser-view .detail-popup.visible {
+    display: flex;
+    flex-direction: column;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.chrono-analyser-view .popup-header {
+    background: var(--background-secondary);
+    padding: var(--size-4-4) var(--size-4-6);
+    border-bottom: 1px solid var(--background-modifier-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.chrono-analyser-view .popup-title {
+    font-size: var(--h4-size);
+    font-weight: 600;
+    color: var(--text-normal);
+    margin: 0;
+}
+
+.chrono-analyser-view .close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: var(--font-ui-large);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+}
+
+.chrono-analyser-view .close-btn:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.chrono-analyser-view .popup-body {
+    padding: var(--size-4-6);
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* =================================================================
+   SUMMARY STATISTICS
+   ================================================================= */
+
+.chrono-analyser-view .summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--size-4-3);
+    margin-bottom: var(--size-4-6);
+    padding: var(--size-4-4);
+    background: var(--background-secondary);
+    border-radius: var(--radius-m);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.chrono-analyser-view .summary-stat {
+    text-align: center;
+    padding: var(--size-4-3);
+    background: var(--background-primary);
+    border-radius: var(--radius-s);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.chrono-analyser-view .summary-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-accent);
+    margin-bottom: var(--size-2-1);
+    line-height: 1.2;
+}
+
+.chrono-analyser-view .summary-stat-label {
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* =================================================================
+   DETAIL TABLE
+   ================================================================= */
+
+.chrono-analyser-view .detail-table-container {
+    overflow-x: auto;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.chrono-analyser-view .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-ui-medium);
+}
+
+.chrono-analyser-view .detail-table th {
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    padding: var(--size-4-3) var(--size-4-4);
+    text-align: left;
+    font-weight: 600;
+    font-size: var(--font-ui-small);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.chrono-analyser-view .detail-table td {
+    padding: var(--size-4-2) var(--size-4-4);
+    border-bottom: 1px solid var(--background-modifier-border);
+    color: var(--text-normal);
+    vertical-align: top;
+}
+
+.chrono-analyser-view .detail-table tr:hover {
+    background: var(--background-modifier-hover);
+}
+
+.chrono-analyser-view .detail-table tr:last-child td {
+    border-bottom: none;
+}
+
+.chrono-analyser-view .file-path-cell {
+    font-family: var(--font-monospace);
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+}
+
+.chrono-analyser-view .duration-cell {
+    text-align: right;
+    font-weight: 600;
+    color: var(--text-accent);
+    font-family: var(--font-monospace);
+}
+
+.chrono-analyser-view .project-cell {
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.chrono-analyser-view .subproject-cell {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+
+/* =================================================================
+   RESPONSIVE LAYOUT
+   ================================================================= */
+
+.chrono-analyser-view .dashboard-layout-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-4-6);
+    margin-bottom: var(--size-4-6);
+}
+
+/* Desktop Layout */
+@media (min-width: 1024px) {
+    .chrono-analyser-view .dashboard-layout-container {
+        flex-direction: row;
+        align-items: stretch;
+    }
+    
+    .chrono-analyser-view .stats-grid:not([style*="display: none"]) {
+        flex: 0 0 280px;
+        display: flex !important;
+        flex-direction: column;
+        gap: var(--size-4-4);
+        grid-template-columns: none;
+        justify-content: center;
+    }
+    .chrono-analyser-view .main-chart-container {
+        flex-grow: 1;
+        min-height: 500px;
+        margin-bottom: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .chrono-analyser-view .control-group{
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--size-4-3);
+    }
+    .chrono-analyser-view .control-item{
+        min-width: 100%;
+        flex-basis: auto;
+    }
+}
+
+/* Hide toast container styles, as plugins should use the native Notice API */
+.chrono-analyser-view #toastContainer { display: none; }
+
+/* Keep utility classes */
+.chrono-analyser-view .hidden-controls { display: none !important; }
+.chrono-analyser-view .file-input-wrapper .needs-attention { animation: shake 1.5s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake {
+    10%,90% { transform: translate3d(-1px,0,0); }
+    20%,80% { transform: translate3d(2px,0,0); }
+    30%,50%,70% { transform: translate3d(-3px,0,0); }
+    40%,60% { transform: translate3d(3px,0,0); }
+}
+
+/* =================================================================
+   INSIGHTS PANEL
+   ================================================================= */
+
+.chrono-analyser-view .insights-panel {
+    background: var(--background-secondary-alt);
+    border-radius: var(--radius-l);
+    padding: var(--size-4-4) var(--size-4-6);
+    margin-bottom: var(--size-4-6);
+    border: 1px solid var(--background-modifier-border);
+    position: relative;
+    transition: all 0.3s ease-in-out;
+}
+
+.chrono-analyser-view .insights-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--size-4-3);
+}
+
+.chrono-analyser-view .insights-title {
+    font-size: var(--h4-size);
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.chrono-analyser-view .insights-actions {
+    display: flex;
+    gap: var(--size-4-3);
+    align-items: center;
+}
+
+.chrono-analyser-view .insights-actions .clickable-icon {
+    color: var(--text-muted);
+}
+
+.chrono-analyser-view .insights-body {
+    padding-top: var(--size-4-3);
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.chrono-analyser-view .insight-group {
+    margin-bottom: var(--size-4-6);
+}
+
+.chrono-analyser-view .insight-group-title {
+    font-size: var(--h5-size);
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: var(--size-4-3);
+    padding-bottom: var(--size-2-2);
+    border-bottom: 1px solid var(--background-modifier-border);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.chrono-analyser-view .insight-card {
+    background-color: var(--background-primary);
+    border-radius: var(--radius-m);
+    margin-bottom: var(--size-2-2);
+    border: 1px solid var(--background-modifier-border);
+    border-left-width: 4px;
+    font-size: var(--font-ui-medium);
+    transition: all 0.2s ease-in-out;
+}
+.chrono-analyser-view .insight-card.is-unfolded {
+    background-color: var(--background-secondary);
+    border-color: var(--background-modifier-border-hover);
+}
+
+.chrono-analyser-view .insight-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--size-4-3);
+    padding: var(--size-4-3) var(--size-4-4);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.chrono-analyser-view .insight-card-header:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.chrono-analyser-view .insight-card-body {
+    max-height: 500px; /* Animate to this height when open */
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+    padding: 0 var(--size-4-4) var(--size-4-3) var(--size-4-4);
+}
+.chrono-analyser-view .insight-card-body.is-folded {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top: none;
+}
+
+/* -- Styles for Sub-Items and Nested Insights (Definitive Fix) -- */
+
+.chrono-analyser-view .insight-sub-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.chrono-analyser-view .insight-sub-item.is-expandable .insight-sub-item-header {
+    cursor: pointer;
+}
+
+.chrono-analyser-view .insight-sub-item-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--size-4-3);
+    width: 100%;
+    padding: var(--size-2-2) var(--size-4-3);
+    border-radius: var(--radius-s);
+    transition: background-color 0.15s ease-in-out;
+}
+.chrono-analyser-view .insight-sub-item-header:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+/* This is the new first column for the icon and project name */
+.chrono-analyser-view .insight-sub-item-left-group {
+    display: flex;
+    align-items: baseline;
+    gap: var(--size-2-2);
+    flex: 0 0 220px; /* Fixed width for the first column */
+    min-width: 0;
+}
+
+.chrono-analyser-view .insight-sub-item-expander {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.chrono-analyser-view .insight-sub-item-expander .svg-icon {
+    transition: transform 0.2s ease-in-out;
+    width: 16px;
+    height: 16px;
+    color: var(--text-faint);
+}
+.chrono-analyser-view .insight-sub-item.is-expanded .insight-sub-item-expander .svg-icon {
+    transform: rotate(90deg);
+}
+
+.chrono-analyser-view .insight-sub-item-project {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.chrono-analyser-view .insight-card.sentiment-warning .insight-sub-item-project {
+    font-weight: 500;
+}
+
+.chrono-analyser-view .insight-sub-item-details {
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.chrono-analyser-view .insight-sub-item-details strong {
+    color: var(--text-accent);
+    font-weight: 600;
+}
+
+/* This pushes the button to the far right */
+.chrono-analyser-view .insight-sub-item-header .insight-action-button {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+
+/* --- Nested Item Styles --- */
+
+.chrono-analyser-view .insight-nested-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+    padding-left: var(--size-4-8);
+    margin-top: 0;
+}
+
+.chrono-analyser-view .insight-sub-item.is-expanded .insight-nested-container {
+    max-height: 500px;
+    margin-top: var(--size-2-2);
+}
+
+.chrono-analyser-view .insight-nested-item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--size-4-3);
+    padding: var(--size-2-2) var(--size-4-3);
+    border-radius: var(--radius-s);
+    transition: background-color 0.15s ease-in-out;
+    font-size: var(--font-ui-small);
+}
+.chrono-analyser-view .insight-nested-item:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.chrono-analyser-view .insight-nested-item-project {
+    flex: 0 0 180px;
+    color: var(--text-normal);
+    opacity: 0.9;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chrono-analyser-view .insight-nested-item-details {
+    color: var(--text-faint);
+    flex-shrink: 0;
+}
+
+.chrono-analyser-view .insight-nested-item .insight-action-button {
+    margin-left: auto;
+}
+
+.chrono-analyser-modal .setting-item {
+    border-top: 1px solid var(--background-modifier-border);
+    padding: var(--size-4-4) 0;
+}
+
+.chrono-analyser-modal .insight-group-setting {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: var(--size-4-4);
+    margin-bottom: var(--size-4-4);
+    background-color: var(--background-secondary);
+    cursor: default; /* Change from 'pointer' to 'default' */
+    transition: background-color 0.2s ease;
+}
+
+/* When a group is COLLAPSED, make the whole block clickable again. */
+.chrono-analyser-modal .insight-group-setting:not(.is-expanded) {
+    cursor: pointer;
+}
+
+/* When a group is EXPANDED, only make the HEADER (name setting) part clickable. */
+.chrono-analyser-modal .insight-group-setting.is-expanded .setting-item:first-child {
+    cursor: pointer;
+}
+
+.chrono-analyser-modal .insight-group-setting .foldable-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+    margin-top: 0;
+}
+
+.chrono-analyser-modal .insight-group-setting.is-expanded .foldable-content {
+    max-height: 1000px;
+    margin-top: var(--size-4-4);
+}
+
+.chrono-analyser-modal .insight-group-setting .setting-item {
+    border-top-color: var(--background-modifier-border) !important;
+}
+
+.chrono-analyser-modal .insight-group-setting:not(.is-expanded) .setting-item-control input,
+.chrono-analyser-modal .insight-group-setting:not(.is-expanded) .setting-item-control textarea {
+    opacity: 0.5;
+}
+
+.chrono-analyser-modal .tag-input-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: var(--size-2-2);
+    background-color: var(--background-primary);
+}
+
+.chrono-analyser-modal .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--size-2-2);
+    margin-bottom: var(--size-2-2);
+}
+
+.chrono-analyser-modal .tag {
+    display: flex;
+    align-items: center;
+    background-color: var(--background-modifier-hover);
+    padding: var(--size-2-1) var(--size-4-2);
+    border-radius: var(--radius-s);
+    font-size: var(--font-ui-small);
+}
+
+.chrono-analyser-modal .tag-remove {
+    margin-left: var(--size-4-2);
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--text-muted);
+}
+.chrono-analyser-modal .tag-remove:hover {
+    color: var(--text-error);
+}
+
+.chrono-analyser-modal .tag-input {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    width: 100%;
+    padding: var(--size-2-1);
+}
+
+/* =================================================================
+   AUTOCOMPLETE (SINGLE SOURCE OF TRUTH)
+   ================================================================= */
+
+/* This wrapper is needed to position the suggestions dropdown correctly. */
+.autocomplete-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+/* The dropdown container. Positioned relative to the wrapper. */
+.autocomplete-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    /* Modern, subtle shadow */
+    box-shadow: 0 4px 16px rgba(0,0,0,0.07), 0 1.5px 4px rgba(0,0,0,0.04);
+    margin-top: var(--size-2-1);
+    max-height: 200px; /* Limit height and allow scrolling */
+    overflow-y: auto;
+    display: none;      /* Start hidden */
+}
+
+/* Individual suggestion items. */
+.autocomplete-suggestion-item {
+    padding: var(--size-2-3) var(--size-4-3);
+    cursor: pointer;
+    font-size: var(--font-ui-medium);
+    color: var(--text-normal);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all var(--anim-duration-fast) var(--anim-motion-smooth);
+}
+
+.autocomplete-suggestion-item:hover {
+    background: var(--background-modifier-hover);
+}
+
+/* The currently highlighted/active suggestion item. */
+.autocomplete-suggestion-item.is-active {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+/* =================================================================
+   PRO TIPS PANEL
+   ================================================================= */
+.chrono-analyser-view .pro-tips-panel {
+    display: flex;
+    align-items: center;
+    background-color: var(--background-primary);
+    border: 1px solid var(--interactive-accent-tint);
+    border-radius: var(--radius-m);
+    padding: var(--size-4-2) var(--size-4-4);
+    margin-bottom: var(--size-4-4);
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    position: relative;
+    user-select: none;
+}
+
+.chrono-analyser-view .pro-tips-panel:hover {
+    background-color: var(--background-modifier-hover);
+    border-color: var(--interactive-accent);
+}
+
+.chrono-analyser-view .pro-tips-content {
+    flex-grow: 1;
+}
+
+.chrono-analyser-view .pro-tips-title {
+    font-size: var(--font-ui-small);
+    font-weight: 700;
+    color: var(--interactive-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: var(--size-2-1);
+}
+
+.chrono-analyser-view #proTipText {
+    margin: 0;
+    font-size: var(--font-ui-medium);
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.chrono-analyser-view .pro-tips-nav {
+    font-size: 2rem;
+    font-weight: 300;
+    color: var(--text-faint);
+    transition: transform 0.2s ease;
+}
+
+.chrono-analyser-view .pro-tips-panel:hover .pro-tips-nav {
+    transform: translateX(3px);
+    color: var(--text-muted);
+}
+
+/* =================================================================
+   DEPRIORITIZED NESTED ITEMS & SEPARATORS
+   ================================================================= */
+
+.chrono-analyser-view .insight-nested-item.is-deprioritized {
+    opacity: 0.65;
+    font-style: italic;
+}
+
+.chrono-analyser-view .insight-nested-item.is-deprioritized:hover {
+    opacity: 1;
+    font-style: normal;
+}
+
+.chrono-analyser-view .insight-nested-item-separator {
+    font-size: var(--font-ui-small);
+    font-weight: 600;
+    color: var(--text-faint);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-top: var(--size-4-3);
+    margin: var(--size-2-2) var(--size-4-3) var(--size-2-2) var(--size-4-3);
+    border-top: 1px solid var(--background-modifier-border);
+}

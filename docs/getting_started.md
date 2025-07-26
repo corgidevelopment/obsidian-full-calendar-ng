@@ -5,7 +5,9 @@
 When you open Full Calendar for the first time, you'll be prompted to add your first calendar source.
 
 It's recommended to start with a local calendar type, as these are editable directly from the plugin.
+
 -   **[Full Note Calendar](calendars/local.md):** The most powerful option. Each event is a separate note in your vault.
+
 -   **[Daily Note Calendar](calendars/dailynote.md):** Store events as checklist items in your daily notes.
 
 Remote calendars (ICS/CalDAV) are read-only.

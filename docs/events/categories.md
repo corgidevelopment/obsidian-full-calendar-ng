@@ -19,7 +19,7 @@ This feature performs a one-time, permanent modification of your event notes to 
 2.  Find the **Category Coloring** section and toggle "Enable Category Coloring" on.
 3.  You will be presented with a warning modal explaining the changes. After proceeding, you will be asked to choose a method for bulk-categorizing your existing events.
 
-![Enable Categories](../assets/enable-categories.gif) <!-- You'll need to create this asset -->
+<!-- ![Enable Categories](../assets/enable-categories.gif) -->
 
 ## Managing Category Colors
 
@@ -30,7 +30,7 @@ Once enabled, a new section will appear in the settings where you can manage you
 -   **Delete a Category:** Click "Delete" to remove a category setting. This does not remove the category from your event titles.
 -   **Save:** After making changes, be sure to click "Save Category Settings".
 
-![Manage Categories](../assets/manage-categories.gif) <!-- You'll need to create this asset -->
+<!-- ![Manage Categories](../assets/manage-categories.gif) -->
 
 ## Usage in Remote Calendars
 

@@ -5,7 +5,7 @@ import FullCalendarPlugin from '../main';
 
 // Importing styles for the AnalysisView
 import 'flatpickr/dist/themes/dark.css';
-import './ui/styles/styles.css';
+import './ui/styles/main_styles.css';
 
 export const ANALYSIS_VIEW_TYPE = 'full-calendar-analysis-view';
 

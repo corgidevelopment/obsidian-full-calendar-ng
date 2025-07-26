@@ -1,6 +1,21 @@
 # What's New in Full Calendar
 
-This page highlights the latest major features and improvements to help you get the most out of the plugin. For a detailed version-by-version breakdown, check the "What's New" section in the plugin settings.
+This page highlights the latest major features and improvements to help you get the most out of the plugin.  
+For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
+
+## 🧠 Chrono Analyser Dashboard
+
+Unlock powerful insights into your time with Chrono Analyser! Chrono Analyser is a built-in dashboard that transforms your calendar events into actionable analytics.
+
+- **Proactive Insights Engine:** Automatically analyzes your calendar history and highlights trends, habits, and summaries.
+- **Interactive Charting:** Explore your data visually with pie, sunburst, time-series, and activity pattern charts.
+- **Persona & Group Analysis:** Create custom insight groups (e.g., "Productivity", "Routine") for tailored analysis.
+- **All Sources Supported:** Works with Full Note, Daily Note, Google Calendar, CalDAV, and ICS calendars.
+- **Real-Time Filtering:** Instantly filter by category, project, or date range.
+
+➡️ **[Learn more about Chrono Analyser](chrono_analyser/introduction.md)**
+
+---
 
 ## ✨ Category Coloring
 
