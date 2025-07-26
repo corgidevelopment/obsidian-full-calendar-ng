@@ -73,7 +73,7 @@ function stringifyYamlLine(k: string, v: PrintableAtom): string {
 export function newFrontmatter(fields: Partial<OFCEvent>): string {
   const newFields = { ...fields };
   if (newFields.type === 'single') delete newFields.type;
-  if (newFields.allDay) delete newFields.allDay;
+  if (!newFields.allDay) delete newFields.allDay;
 
   return Object.entries(newFields)
     .filter(([_, v]) => v !== undefined)
