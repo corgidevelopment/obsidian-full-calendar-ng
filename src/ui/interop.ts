@@ -260,7 +260,9 @@ export function toEventInput(
       event = {
         ...event,
         start: frontmatter.date,
-        end: frontmatter.endDate || undefined,
+        end: frontmatter.endDate
+          ? (DateTime.fromISO(frontmatter.endDate).plus({ days: 1 }).toISODate() ?? undefined)
+          : undefined,
         extendedProps: {
           ...event.extendedProps,
           isTask: frontmatter.completed !== undefined && frontmatter.completed !== null,
