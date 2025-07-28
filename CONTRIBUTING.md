@@ -15,6 +15,8 @@ mkdir -p .obsidian/.plugins/plugin-full-calender/
 cp manifest.json .obsidian/.plugins/plugin-full-calender/manifest.json
 ````
 
+*Currently this folder already exists and will contain the minimified builds accordingly the latest tags (this is done to simplify the obsidian community plugin release process).
+
 > 💡 **Note:** Obsidian expects a CSS file named `styles.css`, but **esbuild** will output one named `main.css`.
 
 ---
