@@ -92,7 +92,7 @@ export class CalendarView extends ItemView {
       ({ events, editable, color, id }): EventSourceInput => ({
         id,
         // Pass settings to toEventInput
-        events: events.flatMap(e => toEventInput(e.id, e.event, settings) || []),
+        events: events.flatMap(e => toEventInput(e.id, e.event, settings, id) || []),
         editable,
         ...getCalendarColors(color)
       })
@@ -318,7 +318,7 @@ export class CalendarView extends ItemView {
         });
         toAdd.forEach(({ id, event, calendarId }) => {
           // Pass settings to toEventInput
-          const eventInput = toEventInput(id, event, settings);
+          const eventInput = toEventInput(id, event, settings, calendarId);
           // console.debug('adding event', {
           //   id,
           //   event,
@@ -337,7 +337,9 @@ export class CalendarView extends ItemView {
         this.fullCalendarView?.addEventSource({
           id,
           // Pass settings to toEventInput
-          events: events.flatMap(({ id, event }) => toEventInput(id, event, settings) || []),
+          events: events.flatMap(
+            ({ id: eventId, event }) => toEventInput(eventId, event, settings, id) || []
+          ),
           editable,
           ...getCalendarColors(color)
         });
