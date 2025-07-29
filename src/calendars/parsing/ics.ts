@@ -16,7 +16,7 @@ import ical from 'ical.js';
 import { OFCEvent, validateEvent } from '../../types';
 import { DateTime } from 'luxon';
 import { rrulestr } from 'rrule';
-import { FullCalendarSettings } from '../../ui/settings';
+import { FullCalendarSettings } from '../../types/settings';
 import { parseTitle } from '../../core/categoryParser';
 
 /**
@@ -82,7 +82,7 @@ function icsToOFC(input: ical.Event, settings: FullCalendarSettings): OFCEvent {
   // ... (rest of the function now uses `eventData.title` instead of `title`)
   const startDate = icalTimeToLuxon(input.startDate);
   const endDate = input.endDate ? icalTimeToLuxon(input.endDate) : startDate;
-  const uid = input.uid;
+  const uid = input.uid; // Extract the UID here.
   const isAllDay = input.startDate.isDate;
 
   // Correctly determine the event's source timezone.
@@ -103,6 +103,7 @@ function icsToOFC(input: ical.Event, settings: FullCalendarSettings): OFCEvent {
 
     return {
       type: 'rrule',
+      uid, // Added
       title: eventData.title,
       category: eventData.category,
       id: `ics::${uid}::${getLuxonDate(startDate)}::recurring`,
@@ -124,6 +125,7 @@ function icsToOFC(input: ical.Event, settings: FullCalendarSettings): OFCEvent {
 
     return {
       type: 'single',
+      uid, // Added
       title: eventData.title,
       category: eventData.category,
       date: date!,

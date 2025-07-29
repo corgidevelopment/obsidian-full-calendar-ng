@@ -17,6 +17,8 @@ interface AutocompleteInputProps {
   suggestions: string[];
   id: string; // Used to link input to datalist
   placeholder?: string;
+  disabled?: boolean; // <-- ADD THIS LINE
+  readOnly?: boolean; // Add this line
 }
 
 export const AutocompleteInput = ({
@@ -24,7 +26,9 @@ export const AutocompleteInput = ({
   onChange,
   suggestions,
   id,
-  placeholder
+  placeholder,
+  disabled, // <-- ADD THIS LINE
+  readOnly // Add this line
 }: AutocompleteInputProps) => {
   return (
     <>
@@ -34,6 +38,8 @@ export const AutocompleteInput = ({
         value={value}
         placeholder={placeholder}
         onChange={e => onChange(e.target.value)}
+        disabled={disabled} // <-- ADD THIS LINE
+        readOnly={readOnly} // Add this line
       />
       <datalist id={id}>
         {suggestions.map(s => (

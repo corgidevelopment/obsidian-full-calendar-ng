@@ -76,8 +76,10 @@ export const TimeSchema = z.discriminatedUnion('allDay', [
 export const CommonSchema = z.object({
   title: z.string(), // This will now store the CLEAN title.
   id: z.string().optional(),
+  uid: z.string().optional(), // Added line
   timezone: z.string().optional(),
-  category: z.string().optional() // This will store the parsed category.
+  category: z.string().optional(), // This will store the parsed category.
+  recurringEventId: z.string().optional() // The ID of the parent recurring event.
 });
 
 export const EventSchema = z.discriminatedUnion('type', [
@@ -91,13 +93,16 @@ export const EventSchema = z.discriminatedUnion('type', [
     type: z.literal('recurring'),
     daysOfWeek: z.array(z.enum(['U', 'M', 'T', 'W', 'R', 'F', 'S'])),
     startRecur: ParsedDate.optional(),
-    endRecur: ParsedDate.optional()
+    endRecur: ParsedDate.optional(),
+    isTask: z.boolean().optional(),
+    skipDates: z.array(ParsedDate).default([]) // <-- ADD THIS LINE
   }),
   z.object({
     type: z.literal('rrule'),
     startDate: ParsedDate,
     rrule: z.string(),
-    skipDates: z.array(ParsedDate)
+    skipDates: z.array(ParsedDate).default([]),
+    isTask: z.boolean().optional() // Add this line
   })
 ]);
 
@@ -108,15 +113,17 @@ type CommonType = z.infer<typeof CommonSchema>;
 export type OFCEvent = CommonType & TimeType & EventType;
 
 export function parseEvent(obj: unknown): OFCEvent {
-  if (typeof obj !== 'object') {
+  if (typeof obj !== 'object' || obj === null) {
     throw new Error('value for parsing was not an object.');
   }
-  const objectWithDefaults = { type: 'single', allDay: false, ...obj };
-  return {
+  const hasTime = 'startTime' in obj && !!(obj as any).startTime;
+  const objectWithDefaults = { type: 'single', allDay: !hasTime, ...obj };
+  const result = {
     ...CommonSchema.parse(objectWithDefaults),
     ...TimeSchema.parse(objectWithDefaults),
     ...EventSchema.parse(objectWithDefaults)
   };
+  return result;
 }
 
 export function validateEvent(obj: unknown): OFCEvent | null {

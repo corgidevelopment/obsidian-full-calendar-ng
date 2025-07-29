@@ -20,7 +20,7 @@ import { Authentication, CalendarInfo, OFCEvent } from '../types';
 import { EventResponse } from './Calendar';
 import RemoteCalendar from './RemoteCalendar';
 import { getEventsFromICS } from '../calendars/parsing/ics';
-import { FullCalendarSettings } from '../ui/settings';
+import { FullCalendarSettings } from '../types/settings';
 import { convertEvent } from '../core/Timezone';
 
 export default class CalDAVCalendar extends RemoteCalendar {
@@ -31,19 +31,17 @@ export default class CalDAVCalendar extends RemoteCalendar {
 
   events: OFCEvent[] = [];
 
-  constructor(
-    color: string,
-    name: string,
-    credentials: Authentication,
-    serverUrl: string,
-    calendarUrl: string,
-    settings: FullCalendarSettings
-  ) {
-    super(color, settings);
-    this._name = name;
-    this.credentials = credentials;
-    this.serverUrl = serverUrl;
-    this.calendarUrl = calendarUrl;
+  constructor(info: CalendarInfo, settings: FullCalendarSettings) {
+    super(info, settings);
+    const caldavInfo = info as Extract<CalendarInfo, { type: 'caldav' }>;
+    this._name = caldavInfo.name;
+    this.credentials = {
+      type: 'basic',
+      username: caldavInfo.username,
+      password: caldavInfo.password
+    };
+    this.serverUrl = caldavInfo.url;
+    this.calendarUrl = caldavInfo.homeUrl;
   }
 
   async revalidate(): Promise<void> {
@@ -93,5 +91,9 @@ export default class CalDAVCalendar extends RemoteCalendar {
       }
       return [translatedEvent, null];
     });
+  }
+
+  public getLocalIdentifier(event: OFCEvent): string | null {
+    return event.uid || null;
   }
 }

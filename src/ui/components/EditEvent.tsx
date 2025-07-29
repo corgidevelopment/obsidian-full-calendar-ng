@@ -6,7 +6,7 @@
  * This file defines the `EditEvent` React component, which provides the form
  * for creating and editing events. It manages all form state, including title,
  * dates, times, recurrence rules, and associated calendar. It performs form
-- * validation and calls a submit callback to persist changes.
+ * validation and calls a submit callback to persist changes.
  *
  * @license See LICENSE.md
  */
@@ -15,7 +15,7 @@ import { DateTime } from 'luxon';
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { CalendarInfo, OFCEvent } from '../../types';
-import { AutocompleteInput } from './AutocompleteInput';
+import { AutocompleteInput } from './forms/AutocompleteInput';
 
 function makeChangeListener<T>(
   setState: React.Dispatch<React.SetStateAction<T>>,
@@ -98,6 +98,7 @@ interface EditEventProps {
   enableCategory: boolean; // <-- ADD NEW PROP
   open?: () => Promise<void>;
   deleteEvent?: () => Promise<void>;
+  onAttemptEditInherited?: () => void; // Add this new prop
 }
 
 export const EditEvent = ({
@@ -108,8 +109,13 @@ export const EditEvent = ({
   calendars,
   defaultCalendarIndex,
   availableCategories = [],
-  enableCategory // <-- GET NEW PROP
+  enableCategory, // <-- GET NEW PROP
+  onAttemptEditInherited // <-- GET NEW PROP
 }: EditEventProps) => {
+  const isChildOverride = !!initialEvent?.recurringEventId;
+
+  const disabledTooltip = 'This property is inherited. Click to edit the parent recurring event.'; // Update tooltip
+
   const [date, setDate] = useState(
     initialEvent
       ? initialEvent.type === 'single'
@@ -136,12 +142,21 @@ export const EditEvent = ({
   const [allDay, setAllDay] = useState(initialEvent?.allDay || false);
   const [calendarIndex, setCalendarIndex] = useState(defaultCalendarIndex);
   const [isTask, setIsTask] = useState(
-    initialEvent?.type === 'single' &&
+    (initialEvent?.type === 'single' &&
       initialEvent.completed !== undefined &&
-      initialEvent.completed !== null
+      initialEvent.completed !== null) ||
+      (initialEvent?.type === 'recurring' && initialEvent.isTask) ||
+      (initialEvent?.type === 'rrule' && initialEvent.isTask) ||
+      false
   );
   const [complete, setComplete] = useState(
     initialEvent?.type === 'single' && initialEvent.completed
+  );
+  const [daysOfWeek, setDaysOfWeek] = useState<string[]>(
+    initialEvent?.type === 'recurring' ? initialEvent.daysOfWeek || [] : []
+  );
+  const [endRecur, setEndRecur] = useState(
+    initialEvent?.type === 'recurring' ? initialEvent.endRecur : undefined
   );
 
   const titleRef = useRef<HTMLInputElement>(null);
@@ -151,16 +166,24 @@ export const EditEvent = ({
     }
   }, [titleRef]);
 
+  const selectedCalendar = calendars[calendarIndex];
+  const isDailyNoteCalendar = selectedCalendar.type === 'dailynote';
+  const recurringTooltip = isDailyNoteCalendar
+    ? "Recurring events are not supported in Daily Notes. Please use a 'Full Note' calendar instead."
+    : '';
+
+  useEffect(() => {
+    // If user switches to a daily note calendar, force 'isRecurring' to false.
+    if (isDailyNoteCalendar) {
+      setIsRecurring(false);
+    }
+  }, [isDailyNoteCalendar]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // CORRECTED LOGIC FOR 'completed' PROPERTY
-    let completedValue: string | false | null;
-    if (!isTask) {
-      completedValue = null; // Not a task
-    } else {
-      // If it is a task, 'complete' holds either a date string or false.
-      // We just need to ensure it's not undefined.
+    let completedValue: string | false | null = null;
+    if (isTask) {
       completedValue = complete || false;
     }
 
@@ -173,19 +196,19 @@ export const EditEvent = ({
         ...(isRecurring
           ? {
               type: 'recurring',
-              // @ts-ignore
-              daysOfWeek: [],
+              daysOfWeek: daysOfWeek,
               startRecur: date || undefined,
-              // @ts-ignore
-              endRecur: undefined
+              endRecur: endRecur,
+              isTask: isTask, // <-- ADD THIS LINE
+              skipDates: initialEvent?.type === 'recurring' ? initialEvent.skipDates : [] // <-- ADD THIS LINE
             }
           : {
               type: 'single',
               date: date || '',
               endDate: endDate || null,
-              completed: completedValue // Use the correctly typed value
+              completed: completedValue
             })
-      },
+      } as OFCEvent,
       calendarIndex
     );
   };
@@ -206,7 +229,11 @@ export const EditEvent = ({
           <div className="setting-item-info">
             <div className="setting-item-name">Title</div>
           </div>
-          <div className="setting-item-control">
+          <div
+            className={`setting-item-control ${isChildOverride ? 'is-override-disabled' : ''}`}
+            onClick={isChildOverride ? onAttemptEditInherited : undefined}
+            title={isChildOverride ? disabledTooltip : ''}
+          >
             <input
               ref={titleRef}
               type="text"
@@ -214,23 +241,28 @@ export const EditEvent = ({
               placeholder="Event Title"
               required
               onChange={e => setTitle(e.target.value)}
+              readOnly={isChildOverride} // Change `disabled` to `readOnly`
             />
           </div>
         </div>
 
-        {/* POINT 3: CONDITIONAL CATEGORY INPUT */}
         {enableCategory && (
           <div className="setting-item">
             <div className="setting-item-info">
               <div className="setting-item-name">Category</div>
             </div>
-            <div className="setting-item-control">
+            <div
+              className={`setting-item-control ${isChildOverride ? 'is-override-disabled' : ''}`}
+              onClick={isChildOverride ? onAttemptEditInherited : undefined}
+              title={isChildOverride ? disabledTooltip : ''}
+            >
               <AutocompleteInput
                 id="category-autocomplete"
                 value={category}
                 onChange={setCategory}
                 suggestions={availableCategories}
                 placeholder="Category (optional)"
+                readOnly={isChildOverride} // Change `disabled` to `readOnly`
               />
             </div>
           </div>
@@ -265,7 +297,6 @@ export const EditEvent = ({
           </div>
         </div>
 
-        {/* POINT 4: DISABLE TIME INPUTS INSTEAD OF HIDING */}
         <div className={`setting-item time-setting-item ${allDay ? 'is-disabled' : ''}`}>
           <div className="setting-item-info">
             <div className="setting-item-name">Time</div>
@@ -288,21 +319,29 @@ export const EditEvent = ({
           </div>
         </div>
 
-        {/* ... (Options and Footer remain the same) */}
+        {/* Options section */}
         <div className="setting-item">
           <div className="setting-item-info">
             <div className="setting-item-name">Options</div>
           </div>
           <div className="setting-item-control options-group">
-            <label>
-              <input type="checkbox" checked={allDay} onChange={e => setAllDay(e.target.checked)} />{' '}
+            <label title={isChildOverride ? disabledTooltip : ''}>
+              {' '}
+              {/* <-- ADD THIS LINE */}
+              <input
+                type="checkbox"
+                checked={allDay}
+                onChange={e => setAllDay(e.target.checked)}
+                disabled={isChildOverride} // <-- ADD THIS LINE
+              />{' '}
               All day
             </label>
-            <label>
+            <label title={recurringTooltip} className={isDailyNoteCalendar ? 'is-disabled' : ''}>
               <input
                 type="checkbox"
                 checked={isRecurring}
                 onChange={e => setIsRecurring(e.target.checked)}
+                disabled={isDailyNoteCalendar}
               />{' '}
               Recurring
             </label>
@@ -311,17 +350,52 @@ export const EditEvent = ({
               Is a Task
             </label>
             {isTask && (
-              <label>
+              <label
+                title={
+                  isRecurring
+                    ? 'Completion for recurring tasks can be toggled on individual instances in the calendar view.'
+                    : ''
+                }
+              >
                 <input
                   type="checkbox"
-                  checked={!!complete}
-                  onChange={e => setComplete(e.target.checked ? DateTime.now().toISO() : false)}
+                  checked={isRecurring ? false : !!complete}
+                  onChange={e =>
+                    !isRecurring && setComplete(e.target.checked ? DateTime.now().toISO() : false)
+                  }
+                  disabled={isRecurring}
                 />{' '}
                 Completed
               </label>
             )}
           </div>
         </div>
+
+        {/* Recurring fields */}
+        {isRecurring && (
+          <>
+            <div className="setting-item">
+              <div className="setting-item-info">
+                <div className="setting-item-name">Repeat on</div>
+              </div>
+              <div className="setting-item-control">
+                <DaySelect value={daysOfWeek} onChange={setDaysOfWeek} />
+              </div>
+            </div>
+            <div className="setting-item">
+              <div className="setting-item-info">
+                <div className="setting-item-name">End Repeat</div>
+              </div>
+              <div className="setting-item-control">
+                <input
+                  type="date"
+                  value={endRecur || ''}
+                  onChange={e => setEndRecur(e.target.value || undefined)}
+                />
+              </div>
+            </div>
+          </>
+        )}
 
         <hr className="modal-hr" />
 

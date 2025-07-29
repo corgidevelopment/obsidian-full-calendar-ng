@@ -15,7 +15,6 @@
 import { Notice } from 'obsidian';
 import * as React from 'react';
 import { CalendarInfo } from '../../types';
-import { getNextColor } from '../colors';
 
 type SourceWith<T extends Partial<CalendarInfo>, K> = T extends K ? T : never;
 
@@ -35,30 +34,6 @@ function DirectorySetting<T extends Partial<CalendarInfo>>({ source }: BasicProp
       />
     </div>
   );
-}
-
-/**
- * Construct a partial calendar source of the specified type.
- * MODIFICATION: Now accepts a list of existing colors to pick a new one.
- */
-export function makeDefaultPartialCalendarSource(
-  type: CalendarInfo['type'] | 'icloud',
-  existingColors: string[] // <-- ADD this parameter
-): Partial<CalendarInfo> {
-  const newColor = getNextColor(existingColors); // <-- USE the utility
-
-  if (type === 'icloud') {
-    return {
-      type: 'caldav',
-      color: newColor, // <-- Use the new color
-      url: 'https://caldav.icloud.com'
-    };
-  }
-
-  return {
-    type: type,
-    color: newColor // <-- Use the new color
-  };
 }
 
 function HeadingSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {

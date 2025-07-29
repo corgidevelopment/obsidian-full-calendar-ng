@@ -251,7 +251,7 @@ export default class EventStore {
       const { file, lineNumber } = location;
       // console.debug('adding event in file:', file.path);
       this.pathIndex.add(new Path(file), new EventID(id));
-      if (lineNumber) {
+      if (lineNumber !== undefined && lineNumber !== null) {
         this.lineNumbers.set(id, lineNumber);
       }
     }

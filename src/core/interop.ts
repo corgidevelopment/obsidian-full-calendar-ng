@@ -3,14 +3,16 @@
  * @brief Provides data conversion functions between OFCEvent and FullCalendar's EventInput.
  *
  * @description
- * This file is a critical data-translation layer. It contains the logic for
- * converting the plugin's internal `OFCEvent` format into the `EventInput`
- * format that the FullCalendar.js library understands, and vice-versa. This
- * "interoperability" is essential for displaying events correctly and for
- * processing user interactions like dragging and resizing.
+ * This module acts as a data-translation layer between the plugin's internal `OFCEvent` format and FullCalendar's `EventInput` format.
+ * It ensures correct interoperability for displaying events and handling user interactions such as dragging and resizing.
+ * The conversion logic supports single, recurring, and rrule-based events, including timezone-aware processing and category coloring.
+ *
+ * @packageDocumentation
+ * @module interop
  *
  * @exports toEventInput
- * @exports toOFCEvent
+ * @exports fromEventApi
+ * @exports dateEndpointsToFrontmatter
  *
  * @license See LICENSE.md
  */
@@ -19,9 +21,9 @@ import { EventApi, EventInput } from '@fullcalendar/core';
 import { OFCEvent } from '../types';
 
 import { DateTime, Duration } from 'luxon';
-import { rrulestr } from 'rrule';
-import { FullCalendarSettings } from './settings';
-import { getCalendarColors } from './view';
+import { RRule, RRuleSet, rrulestr } from 'rrule';
+import { FullCalendarSettings } from '../types/settings';
+import { getCalendarColors } from '../ui/view';
 
 /**
  * Functions for converting between the types used by the FullCalendar view plugin and
@@ -150,6 +152,7 @@ export function toEventInput(
     title: frontmatter.title, // Use the clean title for display
     allDay: frontmatter.allDay,
     extendedProps: {
+      recurringEventId: frontmatter.recurringEventId,
       category: frontmatter.category
     }
   };
@@ -166,13 +169,97 @@ export function toEventInput(
   }
 
   if (frontmatter.type === 'recurring') {
-    event = {
-      ...event,
-      daysOfWeek: frontmatter.daysOfWeek.map(c => DAYS.indexOf(c)),
-      startRecur: frontmatter.startRecur,
-      endRecur: frontmatter.endRecur,
-      extendedProps: { ...event.extendedProps, isTask: false }
-    };
+    if (frontmatter.skipDates && frontmatter.skipDates.length > 0) {
+      // ====================================================================
+      // Timezone-Aware Conversion (Final Version)
+      // ====================================================================
+
+      // A. Identify zones
+      const sourceZone = frontmatter.timezone || DateTime.local().zoneName;
+      const displayZone = settings.displayTimezone || DateTime.local().zoneName;
+
+      // B. Create the RRULE string part first.
+      const weekdays = { U: 'SU', M: 'MO', T: 'TU', W: 'WE', R: 'TH', F: 'FR', S: 'SA' };
+      const byday = frontmatter.daysOfWeek.map(c => weekdays[c as keyof typeof weekdays]);
+      let rruleString = `FREQ=WEEKLY;BYDAY=${byday.join(',')}`;
+      if (frontmatter.endRecur) {
+        const until = DateTime.fromISO(frontmatter.endRecur, { zone: displayZone })
+          .endOf('day')
+          .toUTC()
+          .toFormat("yyyyMMdd'T'HHmmss'Z'");
+        rruleString += `;UNTIL=${until}`;
+      }
+
+      // C. Create the timezone-aware DTSTART string.
+      let dtstart: DateTime;
+      const startRecurDate = frontmatter.startRecur || '1970-01-01';
+      if (frontmatter.allDay) {
+        dtstart = DateTime.fromISO(startRecurDate, { zone: displayZone }).startOf('day');
+      } else {
+        const startTimeDt = parseTime(frontmatter.startTime);
+        if (!startTimeDt) return null;
+        dtstart = DateTime.fromISO(startRecurDate, { zone: displayZone }).set({
+          hour: startTimeDt.hours,
+          minute: startTimeDt.minutes,
+          second: 0,
+          millisecond: 0
+        });
+      }
+      // Create a DTSTART string that INCLUDES the timezone identifier.
+      const dtstartString = `DTSTART;TZID=${displayZone}:${dtstart.toFormat("yyyyMMdd'T'HHmmss")}`;
+
+      // D. Create timezone-aware EXDATE strings.
+      const exdateStrings = frontmatter.skipDates
+        .map((d: string) => {
+          let exdateDt: DateTime;
+          if (frontmatter.allDay) {
+            exdateDt = DateTime.fromISO(d, { zone: displayZone }).startOf('day');
+            return `EXDATE;TZID=${displayZone};VALUE=DATE:${exdateDt.toFormat('yyyyMMdd')}`;
+          } else {
+            const startTimeDt = parseTime(frontmatter.startTime);
+            if (!startTimeDt) return null;
+
+            // CRITICAL: The exception date must be interpreted in the SOURCE zone first, then converted.
+            const exdateInSource = DateTime.fromISO(d, { zone: sourceZone }).set({
+              hour: startTimeDt.hours,
+              minute: startTimeDt.minutes,
+              second: 0,
+              millisecond: 0
+            });
+            const exdateInDisplay = exdateInSource.setZone(displayZone);
+            return `EXDATE;TZID=${displayZone}:${exdateInDisplay.toFormat("yyyyMMdd'T'HHmmss")}`;
+          }
+        })
+        .flatMap(s => (s ? [s] : []));
+
+      // E. Combine everything into the final RRULESET string.
+      const finalRruleSetString = [dtstartString, `RRULE:${rruleString}`, ...exdateStrings].join(
+        '\n'
+      );
+      event.rrule = finalRruleSetString;
+
+      // F. Calculate duration
+      if (!frontmatter.allDay && frontmatter.startTime && frontmatter.endTime) {
+        const startTime = parseTime(frontmatter.startTime);
+        const endTime = parseTime(frontmatter.endTime);
+        if (startTime && endTime) {
+          const duration = endTime.minus(startTime);
+          if (duration.as('milliseconds') > 0) {
+            event.duration = duration.toFormat('hh:mm');
+          }
+        }
+      }
+    } else {
+      // This is the original path for non-task recurring events.
+      event = {
+        ...event,
+        daysOfWeek: frontmatter.daysOfWeek.map(c => DAYS.indexOf(c)),
+        startRecur: frontmatter.startRecur,
+        endRecur: frontmatter.endRecur
+      };
+    }
+
+    event.extendedProps = { ...event.extendedProps, isTask: !!frontmatter.isTask };
     if (!frontmatter.allDay) {
       event = {
         ...event,
@@ -216,7 +303,8 @@ export function toEventInput(
       rrule: rrulestr(frontmatter.rrule, {
         dtstart: dtstart.toJSDate()
       }).toString(),
-      exdate
+      exdate,
+      extendedProps: { ...event.extendedProps, isTask: !!frontmatter.isTask } // Added line
     };
 
     if (!frontmatter.allDay) {
@@ -239,7 +327,7 @@ export function toEventInput(
       if (!start) {
         return null;
       }
-      let end = undefined;
+      let end: string | null | undefined = undefined;
       if (frontmatter.endTime) {
         end = combineDateTimeStrings(frontmatter.endDate || frontmatter.date, frontmatter.endTime);
         if (!end) {
@@ -308,7 +396,8 @@ export function fromEventApi(event: EventApi): OFCEvent {
   const endDate = getDate(event.end as Date);
   return {
     title: event.title,
-    category: originalCategory, // Preserve the category
+    category: event.extendedProps.category, // Preserve the category
+    recurringEventId: event.extendedProps.recurringEventId,
     ...(event.allDay
       ? { allDay: true }
       : {
@@ -322,7 +411,9 @@ export function fromEventApi(event: EventApi): OFCEvent {
           type: 'recurring',
           daysOfWeek: event.extendedProps.daysOfWeek.map((i: number) => DAYS[i]),
           startRecur: event.extendedProps.startRecur && getDate(event.extendedProps.startRecur),
-          endRecur: event.extendedProps.endRecur && getDate(event.extendedProps.endRecur)
+          endRecur: event.extendedProps.endRecur && getDate(event.extendedProps.endRecur),
+          skipDates: [], // Default to empty as exception info is unavailable
+          isTask: event.extendedProps.isTask
         }
       : {
           type: 'single',

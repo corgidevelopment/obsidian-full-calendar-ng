@@ -27,8 +27,8 @@ obsidian-dev-vault/
 !obsidian-dev-vault/.obsidian/plugins/Full-Calender/manifest.json
 
 
+
 # Others
-src/*/export-to-txt.py
-src/export-to-txt.py
+src/.*
 exported
 .DS_Store

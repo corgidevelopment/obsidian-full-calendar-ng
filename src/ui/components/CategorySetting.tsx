@@ -11,7 +11,7 @@
 
 import * as React from 'react';
 import { useState } from 'react';
-import { AutocompleteInput } from './AutocompleteInput';
+import { AutocompleteInput } from './forms/AutocompleteInput';
 import { getNextColor } from '../colors';
 
 export interface CategorySetting {

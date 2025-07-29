@@ -85,7 +85,9 @@ export class CategorizationManager {
     await this.performBulkOperation(async () => {
       // The manager is ONLY responsible for gathering categories from the settings.
       const settings = this.plugin.settings;
-      const knownCategories = new Set(settings.categorySettings.map(s => s.name));
+      const knownCategories = new Set(
+        settings.categorySettings.map((s: { name: string }) => s.name)
+      );
 
       const editableCalendars = this.getEditableCalendars();
       for (const calendar of editableCalendars) {

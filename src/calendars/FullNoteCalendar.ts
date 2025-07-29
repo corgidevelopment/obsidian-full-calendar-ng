@@ -19,7 +19,8 @@ import { EventPathLocation } from '../core/EventStore';
 import { ObsidianInterface } from '../ObsidianAdapter';
 import { OFCEvent, EventLocation, validateEvent } from '../types';
 import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
-import { FullCalendarSettings } from '../ui/settings';
+import { FullCalendarSettings } from '../types/settings';
+import { CalendarInfo } from '../types';
 import { convertEvent } from '../core/Timezone';
 import { newFrontmatter, modifyFrontmatterString, replaceFrontmatter } from './frontmatter';
 import { constructTitle, parseTitle } from '../core/categoryParser';
@@ -52,14 +53,13 @@ export default class FullNoteCalendar extends EditableCalendar {
   constructor(
     app: ObsidianInterface,
     plugin: FullCalendarPlugin,
-    color: string,
-    directory: string,
+    info: CalendarInfo,
     settings: FullCalendarSettings
   ) {
-    super(color, settings);
+    super(info, settings);
     this.app = app;
     this.plugin = plugin;
-    this._directory = directory;
+    this._directory = (info as Extract<CalendarInfo, { type: 'local' }>).directory;
   }
   get directory(): string {
     return this._directory;
@@ -368,5 +368,9 @@ export default class FullNoteCalendar extends EditableCalendar {
       processor,
       `De-categorizing notes in ${this.directory}`
     );
+  }
+
+  public getLocalIdentifier(event: OFCEvent): string | null {
+    return basenameFromEvent(event, this.settings);
   }
 }

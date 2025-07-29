@@ -2,12 +2,27 @@
 
 import { TFile } from 'obsidian';
 
+// Add this mock
+jest.mock(
+  'obsidian',
+  () => ({
+    Modal: class {},
+    Notice: class {},
+    Plugin: class {},
+    TFile: class {},
+    TFolder: class {},
+    TAbstractFile: class {}
+  }),
+  { virtual: true }
+);
+// End of new code
+
 import { Calendar, EventResponse } from '../calendars/Calendar';
 import { EditableCalendar, EditableEventResponse } from '../calendars/EditableCalendar';
+import { DEFAULT_SETTINGS, FullCalendarSettings } from '../types/settings';
 import { CalendarInfo, EventLocation, OFCEvent } from '../types';
 import EventCache, { CacheEntry, CalendarInitializerMap, OFCEventSource } from './EventCache';
 import { EventPathLocation } from './EventStore';
-import { DEFAULT_SETTINGS, FullCalendarSettings } from '../ui/settings';
 import FullCalendarPlugin from '../main';
 
 jest.mock('../types/schema', () => ({
@@ -31,10 +46,11 @@ class TestReadonlyCalendar extends Calendar {
   }
   private _id: string;
   events: OFCEvent[] = [];
-  constructor(color: string, id: string, events: OFCEvent[], settings: FullCalendarSettings) {
-    super(color, settings);
-    this._id = id;
-    this.events = events;
+  constructor(info: CalendarInfo, settings: FullCalendarSettings) {
+    super(info, settings);
+    const testInfo = info as Extract<CalendarInfo, { type: 'FOR_TEST_ONLY' }>;
+    this._id = testInfo.id;
+    this.events = testInfo.events || [];
   }
   get type(): 'FOR_TEST_ONLY' {
     return 'FOR_TEST_ONLY';
@@ -46,6 +62,11 @@ class TestReadonlyCalendar extends Calendar {
 
   async getEvents(): Promise<EventResponse[]> {
     return this.events.map(event => [event, null]);
+  }
+
+  // Add getLocalIdentifier for tests
+  public getLocalIdentifier(event: OFCEvent): string | null {
+    return event.title;
   }
 }
 
@@ -82,7 +103,7 @@ describe('event cache with readonly calendar', () => {
         if (info.type !== 'FOR_TEST_ONLY') {
           return null;
         }
-        return new TestReadonlyCalendar(info.color, info.id, info.events || [], settings);
+        return new TestReadonlyCalendar(info, settings);
       })
     );
     cache.reset([{ type: 'FOR_TEST_ONLY', color: '#000000', id: 'test', events }]);
@@ -184,15 +205,11 @@ class TestEditable extends EditableCalendar {
   private _directory: string;
   events: EditableEventResponse[];
   shouldContainPath = true;
-  constructor(
-    color: string,
-    directory: string,
-    events: EditableEventResponse[],
-    settings: FullCalendarSettings
-  ) {
-    super(color, settings);
-    this._directory = directory;
-    this.events = events;
+  constructor(info: CalendarInfo, settings: FullCalendarSettings) {
+    super(info, settings);
+    const testInfo = info as Extract<CalendarInfo, { type: 'FOR_TEST_ONLY' }>;
+    this._directory = testInfo.id;
+    this.events = [];
   }
   get directory(): string {
     return this._directory;
@@ -221,6 +238,11 @@ class TestEditable extends EditableCalendar {
   get identifier(): string {
     return this.directory;
   }
+
+  // Add getLocalIdentifier for tests
+  public getLocalIdentifier(event: OFCEvent): string | null {
+    return event.title;
+  }
 }
 
 const mockFile = withCounter(path => ({ path }) as TFile, 'file');
@@ -248,7 +270,9 @@ describe('editable calendars', () => {
         if (info.type !== 'FOR_TEST_ONLY') {
           return null;
         }
-        return new TestEditable(info.color, info.id, events, settings);
+        const calendar = new TestEditable(info, settings);
+        calendar.events = events;
+        return calendar;
       })
     );
     cache.reset([{ type: 'FOR_TEST_ONLY', id: 'test', events: [], color: 'black' }]);

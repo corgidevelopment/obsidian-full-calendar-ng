@@ -14,6 +14,41 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.11.4',
+    changes: [
+      {
+        type: 'new',
+        title: 'Smarter Recurring Events and Tasks',
+        description:
+          'Recurring events can now be edited per-instance — drag, resize, or complete a task without affecting the whole series. Changes are reversible and tracked cleanly.'
+      },
+      {
+        type: 'improvement',
+        title: 'Safe Deletion with Confirmation Options',
+        description:
+          'Deleting a recurring event now asks whether to remove just one instance, the entire series, or promote existing edits to standalone events.'
+      },
+      {
+        type: 'improvement',
+        title: 'Better Task Behavior for Repeating Events',
+        description:
+          'Recurring tasks now behave just like regular ones — you can check them off individually, and they show up correctly in the calendar.'
+      },
+      {
+        type: 'fix',
+        title: 'Multiday Allday events fix by @yalikebaz',
+        description:
+          'Multiday Allday events made inclusive for local calenders. Thanks to @yalikebaz for the fix!'
+      },
+      {
+        type: 'fix',
+        title: 'Performance and Architecture Improvements',
+        description:
+          'Refactored recurring event logic, improved performance on large calendars, and cleaned up the plugin architecture to prepare for future features.'
+      }
+    ]
+  },
+  {
     version: '0.11.3', // This would be our current version with the timezone fixes
     changes: [
       {

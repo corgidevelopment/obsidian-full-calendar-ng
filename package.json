@@ -1,6 +1,6 @@
 {
     "name": "obsidian-full-calendar",
-    "version": "0.11.3",
+    "version": "0.11.4",
     "description": "Obsidian integration with Full Calendar (fullcalendar.io)",
     "main": "main.js",
     "scripts": {
@@ -13,6 +13,7 @@
         "compile": "tsc -noEmit --skipLibCheck",
         "prepare": "husky install",
         "test": "jest --ci --silent=true",
+        "test-update": "jest --silent=false --updateSnapshot",
         "test-dev": "jest --watch",
         "coverage": "jest --coverage"
     },

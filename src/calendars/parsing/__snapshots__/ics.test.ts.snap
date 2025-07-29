@@ -1,197 +1,79 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`ics tests parses all day event: BEGIN:VCALENDAR
-PRODID:blah
-X-WR-CALNAME:Test calendar
-X-WR-TIMEZONE:Etc/UTC
-VERSION:2.0
-CALSCALE:GREGORIAN
-X-PUBLISHED-TTL:PT5M
-METHOD:PUBLISH
-BEGIN:VEVENT
-UID:7389432083-0-40713-74006
-SEQUENCE:1
-CLASS:PUBLIC
-CREATED:20200101T000000Z
-GEO:40.7128;-74.006
-DTSTAMP:20230226T143136Z
-DTSTART;VALUE=DATE:20230226
-DESCRIPTION:Description!
-LOCATION:New york city
-URL:https://www.example.com
-STATUS:CONFIRMED
-SUMMARY:EVENT TITLE
-TRANSP:TRANSPARENT
-END:VEVENT
-END:VCALENDAR 1`] = `
+exports[`ics tests parses all day event: BEGIN:VCALENDAR\\nPRODID:blah\\nX-WR-CALNAME:Test calendar\\nX-WR-TIMEZONE:Etc/UTC\\nVERSION:2.0\\nCALSCALE:GREGORIAN\\nX-PUBLISHED-TTL:PT5M\\nMETHOD:PUBLISH\\nBEGIN:VEVENT\\nUID:7389432083-0-40713-74006\\nSEQUENCE:1\\nCLASS:PUBLIC\\nCREATED:20200101T000000Z\\nGEO:40.7128;-74.006\\nDTSTAMP:20230226T143136Z\\nDTSTART;VALUE=DATE:20230226\\nDESCRIPTION:Description!\\nLOCATION:New york city\\nURL:https://www.example.com\\nSTATUS:CONFIRMED\\nSUMMARY:EVENT TITLE\\nTRANSP:TRANSPARENT\\nEND:VEVENT\\nEND:VCALENDAR 1`] = `
 [
   {
     "allDay": true,
+    "category": undefined,
     "date": "2023-02-26",
     "endDate": null,
-    "id": "ics::7389432083-0-40713-74006::2023-02-26::single",
+    "timezone": undefined,
     "title": "EVENT TITLE",
     "type": "single",
+    "uid": "7389432083-0-40713-74006",
   },
 ]
 `;
 
-exports[`ics tests parses gcal ics file: BEGIN:VCALENDAR
-PRODID:-//Google Inc//Google Calendar 70.9054//EN
-VERSION:2.0
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-X-WR-CALNAME:Obsidian Test Calendar
-X-WR-TIMEZONE:America/New_York
-BEGIN:VTIMEZONE
-TZID:America/New_York
-X-LIC-LOCATION:America/New_York
-BEGIN:DAYLIGHT
-TZOFFSETFROM:-0500
-TZOFFSETTO:-0400
-TZNAME:EDT
-DTSTART:19700308T020000
-RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
-END:DAYLIGHT
-BEGIN:STANDARD
-TZOFFSETFROM:-0400
-TZOFFSETTO:-0500
-TZNAME:EST
-DTSTART:19701101T020000
-RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
-END:STANDARD
-END:VTIMEZONE
-BEGIN:VEVENT
-DTSTART;VALUE=DATE:20220302
-DTEND;VALUE=DATE:20220303
-DTSTAMP:20230302T233513Z
-UID:5r09pnnlktaqivstai5vlbqb1h@google.com
-CREATED:20220226T211158Z
-DESCRIPTION:
-LAST-MODIFIED:20220226T214634Z
-LOCATION:
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:All day event
-TRANSP:TRANSPARENT
-END:VEVENT
-BEGIN:VEVENT
-DTSTART;TZID=America/New_York:20220301T110000
-DTEND;TZID=America/New_York:20220301T123000
-RRULE:FREQ=WEEKLY;WKST=SU;BYDAY=TH,TU
-DTSTAMP:20230302T233513Z
-UID:5tt2avr2th0h65homv3b6jeqof@google.com
-CREATED:20220226T211144Z
-DESCRIPTION:
-LAST-MODIFIED:20220226T214627Z
-LOCATION:
-SEQUENCE:1
-STATUS:CONFIRMED
-SUMMARY:Recurring event
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
-DTSTART:20220228T164500Z
-DTEND:20220228T194500Z
-DTSTAMP:20230302T233513Z
-UID:40mdbe6fvc1rmd60n6r0c3go7e@google.com
-X-GOOGLE-CONFERENCE:https://meet.google.com/riu-josb-pdb
-CREATED:20220226T210517Z
-DESCRIPTION:This is an example <i>event.</i>
-
-Join with Google Meet: http
-    s://meet.google.com/riu-josb-pdb
-Or dial: (US) +1 609-726-6186 PIN: 156393
-    865#
-More phone numbers: https://tel.meet/riu-josb-pdb?pin=1416269198709&h
-    s=7
-
-Learn more about Meet at: https://support.google.com/a/users/answer/
-    9282720
-LAST-MODIFIED:20220226T214608Z
-LOCATION:
-SEQUENCE:1
-STATUS:CONFIRMED
-SUMMARY:Hello, iCal!
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
-DTSTART:20220219T190000Z
-DTEND:20220219T230000Z
-DTSTAMP:20230302T233513Z
-UID:44hekcaaf0or7547vhqa772mqj@google.com
-CREATED:20220220T002201Z
-DESCRIPTION:
-LAST-MODIFIED:20220220T002201Z
-LOCATION:
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:Work on GCal Sync
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
-DTSTART;VALUE=DATE:20220216
-DTEND;VALUE=DATE:20220217
-DTSTAMP:20230302T233513Z
-UID:7ooluqb717vabebvc9gkc38c9l@google.com
-CREATED:20220220T002146Z
-DESCRIPTION:
-LAST-MODIFIED:20220220T002146Z
-LOCATION:
-SEQUENCE:0
-STATUS:CONFIRMED
-SUMMARY:Announce Beta
-TRANSP:TRANSPARENT
-END:VEVENT
-END:VCALENDAR
-         1`] = `
+exports[`ics tests parses gcal ics file and categories: BEGIN:VCALENDAR\\nPRODID:-//Google Inc//Google Calendar 70.9054//EN\\nVERSION:2.0\\nCALSCALE:GREGORIAN\\nMETHOD:PUBLISH\\nX-WR-CALNAME:Obsidian Test Calendar\\nX-WR-TIMEZONE:America/New_York\\nBEGIN:VTIMEZONE\\nTZID:America/New_York\\nX-LIC-LOCATION:America/New_York\\nBEGIN:DAYLIGHT\\nTZOFFSETFROM:-0500\\nTZOFFSETTO:-0400\\nTZNAME:EDT\\nDTSTART:19700308T020000\\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\\nEND:DAYLIGHT\\nBEGIN:STANDARD\\nTZOFFSETFROM:-0400\\nTZOFFSETTO:-0500\\nTZNAME:EST\\nDTSTART:19701101T020000\\nRRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\\nEND:STANDARD\\nEND:VTIMEZONE\\nBEGIN:VEVENT\\nDTSTART;VALUE=DATE:20220302\\nDTEND;VALUE=DATE:20220303\\nDTSTAMP:20230302T233513Z\\nUID:5r09pnnlktaqivstai5vlbqb1h@google.com\\nCREATED:20220226T211158Z\\nDESCRIPTION:\\nLAST-MODIFIED:20220226T214634Z\\nLOCATION:\\nSEQUENCE:0\\nSTATUS:CONFIRMED\\nSUMMARY:All day event\\nTRANSP:TRANSPARENT\\nEND:VEVENT\\nBEGIN:VEVENT\\nDTSTART;TZID=America/New_York:20220301T110000\\nDTEND;TZID=America/New_York:20220301T123000\\nRRULE:FREQ=WEEKLY;WKST=SU;BYDAY=TH,TU\\nDTSTAMP:20230302T233513Z\\nUID:5tt2avr2th0h65homv3b6jeqof@google.com\\nCREATED:20220226T211144Z\\nDESCRIPTION:\\nLAST-MODIFIED:20220226T214627Z\\nLOCATION:\\nSEQUENCE:1\\nSTATUS:CONFIRMED\\nSUMMARY:Work - Recurring event\\nTRANSP:OPAQUE\\nEND:VEVENT\\nBEGIN:VEVENT\\nDTSTART:20220228T164500Z\\nDTEND:20220228T194500Z\\nDTSTAMP:20230302T233513Z\\nUID:40mdbe6fvc1rmd60n6r0c3go7e@google.com\\nX-GOOGLE-CONFERENCE:https://meet.google.com/riu-josb-pdb\\nCREATED:20220226T210517Z\\nDESCRIPTION:This is an example <i>event.</i>\\n\\nJoin with Google Meet: http\\n    s://meet.google.com/riu-josb-pdb\\nOr dial: (US) +1 609-726-6186 PIN: 156393\\n    865#\\nMore phone numbers: https://tel.meet/riu-josb-pdb?pin=1416269198709&h\\n    s=7\\n\\nLearn more about Meet at: https://support.google.com/a/users/answer/\\n    9282720\\nLAST-MODIFIED:20220226T214608Z\\nLOCATION:\\nSEQUENCE:1\\nSTATUS:CONFIRMED\\nSUMMARY:Work - Project Alpha - Hello\\, iCal!\\nTRANSP:OPAQUE\\nEND:VEVENT\\nBEGIN:VEVENT\\nDTSTART:20220219T190000Z\\nDTEND:20220219T230000Z\\nDTSTAMP:20230302T233513Z\\nUID:44hekcaaf0or7547vhqa772mqj@google.com\\nCREATED:20220220T002201Z\\nDESCRIPTION:\\nLAST-MODIFIED:20220220T002201Z\\nLOCATION:\\nSEQUENCE:0\\nSTATUS:CONFIRMED\\nSUMMARY:Work on GCal Sync\\nTRANSP:OPAQUE\\nEND:VEVENT\\nBEGIN:VEVENT\\nDTSTART;VALUE=DATE:20220216\\nDTEND;VALUE=DATE:20220217\\nDTSTAMP:20230302T233513Z\\nUID:7ooluqb717vabebvc9gkc38c9l@google.com\\nCREATED:20220220T002146Z\\nDESCRIPTION:\\nLAST-MODIFIED:20220220T002146Z\\nLOCATION:\\nSEQUENCE:0\\nSTATUS:CONFIRMED\\nSUMMARY:Announce Beta\\nTRANSP:TRANSPARENT\\nEND:VEVENT\\nEND:VCALENDAR\\n         1`] = `
 [
   {
     "allDay": true,
+    "category": undefined,
     "date": "2022-03-02",
     "endDate": "2022-03-03",
-    "id": "ics::5r09pnnlktaqivstai5vlbqb1h@google.com::2022-03-02::single",
+    "timezone": undefined,
     "title": "All day event",
     "type": "single",
+    "uid": "5r09pnnlktaqivstai5vlbqb1h@google.com",
   },
   {
     "allDay": false,
+    "category": "Work",
     "endTime": "12:30",
     "id": "ics::5tt2avr2th0h65homv3b6jeqof@google.com::2022-03-01::recurring",
     "rrule": "RRULE:FREQ=WEEKLY;BYDAY=TH,TU;WKST=SU",
     "skipDates": [],
     "startDate": "2022-03-01",
     "startTime": "11:00",
+    "timezone": "America/New_York",
     "title": "Recurring event",
     "type": "rrule",
+    "uid": "5tt2avr2th0h65homv3b6jeqof@google.com",
   },
   {
     "allDay": false,
+    "category": "Work",
     "date": "2022-02-28",
     "endDate": null,
     "endTime": "19:45",
-    "id": "ics::40mdbe6fvc1rmd60n6r0c3go7e@google.com::2022-02-28::single",
     "startTime": "16:45",
-    "title": "Hello, iCal!",
+    "timezone": "UTC",
+    "title": "Project Alpha - Hello, iCal!",
     "type": "single",
+    "uid": "40mdbe6fvc1rmd60n6r0c3go7e@google.com",
   },
   {
     "allDay": false,
+    "category": undefined,
     "date": "2022-02-19",
     "endDate": null,
     "endTime": "23:00",
-    "id": "ics::44hekcaaf0or7547vhqa772mqj@google.com::2022-02-19::single",
     "startTime": "19:00",
+    "timezone": "UTC",
     "title": "Work on GCal Sync",
     "type": "single",
+    "uid": "44hekcaaf0or7547vhqa772mqj@google.com",
   },
   {
     "allDay": true,
+    "category": undefined,
     "date": "2022-02-16",
     "endDate": "2022-02-17",
-    "id": "ics::7ooluqb717vabebvc9gkc38c9l@google.com::2022-02-16::single",
+    "timezone": undefined,
     "title": "Announce Beta",
     "type": "single",
+    "uid": "7ooluqb717vabebvc9gkc38c9l@google.com",
   },
 ]
 `;

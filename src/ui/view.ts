@@ -18,15 +18,16 @@
 
 import './overrides.css';
 import { ItemView, Menu, Notice, WorkspaceLeaf } from 'obsidian';
+import { DateTime } from 'luxon';
 import { Calendar, EventSourceInput } from '@fullcalendar/core';
 import { renderCalendar } from './calendar';
 import FullCalendarPlugin from '../main';
-import { FCError, PLUGIN_SLUG } from '../types';
-import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from './interop';
+import { FCError, PLUGIN_SLUG, CalendarInfo } from '../types';
+import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from '../core/interop';
 import { renderOnboarding } from './onboard';
-import { openFileForEvent } from './actions';
+import { openFileForEvent } from '../actions/eventActions';
 import { launchCreateModal, launchEditModal } from './event_modal';
-import { isTask, toggleTask, unmakeTask } from '../ui/tasks';
+import { isTask, toggleTask, unmakeTask } from '../core/tasks';
 import { UpdateViewCallback } from '../core/EventCache';
 import { activateAnalysisView } from '../chrono_analyser/AnalysisView';
 
@@ -121,8 +122,11 @@ export class CalendarView extends ItemView {
     container.empty();
     let calendarEl = container.createEl('div');
 
-    if (this.plugin.settings.calendarSources.filter(s => s.type !== 'FOR_TEST_ONLY').length === 0) {
-      renderOnboarding(this.app, this.plugin, calendarEl);
+    if (
+      this.plugin.settings.calendarSources.filter((s: CalendarInfo) => s.type !== 'FOR_TEST_ONLY')
+        .length === 0
+    ) {
+      renderOnboarding(this.plugin, calendarEl);
       return;
     }
 
@@ -180,11 +184,74 @@ export class CalendarView extends ItemView {
       },
       modifyEvent: async (newEvent, oldEvent) => {
         try {
-          const didModify = await this.plugin.cache.updateEventWithId(
-            oldEvent.id,
-            fromEventApi(newEvent)
-          );
-          return !!didModify;
+          const originalEvent = this.plugin.cache.getEventById(oldEvent.id);
+          if (!originalEvent) {
+            throw new Error('Original event not found in cache.');
+          }
+
+          // ====================================================================
+          // NEW LOGIC: Prevent moving child overrides to a different day.
+          // ====================================================================
+          if (originalEvent.type === 'single' && originalEvent.recurringEventId) {
+            const oldDate = oldEvent.start ? DateTime.fromJSDate(oldEvent.start).toISODate() : null;
+            const newDate = newEvent.start ? DateTime.fromJSDate(newEvent.start).toISODate() : null;
+
+            if (oldDate && newDate && oldDate !== newDate) {
+              new Notice(
+                'Cannot move a recurring instance to a different day. Modify the time only or edit the main recurring event.',
+                6000
+              );
+              return false; // Reverts the event to its original position.
+            }
+          }
+          // ====================================================================
+
+          // Check if the event being dragged is part of a recurring series.
+          // We must check the original event from the cache, because `oldEvent` from FullCalendar
+          // is just an instance and doesn't have our `type` property.
+          if (originalEvent.type === 'rrule' || originalEvent.type === 'recurring') {
+            // ====================================================================
+            // NEW LOGIC: Prevent moving the master instance to a different day.
+            // ====================================================================
+            const oldDate = oldEvent.start ? DateTime.fromJSDate(oldEvent.start).toISODate() : null;
+            const newDate = newEvent.start ? DateTime.fromJSDate(newEvent.start).toISODate() : null;
+
+            if (oldDate && newDate && oldDate !== newDate) {
+              new Notice(
+                'Cannot move a recurring instance to a different day. You can only change the time.',
+                6000
+              );
+              return false; // Revert the change.
+            }
+            // ====================================================================
+
+            if (!oldEvent.start) {
+              throw new Error('Recurring instance is missing original start date.');
+            }
+
+            // This is a recurring instance. We need to create an override.
+            const instanceDate = DateTime.fromJSDate(oldEvent.start).toISODate();
+            if (!instanceDate) {
+              throw new Error('Could not determine instance date from recurring event.');
+            }
+
+            const modifiedEvent = fromEventApi(newEvent);
+            await this.plugin.cache.modifyRecurringInstance(
+              oldEvent.id,
+              instanceDate,
+              modifiedEvent
+            );
+            // Return true because we have successfully handled the modification.
+            return true;
+          } else {
+            // This is a standard single event or an existing override.
+            // Let it update normally.
+            const didModify = await this.plugin.cache.updateEventWithId(
+              oldEvent.id,
+              fromEventApi(newEvent)
+            );
+            return !!didModify;
+          }
         } catch (e: any) {
           console.error(e);
           new Notice(e.message);
@@ -260,24 +327,33 @@ export class CalendarView extends ItemView {
 
         menu.showAtMouseEvent(mouseEvent);
       },
-      toggleTask: async (e, isDone) => {
-        const event = this.plugin.cache.getEventById(e.id);
-        if (!event) {
-          return false;
-        }
-        if (event.type !== 'single') {
-          return false;
+      toggleTask: async (eventApi, isDone) => {
+        const eventId = eventApi.id;
+        const event = this.plugin.cache.getEventById(eventId);
+        if (!event) return false;
+
+        const isRecurringSystem =
+          event.type === 'recurring' || event.type === 'rrule' || event.recurringEventId;
+
+        if (!isRecurringSystem) {
+          await this.plugin.cache.updateEventWithId(eventId, toggleTask(event, isDone));
+          return true;
         }
 
+        if (!eventApi.start) return false;
+
+        const instanceDate = DateTime.fromJSDate(eventApi.start).toISODate();
+        if (!instanceDate) return false;
+
         try {
-          await this.plugin.cache.updateEventWithId(e.id, toggleTask(event, isDone));
+          await this.plugin.cache.toggleRecurringInstance(eventId, instanceDate, isDone);
+          return true;
         } catch (e) {
-          if (e instanceof FCError) {
+          if (e instanceof Error) {
             new Notice(e.message);
           }
           return false;
         }
-        return true;
       }
     });
     // @ts-ignore

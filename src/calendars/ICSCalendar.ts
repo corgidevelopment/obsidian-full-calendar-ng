@@ -15,11 +15,11 @@
  */
 
 import { request } from 'obsidian';
-import { CalendarInfo } from '../types';
+import { CalendarInfo, OFCEvent } from '../types';
 import { EventResponse } from './Calendar';
 import { getEventsFromICS } from './parsing/ics';
 import RemoteCalendar from './RemoteCalendar';
-import { FullCalendarSettings } from '../ui/settings';
+import { FullCalendarSettings } from '../types/settings';
 import { convertEvent } from '../core/Timezone';
 
 const WEBCAL = 'webcal';
@@ -28,8 +28,10 @@ export default class ICSCalendar extends RemoteCalendar {
   private url: string;
   private response: string | null = null;
 
-  constructor(color: string, url: string, settings: FullCalendarSettings) {
-    super(color, settings);
+  constructor(info: CalendarInfo, settings: FullCalendarSettings) {
+    super(info, settings);
+    // The following logic is specific to ICSCalendar and should be preserved.
+    let url = (info as Extract<CalendarInfo, { type: 'ical' }>).url;
     if (url.startsWith(WEBCAL)) {
       url = 'https' + url.slice(WEBCAL.length);
     }
@@ -82,5 +84,9 @@ export default class ICSCalendar extends RemoteCalendar {
       }
       return [translatedEvent, null];
     });
+  }
+
+  public getLocalIdentifier(event: OFCEvent): string | null {
+    return event.uid || null;
   }
 }

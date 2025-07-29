@@ -15,9 +15,14 @@
 import Color from 'color';
 import dav from 'dav';
 import * as transport from './transport';
-import { Authentication, CalDAVSource } from 'src/types';
+import { Authentication, CalDAVSource } from '../../../types';
+import { generateCalendarId } from '../../../types/calendar_settings';
 
-export async function importCalendars(auth: Authentication, url: string): Promise<CalDAVSource[]> {
+export async function importCalendars(
+  auth: Authentication,
+  url: string,
+  existingIds: string[]
+): Promise<CalDAVSource[]> {
   try {
     let xhr = new transport.Basic(
       new dav.Credentials({
@@ -53,15 +58,20 @@ export async function importCalendars(auth: Authentication, url: string): Promis
     );
     return calendars
       .flatMap(c => (c ? c : []))
-      .map(c => ({
-        type: 'caldav',
-        name: c.name,
-        url,
-        homeUrl: c.url,
-        color: c.color || (null as any), // TODO: handle null colors in the type system.
-        username: auth.username,
-        password: auth.password
-      }));
+      .map(c => {
+        const newId = generateCalendarId('caldav', existingIds);
+        existingIds.push(newId);
+        return {
+          type: 'caldav',
+          id: newId,
+          name: c.name,
+          url,
+          homeUrl: c.url,
+          color: c.color || (null as any), // TODO: handle null colors in the type system.
+          username: auth.username,
+          password: auth.password
+        };
+      });
   } catch (e) {
     console.error(`Error importing calendars from ${url}`, e);
     console.error(e);

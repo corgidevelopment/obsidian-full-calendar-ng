@@ -17,11 +17,12 @@ import { OFCEvent } from './schema';
 import { getNextColor } from '../ui/colors';
 
 const calendarOptionsSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('local'), directory: z.string() }),
-  z.object({ type: z.literal('dailynote'), heading: z.string() }),
-  z.object({ type: z.literal('ical'), url: z.string().url() }),
+  z.object({ type: z.literal('local'), directory: z.string(), id: z.string() }),
+  z.object({ type: z.literal('dailynote'), heading: z.string(), id: z.string() }),
+  z.object({ type: z.literal('ical'), url: z.string().url(), id: z.string() }),
   z.object({
     type: z.literal('caldav'),
+    id: z.string(),
     name: z.string(),
     url: z.string().url(),
     homeUrl: z.string().url(),
@@ -63,12 +64,32 @@ export function safeParseCalendarInfo(obj: unknown): CalendarInfo | null {
 }
 
 /**
+ * Generates a new, unique, human-readable ID for a calendar source.
+ * e.g., "local_1", "caldav_3"
+ * @param type The type of calendar source.
+ * @param existingIds A list of all existing calendar source IDs.
+ * @returns A new unique ID string.
+ */
+export function generateCalendarId(type: CalendarInfo['type'], existingIds: string[]): string {
+  const relevantIds = existingIds.filter(id => id.startsWith(type));
+  let newIdNumber = 1;
+  if (relevantIds.length > 0) {
+    const highestNumber = relevantIds
+      .map(id => parseInt(id.split('_')[1], 10))
+      .filter(num => !isNaN(num))
+      .reduce((max, current) => Math.max(max, current), 0);
+    newIdNumber = highestNumber + 1;
+  }
+  return `${type}_${newIdNumber}`;
+}
+
+/**
  * Construct a partial calendar source of the specified type.
  * ACCEPTS TWO ARGUMENTS.
  */
 export function makeDefaultPartialCalendarSource(
   type: CalendarInfo['type'] | 'icloud',
-  existingColors: string[]
+  existingColors: string[] = []
 ): Partial<CalendarInfo> {
   const newColor = getNextColor(existingColors);
 

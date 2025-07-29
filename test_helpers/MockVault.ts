@@ -46,18 +46,31 @@ export class MockVault implements Vault {
     }
 
     getAbstractFileByPath(path: string): TAbstractFile | null {
-        const normalizedPath = join("/", normalize(path));
+        // Normalize all paths to use forward slashes for cross-platform compatibility
+        const normalizePath = (p: string) => p.replace(/\\/g, '/');
+        const normalizedPath = normalizePath(join("/", path));
+
+        const allFiles = this.getAllLoadedFiles();
+        const availablePaths = allFiles.map(f => join("/", normalize(f.path)));
+
         return (
-            this.getAllLoadedFiles().find(
-                (f) => join("/", normalize(f.path)) === normalizedPath
+            allFiles.find(
+                (f) => {
+                    const currentPath = normalizePath(join("/", f.path));
+                    const isMatch = currentPath === normalizedPath;
+                    // Optional: uncomment for extreme verbosity
+                    // console.log(`[DEBUG_MockVault] Comparing "${currentPath}" with "${normalizedPath}" -> ${isMatch}`);
+                    return isMatch;
+                }
             ) || null
         );
     }
     
     getFileByPath(path: string): TFile | null {
-        console.warn(`MockVault.getFileByPath called with: ${path}`);
-        // You'd typically return a mock TFile based on 'path' if needed for specific tests.
-        // For now, returning null is acceptable for type compatibility.
+        const file = this.getAbstractFileByPath(path);
+        if (file instanceof TFile) {
+            return file;
+        }
         return null;
     }
 

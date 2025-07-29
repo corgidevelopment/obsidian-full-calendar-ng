@@ -11,7 +11,7 @@ import { DataManager } from '../data/DataManager';
 import * as Translator from './translator';
 import { TimeRecord } from './types';
 import FullNoteCalendar from '../../calendars/FullNoteCalendar';
-import { FullCalendarSettings } from '../../ui/settings';
+import { FullCalendarSettings } from '../../types/settings';
 
 export class DataService {
   public processingErrors: any[] = [];

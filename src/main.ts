@@ -15,8 +15,13 @@
 import { Notice, Plugin, TFile, TFolder, TAbstractFile } from 'obsidian';
 import { CalendarView, FULL_CALENDAR_SIDEBAR_VIEW_TYPE, FULL_CALENDAR_VIEW_TYPE } from './ui/view';
 import { renderCalendar } from './ui/calendar';
-import { toEventInput } from './ui/interop';
-import { DEFAULT_SETTINGS, FullCalendarSettings, FullCalendarSettingTab } from './ui/settings';
+import { toEventInput } from './core/interop';
+import {
+  FullCalendarSettingTab,
+  ensureCalendarIds,
+  DEFAULT_SETTINGS,
+  FullCalendarSettings
+} from './ui/settings/SettingsTab';
 import { PLUGIN_SLUG } from './types';
 import EventCache from './core/EventCache';
 import { ObsidianIO } from './ObsidianAdapter';
@@ -37,41 +42,15 @@ export default class FullCalendarPlugin extends Plugin {
   cache: EventCache = new EventCache(this, {
     local: (info, settings) =>
       info.type === 'local'
-        ? new FullNoteCalendar(
-            new ObsidianIO(this.app),
-            this, // Pass plugin instance
-            info.color,
-            info.directory,
-            settings
-          )
+        ? new FullNoteCalendar(new ObsidianIO(this.app), this, info, settings)
         : null,
     dailynote: (info, settings) =>
       info.type === 'dailynote'
-        ? new DailyNoteCalendar(
-            new ObsidianIO(this.app),
-            this, // Pass plugin instance
-            info.color,
-            info.heading,
-            settings
-          )
+        ? new DailyNoteCalendar(new ObsidianIO(this.app), this, info, settings)
         : null,
-    ical: (info, settings) =>
-      info.type === 'ical' ? new ICSCalendar(info.color, info.url, settings) : null,
+    ical: (info, settings) => (info.type === 'ical' ? new ICSCalendar(info, settings) : null),
     caldav: (info, settings) =>
-      info.type === 'caldav'
-        ? new CalDAVCalendar(
-            info.color,
-            info.name,
-            {
-              type: 'basic',
-              username: info.username,
-              password: info.password
-            },
-            info.url,
-            info.homeUrl,
-            settings
-          )
-        : null,
+      info.type === 'caldav' ? new CalDAVCalendar(info, settings) : null,
     FOR_TEST_ONLY: () => null
   });
 
@@ -225,7 +204,13 @@ export default class FullCalendarPlugin extends Plugin {
    * Loads plugin settings from disk, merging them with default values.
    */
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loadedSettings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const { updated, sources } = ensureCalendarIds(loadedSettings.calendarSources);
+    this.settings = { ...loadedSettings, calendarSources: sources };
+    if (updated) {
+      new Notice('Full Calendar has updated your calendar settings to a new format.');
+      await this.saveData(this.settings);
+    }
   }
 
   /**

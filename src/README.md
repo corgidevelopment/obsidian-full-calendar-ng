@@ -1,11 +1,11 @@
-[![Version](https://img.shields.io/badge/Version-v_0.11.1-blue)](https://youfoundjk.github.io/Time-Analyser-Full-Calender/)
+[![Version](https://img.shields.io/badge/Version-v0.11.4-blue)](https://github.com/davish/obsidian-full-calendar)
 
 # Full Calendar Plugin - Developer Documentation
 
 Obsidian Full Calendar's goal is to give users a robust and feature-ful calendar view into their Obsidian Vault. In addition to displaying and modifying events stored in note frontmatter and daily note bulleted lists, it can also read events from the Internet in CalDAV and ICS format.
 
 Obsidian Full Calendar takes its name from [FullCalendar](https://github.com/fullcalendar/fullcalendar), a "Full-sized drag & drop event calendar in JavaScript." This plugin uses FullCalendar as its view layer. While the naming can be ambiguous, this document will always refer to the FullCalendar view library as `FullCalendar.io`. The plugin will be referred to as "the plugin", "Full Calendar", or "Obsidian Full Calendar".
- 
+
 As of now, the plugin supports events from the following sources and formats:
 
 -   Frontmatter of notes in the open Obsidian Vault.
@@ -18,7 +18,14 @@ Much of the code of Full Calendar exists to deal with the normalization of these
 Below is a birds-eye view of the different components of the plugin, and the interactions between them.
 
 ```ascii
-
+.--------------------------.        .--------------------------.
+| LEGEND                   |        | DATA FLOWS               |
+| ──►  Direct Call         |        | ┌──> User-Initiated Write|
+| ◄──► Internal R/W        |        | ├──> Filesystem Sync     |
+| ◄──  Service Call        |        | └──> Remote Sync         |
+| ..> Pub/Sub Notification |        '--------------------------'
+| ~>  Specialized Link     |
+'--------------------------'
                             ┌──────────────────────────────────┐
                             │ UI Layer (React Modals, view.ts) │
                             └──────────────────────────────────┘
@@ -26,37 +33,37 @@ Below is a birds-eye view of the different components of the plugin, and the int
   (User creates/edits event)     │      │ (Pub/Sub      │   (User drags/resizes event)
                     "CRUD Ops"   │      │   Update)     │ "Modify Event"
                                  ▼      │               ▼
-.--------------------------.  ┌──────────────────────────────────┐      .──────────────────.
-| LEGEND                   |  │      Core Layer: EventCache      │ ◄─── |  ChronoAnalyser  |
-| ──►  Direct Call         |  │     (Single Source of Truth)     │ ~~~> |  (sub-project)   |
-| ◄──► Internal R/W        |  └──────────────────────────────────┘      '──────────────────'
-| ◄──  Service Call        |            ▲          │                            ▲
-| ..> Pub/Sub Notification |            │          │                            │
-'--------------------------'            │          ▼                            │
-                            ┌───────────┴────────────────────────┐ ┌────────────────────────┐
+                              ┌──────────────────────────────────┐      .──────────────────.
+                              │      Core Layer: EventCache      │ ◄─── |  ChronoAnalyser  |
+                              │     (Single Source of Truth)     │ ~~~> |  (sub-project)   |
+                              └──────────────────────────────────┘      '──────────────────'
+                                        ▲          │                            ▲
+                                        │          │ (Delegate I/O)             │ (State Flagging)
+                                        │          ▼                            │
+                            ┌───────────┴────────────────────────┐ ┌────────────┴───────────┐
                             │  Data Sources Layer (Calendar.ts)  │ │   Core Service Layer   │
                             └────────────────────────────────────┘ └────────────────────────┘
                                           │                              │        │
                   ┌───────────────────────┴───────────────────┐          │        ▼
                   │                                           │          │ ┌──────────────────────┐
       ┌───────────────────────┐                   ┌───────────────────┐  │ │ CategorizationManager│
-      │  Editable Calendars   │                   │ Remote Calendars  │  └►│   (Bulk Operations)  │
-      │ (FullNote, DailyNote) │                   │ (ICS, CalDAV)     │    └──────────────────────┘
-      └───────────────────────┘                   └───────────────────┘
-          │             ▲                              │             ▲
-"Delegate │             │ "File Events"        "Re-    │             │ "Get Events"
-  Write"  │             │ (on file change)    validate"│             │
-          ▼             │                              ▼             │
-┌──────────────────────────────────┐              ┌───────────────────────┐
-│ Abstraction: ObsidianAdapter.ts  │              │   The Internet*       │
-└──────────────────────────────────┘              └───────────────────────┘
-          │             ▲                         .---------------------------.
-"File I/O"│             │ <~ "on('changed', ...)" | DATA FLOWS                |
-          ▼             │                         |                           |
-┌──────────────────────────────────┐              | ┌──> User-Initiated Write |
-│   Obsidian Vault APIs*           │              | ├──> Filesystem Sync      |
-└──────────────────────────────────┘              | └──> Remote Sync          |
-                                                  '---------------------------'
+      │  Editable Calendars   │◄──  "Delegate" ───┤ Remote Calendars  │  └►│   (Bulk Operations)  │
+      │ (FullNote, DailyNote) │    "Bulk I/O"     │ (ICS, CalDAV)     │    └──────────────────────┘
+      └───────────────────────┘                   └───────────────────┘             │
+          │             ▲                              │          ▲                 ▼
+"Delegate │             │ "File Events"        "Re-    │          │ "Get       ┌──────────────────┐
+  Write"  │             │ (on file change)    validate"│          │  Events"   │ RecurringEvtMgr  │
+          ▼             │                              ▼          │            │  (Overrides)     │
+┌──────────────────────────────────┐              ┌───────────────────────┐    └──────────────────┘
+│ Abstraction: ObsidianAdapter.ts  │              │   The Internet*       │        ▲
+└──────────────────────────────────┘              └───────────────────────┘        │(Delegate Logic)
+          │             ▲                                                          │
+"File I/O"│             │ <~ "on('changed', ...)"                                  │
+          ▼             │                                                          │
+┌──────────────────────────────────┐                                               │
+│   Obsidian Vault APIs*           │───────────────────────────────────────────────┘
+└──────────────────────────────────┘
+
  * Components with an asterisk are not part of the plugin's code.
 ```
 
@@ -68,13 +75,16 @@ Below is a birds-eye view of the different components of the plugin, and the int
     *   [The Plugin Entry Point (`main.ts`)](#the-plugin-entry-point-maints)
     *   [EventCache: The Central Nervous System](#eventcache-the-central-nervous-system)
     *   [EventStore: The In-Memory Database](#eventstore-the-in-memory-database)
+    *   [RecurringEventManager: The Override Logic Service](#recurringeventmanager-the-override-logic-service)
     *   [CategorizationManager: The Bulk Operations Service](#categorizationmanager-the-bulk-operations-service)
     *   [The Calendar System](#the-calendar-system)
     *   [ObsidianAdapter: A Decoupling Layer](#obsidianadapter-a-decoupling-layer)
-    *   [The UI Layer (`view.ts`, `event_modal.ts`)](#the-ui-layer-viewts-event_modalts)
+    *   [The UI Layer (`view.ts`, React Components)](#the-ui-layer-viewts-react-components)
 3.  [Key Concepts](#key-concepts)
     *   [Timezone Handling](#timezone-handling)
     *   [Category Parsing](#category-parsing)
+    *   [Recurring Event Overrides](#recurring-event-overrides)
+    *   [Event Identifier System](#event-identifier-system)
 4.  [Data Flow and State Management](#data-flow-and-state-management)
     *   [Flow 1: User-Initiated Change (e.g., Drag-and-Drop)](#flow-1-user-initiated-change-eg-drag-and-drop)
     *   [Flow 2: Filesystem-Initiated Change (e.g., External Edit)](#flow-2-filesystem-initiated-change-eg-external-edit)
@@ -88,7 +98,7 @@ Below is a birds-eye view of the different components of the plugin, and the int
 
 ## Architecture Overview
 
-The Full Calendar plugin is built on a modular, decoupled architecture designed for testability and extensibility. At its heart is the `EventCache`, which acts as a single source of truth for the UI and orchestrates interactions between different calendar sources and the Obsidian vault. It is supported by modular services like the `CategorizationManager` for handling complex, vault-wide operations.
+The Full Calendar plugin is built on a modular, decoupled architecture designed for testability and extensibility. At its heart is the `EventCache`, which acts as a single source of truth for the UI and orchestrates interactions between different calendar sources and the Obsidian vault. It is supported by modular services like the `RecurringEventManager` for complex event logic and the `CategorizationManager` for handling vault-wide operations.
 
 ### High-Level Diagram
 
@@ -106,6 +116,7 @@ graph TD
     subgraph Core Layer
         C(Event Cache)
         D[Event Store]
+        REM[Recurring Event Manager]
         CM[Categorization Manager]
     end
 
@@ -136,10 +147,13 @@ graph TD
 
     C -- "Notifies Updates" --> A
     C -- "Manages Data" --> D
+    C -- "Delegates Recurring Logic" --> REM
 
     C -- "Delegates I/O" --> E & F
     C -- "Revalidates" --> G & H
     
+    REM -- "CRUD Operations" --> C
+
     CM -- "Delegates Bulk I/O" --> E & F
     CM -- "Manages Cache State" --> C
 
@@ -154,6 +168,7 @@ graph TD
 
     %% Styling
     style C fill:#f9f,stroke:#333,stroke-width:2px,color:#000
+    style REM fill:#ffc,stroke:#333,stroke-width:2px,color:#000
     style CM fill:#ffc,stroke:#333,stroke-width:2px,color:#000
     style I fill:#ccf,stroke:#333,stroke-width:2px,color:#000
 ```
@@ -163,7 +178,7 @@ graph TD
 ### The Plugin Entry Point (`main.ts`)
 
 `FullCalendarPlugin` is the main class that Obsidian loads. Its primary responsibilities are:
-*   **Initialization**: Sets up core services like the `EventCache` and `CategorizationManager`. It provides the `EventCache` with a `CalendarInitializerMap`, a factory for creating `Calendar` objects from user settings.
+*   **Initialization**: Sets up core services like the `EventCache`, `RecurringEventManager`, and `CategorizationManager`. It provides the `EventCache` with a `CalendarInitializerMap`, a factory for creating `Calendar` objects from user settings.
 *   **View Registration**: Registers `CalendarView` for the main workspace and sidebar.
 *   **Lifecycle Management**: Loads settings (`onload`), populates the cache, and registers listeners for Obsidian vault events (`on('changed')`, `on('rename')`, `on('delete')`). These listeners are crucial for keeping the cache in sync with the filesystem.
 *   **Command Registration**: Adds commands to the palette, such as creating a new event or resetting the cache.
@@ -175,10 +190,11 @@ graph TD
 *   **Responsibilities**:
     *   **State Management**: Holds the master list of all calendar sources and their events in its internal `EventStore`.
     *   **I/O Orchestration**: It *does not* perform file I/O or network requests directly. Instead, it delegates these tasks to the appropriate `Calendar` subclass.
+    *   **Logic Delegation**: For complex operations, it delegates to its internal `RecurringEventManager`.
     *   **CRUD Operations**: Provides a public API for the UI to `addEvent`, `deleteEvent`, and `updateEventWithId`.
     *   **Pub/Sub Hub**: Implements an `on('update', callback)` method. The `CalendarView` subscribes to this to receive notifications when events are added, removed, or changed.
     *   **State Flagging**: Exposes an `isBulkUpdating` flag that can be set by external services (like `CategorizationManager`) to temporarily pause filesystem-triggered updates, preventing race conditions.
-    *   **Remote Revalidation**: Manages periodic, throttled fetching of remote calendars.
+    *   **Identifier Management**: Manages the mapping between persistent event identifiers and transient session IDs.
 
 ### EventStore: The In-Memory Database
 
@@ -189,12 +205,22 @@ graph TD
     *   **Secondary Indexes**: Maintains `OneToMany` relationships to allow for fast lookups of events by `calendarId` and by file `path`. This prevents costly iteration when finding all events in a specific file.
     *   **Atomicity**: Provides atomic `add` and `delete` operations that update all indexes simultaneously.
 
+### RecurringEventManager: The Override Logic Service
+
+> `core/RecurringEventManager.ts` is a dedicated service for handling all complex business logic related to recurring events.
+
+*   **Responsibilities**:
+    *   **Override Management**: Implements the "skip and override" strategy for when a user modifies a single instance of a recurring event.
+    *   **Deletion Logic**: Intercepts delete requests for recurring master events. If child overrides exist, it opens a `DeleteRecurringModal` to ask the user whether to promote the children or delete everything.
+    *   **Task Management**: Handles toggling the completion status for individual recurring instances.
+    *   **Parent-Child Sync**: When a master recurring event is modified (e.g., its title changes), this service finds all its child overrides and updates them to match.
+
 ### CategorizationManager: The Bulk Operations Service
 
 > `core/CategorizationManager.ts` is a dedicated service for handling complex, vault-wide modifications.
 
 *   **Responsibilities**:
-    *   **Orchestration**: Contains the business logic for the "Category Coloring" feature's bulk updates (e.g., `bulkUpdateCategories`, `bulkRemoveCategories`).
+    *   **Orchestration**: Contains the business logic for the "Category Coloring" feature's bulk updates (e.g., `bulkUpdateCategories`, `bulkRemoveCategories`), triggered from the settings UI.
     *   **Control Flow**: Manages the `EventCache.isBulkUpdating` flag to ensure the cache remains stable during its operations. It triggers a final cache reset upon completion.
     *   **Abstraction**: Interacts with the abstract `EditableCalendar` interface, delegating the actual file modification work to the specific calendar implementations. It does not know or care about frontmatter vs. inline text.
 
@@ -202,7 +228,7 @@ graph TD
 
 > Located in `calendars/`, this system uses a clear inheritance model to handle different event sources.
 
-1.  **`Calendar` (Abstract)**: The base class defining the common interface for all calendars (`id`, `name`, `getEvents`).
+1.  **`Calendar` (Base Class)**: Defines the common interface for all calendars (`id`, `name`, `getEvents`, `getLocalIdentifier`).
 2.  **`RemoteCalendar` (Abstract)**: Inherits from `Calendar`. Adds a `revalidate()` method for fetching updates.
     *   **Implementations**: `ICSCalendar`, `CalDAVCalendar`.
 3.  **`EditableCalendar` (Abstract)**: Inherits from `Calendar`. Represents calendars whose source is the local Obsidian vault. It adds a powerful interface for file manipulation.
@@ -220,10 +246,13 @@ graph TD
     *   **Decoupling**: The core logic of the calendars is not directly tied to the specifics of the `app` object.
     *   **Centralized Logic**: Provides a single place for complex Obsidian interactions, like the `rewrite` method.
 
-### The UI Layer (`view.ts`, `event_modal.ts`)
+### The UI Layer (`view.ts`, React Components)
 
-*   **`CalendarView` (`ui/view.ts`)**: An `ItemView` that hosts the FullCalendar.io instance. It renders the calendar, translates `OFCEvent` objects into `EventInput` objects for the view (using `ui/interop.ts`), and wires up user interactions (clicks, drags) to the `EventCache`.
-*   **React Modals (`ui/event_modal.ts`, `ui/components/EditEvent.tsx`)**: The UI for creating and editing events. On submit, it calls methods on the `EventCache`. It **does not** interact with `Calendar` objects or the filesystem directly.
+*   **`CalendarView` (`ui/view.ts`)**: An `ItemView` that hosts the FullCalendar.io instance. It renders the calendar, translates `OFCEvent` objects into `EventInput` objects for the view (using `core/interop.ts`), and wires up user interactions (clicks, drags) to the `EventCache`.
+*   **React Integration**: The plugin uses React for complex UIs, hosted within an Obsidian `Modal` via the `ReactModal.ts` bridge.
+    *   `EditEvent.tsx`: The primary form for creating and editing events.
+    *   `SettingsTab.tsx` and its children (`CalendarSetting.tsx`, `CategorySetting.tsx`): Manages the entire settings pane.
+    *   On submit, these components call methods on the `EventCache`. They **do not** interact with `Calendar` objects or the filesystem directly.
 
 ## Key Concepts
 
@@ -246,46 +275,67 @@ The feature operates on a `Category - Title` format.
 *   **`constructTitle`**: Takes a category and title and joins them into the full string.
 *   **Conditional Logic**: The *decision* to use these functions is made within each `Calendar` class's parsing/serialization logic, controlled by the `enableCategoryColoring` setting. This ensures the feature is opt-in and does not affect users who have it disabled.
 
+### Recurring Event Overrides
+
+This is the core concept behind `RecurringEventManager.ts`. When a user modifies a single instance of a recurring event (e.g., by dragging it or marking it as complete):
+
+1.  **Skip**: The date of the original instance is added to the parent recurring event's `skipDates` array.
+2.  **Override**: A *new* `single` event is created. This new event has the modified properties (e.g., new time, `completed: true`) and a special `recurringEventId` property that points back to its parent.
+
+This strategy preserves the integrity of the original recurrence rule while allowing for flexible, individual exceptions.
+
+### Event Identifier System
+
+To make overrides and other features work, the plugin uses a two-level ID system:
+1.  **Session ID**: A transient, auto-incrementing number assigned to every event when the cache is populated. This is used by FullCalendar.io.
+2.  **Global Identifier**: A persistent, unique string created by combining the calendar's ID and the event's local ID (e.g., its UID from an ICS feed or its filename for a note-based calendar). The `EventCache` maintains a `Map` to look up the session ID from the global ID, enabling stable cross-references.
+
 ## Data Flow and State Management
 
 ### Flow 1: User-Initiated Change (e.g., Drag-and-Drop)
 
-1.  **UI**: User drags an event in `CalendarView`. FullCalendar.io's `eventDrop` callback is triggered.
-2.  **`CalendarView`**: Calls `plugin.cache.updateEventWithId()`.
-3.  **`EventCache`**: Retrieves the `EditableCalendar` and `EventLocation` from `EventStore` and calls `calendar.modifyEvent()`, delegating the persistence task. It provides a callback to `modifyEvent` to update the in-memory `EventStore` *before* the file write.
-4.  **`EditableCalendar`**: Calls the cache's update callback, then uses the `ObsidianAdapter` to perform the file I/O.
-5.  **`EventCache`**: After the `modifyEvent` promise resolves, it notifies all subscribers (`CalendarView`) to update the UI.
+1.  **UI**: User drags a recurring event instance in `CalendarView`. FullCalendar.io's `eventDrop` callback is triggered.
+2.  **`CalendarView`**: Detects that it's a recurring instance and calls `plugin.cache.modifyRecurringInstance()`.
+3.  **`EventCache`**: Delegates the call to its internal `RecurringEventManager`.
+4.  **`RecurringEventManager`**: Implements the "skip and override" logic. It calls `cache.addEvent()` for the new override and `cache.processEvent()` to update the parent's `skipDates` array. Both calls are made "silently" to batch UI updates.
+5.  **`EventCache`**: The "silent" calls add the operations to a queue. After the `RecurringEventManager` is finished, the `EventCache` flushes the queue, sending a single update payload to the `CalendarView`.
+6.  **`CalendarView`**: The update callback receives the payload and tells FullCalendar.io to efficiently remove/add the specific events.
 
 ### Flow 2: Filesystem-Initiated Change (e.g., External Edit)
 
 1.  **Obsidian**: A user edits a note. Obsidian fires a `metadataCache.on('changed', ...)` event.
 2.  **`main.ts`**: The listener calls `plugin.cache.fileUpdated(file)`.
 3.  **`EventCache`**:
-    a. Checks if `isBulkUpdating` is `true`. If so, it ignores the event.
+    a. Checks if `isBulkUpdating` is `true`. If so, it ignores the event to prevent race conditions.
     b. Otherwise, it identifies the relevant `EditableCalendar` for the file path.
     c. It calls `calendar.getEventsInFile(file)` to get the new event data.
     d. It compares the new data to the old data in `EventStore`.
     e. If different, it atomically updates `EventStore` (removes old, adds new).
-    f. It calls `updateViews()` with a payload of removed IDs and new event entries.
+    f. It calls `flushUpdateQueue()` with a payload of removed IDs and new event entries.
 4.  **`CalendarView`**: The update callback receives the payload and tells FullCalendar.io to efficiently remove/add the specific events.
 
 ## Key Data Structures
 
 ### `OFCEvent`
 
-Defined in `types/schema.ts` using `zod`, `OFCEvent` is the **canonical internal representation** of an event. It includes the optional `category` property.
+Defined in `types/schema.ts` using `zod`, `OFCEvent` is the **canonical internal representation** of an event.
 
 ```typescript
 // A simplified representation
-export type OFCEvent = Common & Time & EventType;
-
-type Common = {
-  title: string;      // The CLEAN title, without category prefix.
-  category?: string; // The parsed category, if it exists.
-  id?: string;
+export type OFCEvent = {
+  title: string;          // The CLEAN title, without category prefix.
+  category?: string;      // The parsed category, if it exists.
+  id?: string;            // Transient session ID.
+  uid?: string;           // Persistent ID from remote source (e.g., iCal UID).
   timezone?: string;
+  recurringEventId?: string; // Pointer to parent's local identifier.
+
+  // Discriminated union properties for type, date, time, recurrence
+  type: 'single' | 'recurring' | 'rrule';
+  allDay: boolean;
+  skipDates?: string[]; // For recurring events
+  // ... and other date/time fields
 };
-// ... (Time and EventType definitions)
 ```
 
 ### `EventLocation`
@@ -308,7 +358,7 @@ To add support for a new event source (e.g., a new web service):
 1.  **Create the Calendar Class**: In `src/calendars/`, create `MyNewCalendar.ts`. It should extend `EditableCalendar` or `RemoteCalendar`.
 2.  **Implement the Interface**: Implement all required abstract methods. If it's an `EditableCalendar`, you must also implement `bulkAddCategories` and `bulkRemoveCategories` for compatibility with the settings UI.
 3.  **Update Initializer Map**: In `src/main.ts`, add your new calendar type to the `CalendarInitializerMap`.
-4.  **Update Settings UI**: Update `zod` schemas in `calendar_settings.ts` and the React components in `settings.tsx` and `AddCalendarSource.tsx` to handle the new type.
+4.  **Update Settings UI**: Update `zod` schemas in `calendar_settings.ts` and the React components in `SettingsTab.tsx` and `AddCalendarSource.tsx` to handle the new type.
 
 ### Subscribing to Cache Updates
 

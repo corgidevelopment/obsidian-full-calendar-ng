@@ -29,7 +29,7 @@ import { ObsidianInterface } from '../ObsidianAdapter';
 import { OFCEvent, EventLocation, CalendarInfo, validateEvent } from '../types';
 import { EventResponse } from './Calendar';
 import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
-import { FullCalendarSettings } from '../ui/settings';
+import { FullCalendarSettings } from '../types/settings';
 import { convertEvent } from '../core/Timezone';
 import { constructTitle, parseTitle } from '../core/categoryParser';
 import FullCalendarPlugin from '../main';
@@ -100,20 +100,27 @@ export const getInlineEventFromLine = (
   settings: FullCalendarSettings
 ): OFCEvent | null => {
   const attrs = getInlineAttributes(text);
-  const rawTitle = text.replace(listRegex, '').replace(fieldRegex, '').trim();
+  const rawTitle = text.replace(listRegex, '').replace(fieldRegex, ''); // REMOVED .trim()
+
+  const hasInlineFields = Object.keys(attrs).length > 0;
+
+  if (!settings.enableCategoryColoring && !hasInlineFields) {
+    return null;
+  }
 
   // If the line has no title and no inline fields, it's definitely not an event.
-  if (!rawTitle && Object.keys(attrs).length === 0) {
+  if (!rawTitle.trim() && !hasInlineFields) {
+    // check the trimmed version here instead
     return null;
   }
 
   let eventData: any = {};
   if (settings.enableCategoryColoring) {
     const { category, title } = parseTitle(rawTitle);
-    eventData.title = title;
-    eventData.category = category;
+    eventData.title = title.trim(); // Trim the final components
+    eventData.category = category ? category.trim() : undefined; // Trim the final components
   } else {
-    eventData.title = rawTitle;
+    eventData.title = rawTitle.trim(); // Trim the final title
   }
 
   // THE FIX IS HERE: We cast globalAttrs to a type that can hold `date`.
@@ -245,15 +252,14 @@ export default class DailyNoteCalendar extends EditableCalendar {
   constructor(
     app: ObsidianInterface,
     plugin: FullCalendarPlugin,
-    color: string,
-    heading: string,
+    info: CalendarInfo,
     settings: FullCalendarSettings
   ) {
-    super(color, settings);
+    super(info, settings);
     appHasDailyNotesPluginLoaded();
     this.app = app;
     this.plugin = plugin;
-    this.heading = heading;
+    this.heading = (info as Extract<CalendarInfo, { type: 'dailynote' }>).heading;
   }
 
   get type(): CalendarInfo['type'] {
@@ -553,5 +559,13 @@ export default class DailyNoteCalendar extends EditableCalendar {
     };
 
     await this.plugin.nonBlockingProcess(allNotes, processor, 'De-categorizing daily notes');
+  }
+
+  public getLocalIdentifier(event: OFCEvent): string | null {
+    if (event.type === 'single' && event.date) {
+      const fullTitle = constructTitle(event.category, event.title);
+      return `${event.date}::${fullTitle}`;
+    }
+    return null;
   }
 }

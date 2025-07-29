@@ -16,11 +16,12 @@
  */
 
 import { Calendar } from './Calendar';
-import { FullCalendarSettings } from '../ui/settings';
+import { FullCalendarSettings } from '../types/settings';
+import { CalendarInfo } from '../types';
 
 export default abstract class RemoteCalendar extends Calendar {
-  constructor(color: string, settings: FullCalendarSettings) {
-    super(color, settings);
+  constructor(info: CalendarInfo, settings: FullCalendarSettings) {
+    super(info, settings);
   }
   abstract revalidate(): Promise<void>;
 }

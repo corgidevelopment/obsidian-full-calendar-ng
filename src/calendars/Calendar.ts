@@ -12,7 +12,7 @@
  */
 
 import { CalendarInfo, EventLocation, OFCEvent } from '../types';
-import { FullCalendarSettings } from '../ui/settings';
+import { FullCalendarSettings } from '../types/settings';
 
 export const ID_SEPARATOR = '::';
 
@@ -23,23 +23,29 @@ export type EventResponse = [OFCEvent, EventLocation | null];
  */
 export abstract class Calendar {
   color: string;
-  // This will be populated by the EventCache.
-  protected settings: FullCalendarSettings;
+  settings: FullCalendarSettings;
 
-  constructor(color: string, settings: FullCalendarSettings) {
-    this.color = color;
+  constructor(info: CalendarInfo, settings: FullCalendarSettings) {
+    this.color = info.color;
     this.settings = settings;
   }
 
-  abstract get type(): CalendarInfo['type'];
-  abstract get identifier(): string;
   get id(): string {
-    return `${this.type}${ID_SEPARATOR}${this.identifier}`;
+    return `${this.type}::${this.identifier}`;
   }
+
+  abstract get type(): CalendarInfo['type'];
   abstract get name(): string;
+  abstract get identifier(): string;
 
   /**
-   * Return events along with their associated source files, if they exist.
+   * Get all events from this calendar.
    */
   abstract getEvents(): Promise<EventResponse[]>;
+
+  /**
+   * For a given event, return a string that is unique to that event within this
+   * calendar. This is used to create a globally unique ID for the event.
+   */
+  public abstract getLocalIdentifier(event: OFCEvent): string | null;
 }

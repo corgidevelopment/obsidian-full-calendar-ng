@@ -34,8 +34,20 @@ import { TFolder, Notice } from 'obsidian';
 // There is an issue with FullCalendar RRule support around Daylight Saving Time boundaries
 // which is fixed by this monkeypatch:
 // https://github.com/fullcalendar/fullcalendar/issues/5273#issuecomment-1360459342
+const originalExpand = rrulePlugin.recurringTypes[0].expand;
 rrulePlugin.recurringTypes[0].expand = function (errd, fr, de) {
-  const hours = errd.rruleSet._dtstart.getHours();
+  // If the rruleSet is timezone-aware, the rrule.js library can handle it correctly.
+  // Our old monkeypatch logic interferes with this.
+  // We only need to apply the patch for timezone-naive rules (likely from remote ICS feeds).
+  if (errd.rruleSet.tzid()) {
+    return originalExpand.call(this, errd, fr, de);
+  }
+
+  // Fallback to the monkeypatch for timezone-naive rules.
+  const hours = errd.rruleSet._dtstart
+    ? errd.rruleSet._dtstart.getHours()
+    : de.toDate(fr.start).getUTCHours();
+
   return errd.rruleSet.between(de.toDate(fr.start), de.toDate(fr.end), true).map((d: Date) => {
     return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), hours, d.getMinutes()));
   });
@@ -187,7 +199,7 @@ export function renderCalendar(
         if (event.extendedProps.isTask) {
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
-          checkbox.checked = event.extendedProps.taskCompleted !== false;
+          checkbox.checked = !!event.extendedProps.taskCompleted;
           checkbox.onclick = async e => {
             e.stopPropagation();
             if (e.target) {

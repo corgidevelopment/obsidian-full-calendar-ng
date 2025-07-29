@@ -1,5 +1,5 @@
 import { getEventsFromICS } from './ics';
-import { DEFAULT_SETTINGS } from '../../ui/settings'; // <-- IMPORT DEFAULTS
+import { DEFAULT_SETTINGS } from '../../types/settings'; // <-- IMPORT DEFAULTS
 
 describe('ics tests', () => {
   it('parses all day event', () => {

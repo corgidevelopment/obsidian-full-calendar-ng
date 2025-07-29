@@ -18,14 +18,15 @@
  * @license See LICENSE.md
  */
 
-import { Notice } from 'obsidian';
+import { Notice, Modal, App, Setting, ButtonComponent } from 'obsidian';
 import * as React from 'react';
 import { EditableCalendar } from '../calendars/EditableCalendar';
 import FullCalendarPlugin from '../main';
 import { OFCEvent } from '../types';
-import { openFileForEvent } from './actions';
+import { openFileForEvent } from '../actions/eventActions';
 import { EditEvent } from './components/EditEvent';
 import ReactModal from './ReactModal';
+import { ConfirmModal } from './modals/ConfirmModal';
 
 export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Partial<OFCEvent>) {
   const calendars = [...plugin.cache.calendars.entries()]
@@ -66,6 +67,13 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
   ).open();
 }
 
+/**
+ * @file
+ * Provides the `launchEditModal` function for displaying and handling the event editing modal
+ * in the FullCalendar plugin UI. This modal allows users to edit, move, or delete calendar events,
+ * including handling inherited properties from recurring parent events and category selection.
+ * Integrates with the plugin's cache and settings, and supports error handling and user confirmations.
+ */
 export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
   const eventToEdit = plugin.cache.getEventById(eventId);
   if (!eventToEdit) {
@@ -84,12 +92,31 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
     });
 
   const calIdx = calendars.findIndex(({ id }) => id === calId);
-
-  // MODIFICATION: Get available categories
   const availableCategories = plugin.cache.getAllCategories();
 
-  new ReactModal(plugin.app, async closeModal =>
-    React.createElement(EditEvent, {
+  new ReactModal(plugin.app, async closeModal => {
+    const onAttemptEditInherited = () => {
+      new ConfirmModal(
+        plugin.app,
+        'Edit Parent Event?',
+        'This property is inherited from the parent recurring event. Would you like to open the parent to make changes?',
+        async () => {
+          if (eventToEdit.type === 'single' && eventToEdit.recurringEventId) {
+            const parentLocalId = eventToEdit.recurringEventId;
+            const parentGlobalId = `${calId}::${parentLocalId}`;
+            const parentSessionId = await plugin.cache.getSessionId(parentGlobalId);
+            if (parentSessionId) {
+              closeModal();
+              launchEditModal(plugin, parentSessionId);
+            } else {
+              new Notice('Could not find the parent recurring event.');
+            }
+          }
+        }
+      ).open();
+    };
+
+    return React.createElement(EditEvent, {
       initialEvent: eventToEdit,
       calendars,
       defaultCalendarIndex: calIdx, // <-- RESTORED THIS PROP
@@ -115,7 +142,11 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
       },
       deleteEvent: async () => {
         try {
+          // This call now triggers the modal logic if needed.
           await plugin.cache.deleteEvent(eventId);
+          // If the event was a recurring master with children, a modal will
+          // open and this closeModal() might happen before the user chooses.
+          // This is acceptable behavior.
           closeModal();
         } catch (e) {
           if (e instanceof Error) {
@@ -123,7 +154,8 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
             console.error(e);
           }
         }
-      }
-    })
-  ).open();
+      },
+      onAttemptEditInherited // Pass the new handler as a prop
+    });
+  }).open();
 }

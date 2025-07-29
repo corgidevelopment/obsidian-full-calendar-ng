@@ -1,21 +1,21 @@
 /**
  * @file onboard.ts
- * @brief Renders the initial onboarding screen for new users.
+ * @brief Renders the onboarding screen for users without configured calendars.
  *
  * @description
- * This file contains the logic to display a helpful message and a call-to-action
- * when a user has the plugin enabled but has not yet configured any calendar
- * sources. It guides the user to create their first calendar.
+ * Displays a message and a button prompting users to create their first calendar
+ * when no calendar sources are configured. Integrates with the plugin's settings
+ * and activates the calendar view after creation.
  *
  * @license See LICENSE.md
  */
 
 import { App } from 'obsidian';
 import FullCalendarPlugin from '../main';
-import { addCalendarButton } from './settings';
+import { addCalendarButton } from './settings/SettingsTab';
 import { CalendarInfo } from '../types';
 
-export function renderOnboarding(app: App, plugin: FullCalendarPlugin, el: HTMLElement) {
+export function renderOnboarding(plugin: FullCalendarPlugin, el: HTMLElement) {
   el.style.height = '100%';
   const nocal = el.createDiv();
   nocal.style.height = '100%';
@@ -29,7 +29,7 @@ export function renderOnboarding(app: App, plugin: FullCalendarPlugin, el: HTMLE
 
   const container = notice.createDiv();
   container.style.position = 'fixed';
-  addCalendarButton(app, plugin, container, async (source: CalendarInfo) => {
+  addCalendarButton(plugin, container, async (source: CalendarInfo) => {
     const { calendarSources } = plugin.settings;
     calendarSources.push(source);
     await plugin.saveSettings();

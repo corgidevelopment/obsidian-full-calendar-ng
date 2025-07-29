@@ -7,7 +7,8 @@ import { FileBuilder } from '../../test_helpers/FileBuilder';
 import { OFCEvent } from '../types';
 import FullNoteCalendar from './FullNoteCalendar';
 import { parseEvent } from '../types/schema';
-import { DEFAULT_SETTINGS } from '../ui/settings';
+import { DEFAULT_SETTINGS } from '../types/settings';
+import { CalendarInfo } from '../types';
 import FullCalendarPlugin from '../main';
 
 async function assertFailed(func: () => Promise<any>, message: RegExp) {
@@ -27,7 +28,15 @@ const makeApp = (app: MockApp): ObsidianInterface => ({
     return app.vault.getFileByPath(path);
   },
   getMetadata: file => app.metadataCache.getFileCache(file),
-  waitForMetadata: file => new Promise(resolve => resolve(app.metadataCache.getFileCache(file)!)),
+  waitForMetadata: file =>
+    new Promise((resolve, reject) => {
+      const cache = app.metadataCache.getFileCache(file);
+      if (cache) {
+        resolve(cache);
+      } else {
+        reject(new Error(`No metadata cache found for ${file.path}`));
+      }
+    }),
   read: file => app.vault.read(file),
   create: jest.fn(),
   rewrite: jest.fn(),
@@ -123,7 +132,13 @@ describe('FullNoteCalendar Tests', () => {
           .done()
       );
       // CORRECTED CONSTRUCTOR CALL
-      const calendar = new FullNoteCalendar(obsidian, mockPlugin, color, dirName, {
+      const info: CalendarInfo = {
+        type: 'local',
+        id: 'local_1',
+        color,
+        directory: dirName
+      };
+      const calendar = new FullNoteCalendar(obsidian, mockPlugin, info, {
         ...DEFAULT_SETTINGS,
         enableCategoryColoring: true
       });
@@ -143,7 +158,13 @@ describe('FullNoteCalendar Tests', () => {
   it('creates an event with a category', async () => {
     const obsidian = makeApp(MockAppBuilder.make().done());
     // CORRECTED CONSTRUCTOR CALL
-    const calendar = new FullNoteCalendar(obsidian, mockPlugin, color, dirName, {
+    const info: CalendarInfo = {
+      type: 'local',
+      id: 'local_1',
+      color,
+      directory: dirName
+    };
+    const calendar = new FullNoteCalendar(obsidian, mockPlugin, info, {
       ...DEFAULT_SETTINGS,
       enableCategoryColoring: true
     });
@@ -187,12 +208,19 @@ describe('FullNoteCalendar Tests', () => {
         .done()
     );
     // CORRECTED CONSTRUCTOR CALL
-    const calendar = new FullNoteCalendar(obsidian, mockPlugin, color, dirName, {
+    const info: CalendarInfo = {
+      type: 'local',
+      id: 'local_1',
+      color,
+      directory: dirName
+    };
+    const calendar = new FullNoteCalendar(obsidian, mockPlugin, info, {
       ...DEFAULT_SETTINGS,
       enableCategoryColoring: true
     });
 
-    const firstFile = obsidian.getAbstractFileByPath(join('events', filename)) as TFile;
+    const path = 'events/' + filename; // Use forward slash instead of join
+    const firstFile = obsidian.getAbstractFileByPath(path) as TFile;
 
     const contents = await obsidian.read(firstFile);
 
@@ -205,7 +233,7 @@ describe('FullNoteCalendar Tests', () => {
     });
 
     await calendar.modifyEvent(
-      { path: join('events', filename), lineNumber: undefined },
+      { path, lineNumber: undefined }, // Use the same path variable
       newEvent,
       mockFn
     );
