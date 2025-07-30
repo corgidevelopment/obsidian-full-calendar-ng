@@ -1,5 +1,6 @@
 // src/chrono_analyser/modules/InsightsRenderer.ts
 
+import { setIcon } from 'obsidian';
 import { Insight, InsightPayloadItem } from '../../data/InsightsEngine';
 import { FilterPayload } from '../UIService';
 
@@ -55,8 +56,19 @@ export class InsightsRenderer {
     const body = card.createDiv({ cls: 'insight-card-body is-folded' });
 
     const iconName = this.iconMap[insight.sentiment] || 'info';
-    header.innerHTML += `<div class="insight-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-${iconName}"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>`;
-    header.createDiv({ cls: 'insight-text' }).innerHTML = insight.displayText;
+    const iconDiv = header.createDiv({ cls: 'insight-icon' });
+    setIcon(iconDiv, iconName);
+
+    // --- MODIFIED: Safe rendering of text fragments ---
+    const textContainer = header.createDiv({ cls: 'insight-text' });
+    insight.displayTextFragments.forEach(fragment => {
+      if (fragment.bold) {
+        textContainer.createEl('strong', { text: fragment.text });
+      } else {
+        textContainer.appendText(fragment.text);
+      }
+    });
+    // --- END MODIFICATION ---
 
     const graphButton = this.createGraphButton(insight.action);
     if (graphButton) {
@@ -84,17 +96,22 @@ export class InsightsRenderer {
 
     if (item.subItems && item.subItems.length > 0) {
       const expander = leftGroup.createDiv({ cls: 'insight-sub-item-expander' });
-      expander.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>`;
+      setIcon(expander, 'chevron-right');
       subItem.classList.add('is-expandable');
     }
 
     leftGroup.createEl('span', { cls: 'insight-sub-item-project', text: item.project });
 
     // Details text is now a separate flex item, creating the second column
-    if (item.details) {
+    // --- MODIFIED: Safe rendering of details fragments ---
+    if (item.detailsFragments) {
       const detailsSpan = subItemHeader.createEl('span', { cls: 'insight-sub-item-details' });
-      detailsSpan.innerHTML = this.formatDetails(item.details);
+      item.detailsFragments.forEach(fragment => {
+        const targetEl = fragment.bold ? detailsSpan.createEl('strong') : detailsSpan;
+        targetEl.appendText(fragment.text);
+      });
     }
+    // --- END MODIFICATION ---
 
     // Button is the last flex item, pushed to the right
     const subItemGraphButton = this.createGraphButton(item.action);
@@ -120,21 +137,21 @@ export class InsightsRenderer {
     nestedItemEl.createEl('span', { cls: 'insight-nested-item-project', text: item.project });
 
     // Details column
-    if (item.details) {
+    // --- MODIFIED: Safe rendering of details fragments ---
+    if (item.detailsFragments) {
       const detailsEl = nestedItemEl.createEl('span', { cls: 'insight-nested-item-details' });
-      detailsEl.innerHTML = this.formatDetails(item.details);
+      item.detailsFragments.forEach(fragment => {
+        const targetEl = fragment.bold ? detailsEl.createEl('strong') : detailsEl;
+        targetEl.appendText(fragment.text);
+      });
     }
+    // --- END MODIFICATION ---
 
     // Action button column
     const graphButton = this.createGraphButton(item.action);
     if (graphButton) {
       nestedItemEl.appendChild(graphButton);
     }
-  }
-
-  private formatDetails(details: string): string {
-    // General bold conversion: **text** to <strong>text</strong>
-    return details.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   }
 
   private createGraphButton(action: FilterPayload | null): HTMLButtonElement | null {

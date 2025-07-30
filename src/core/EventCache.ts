@@ -377,7 +377,7 @@ export default class EventCache {
       throw new Error(`Calendar ID ${calendarId} is not registered.`);
     }
     if (!(calendar instanceof EditableCalendar)) {
-      console.error(`Event cannot be added to non-editable calendar of type ${calendar.type}`);
+      // console.error(`Event cannot be added to non-editable calendar of type ${calendar.type}`);
       throw new Error(`Cannot add event to a read-only calendar`);
     }
     const location = await calendar.createEvent(event);

@@ -15,6 +15,7 @@ import {
 import { join } from "path";
 import { FileBuilder } from "./FileBuilder";
 import { MockVault } from "./MockVault";
+import { basename } from "path";
 
 export class MockCache implements MetadataCache {
     private cache: Map<string, CachedMetadata>;
@@ -161,7 +162,10 @@ export class MockAppBuilder {
 
     private makeFolder(): TFolder {
         let folder = new TFolder();
-        folder.name = this.path;
+        folder.name = this.path === "/" ? "" : basename(this.path);
+        if (folder.name === "") {
+            (folder as any).isRootVal = true;
+        }
         this.children.forEach((f) => (f.parent = folder));
         folder.children = [...this.children];
         return folder;

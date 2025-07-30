@@ -7,7 +7,7 @@ import Plotly from '../ui/plotly-custom';
 import { OFCEvent } from '../../types';
 
 export interface TimeRecord {
-  _id: string; // <-- ADD THIS LINE
+  _id: string;
   path: string;
   hierarchy: string;
   project: string;

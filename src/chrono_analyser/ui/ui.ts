@@ -13,7 +13,7 @@ interface InsightRule {
 interface InsightGroups {
   [groupName: string]: {
     rules: InsightRule;
-    persona: 'productivity' | 'wellness' | 'none'; // <-- ADD THIS LINE
+    persona: 'productivity' | 'wellness' | 'none';
   };
 }
 export interface InsightsConfig {
@@ -30,6 +30,7 @@ class AutocompleteComponent {
   private onSelectCallback: (value: string) => void;
   private getDataFunc: () => string[];
   private activeSuggestionIndex = -1;
+  private isSelectionInProgress = false;
 
   constructor(
     wrapperEl: HTMLElement,
@@ -71,9 +72,12 @@ class AutocompleteComponent {
           this.activeSuggestionIndex > -1 && suggestions[this.activeSuggestionIndex]
             ? suggestions[this.activeSuggestionIndex].textContent!
             : this.inputEl.value;
+
+        this.isSelectionInProgress = true;
         this.onSelectCallback(valueToSubmit);
         this.suggestionsEl.style.display = 'none';
         this.inputEl.blur();
+        this.isSelectionInProgress = false;
         break;
       case 'Escape':
         this.suggestionsEl.style.display = 'none';
@@ -90,32 +94,39 @@ class AutocompleteComponent {
     }
   };
 
-  private populateSuggestions = (items: string[]) => {
-    this.suggestionsEl.empty();
-    this.activeSuggestionIndex = -1;
-
-    if (items.length > 0) {
-      items.forEach(item => {
-        const div = this.suggestionsEl.createDiv({ cls: 'autocomplete-suggestion-item' });
-        div.textContent = item;
-        div.addEventListener('mousedown', e => {
-          e.preventDefault(); // Prevent blur event from firing first
-          this.onSelectCallback(item);
-          this.suggestionsEl.style.display = 'none';
-        });
-      });
-      this.suggestionsEl.style.display = 'block';
-    } else {
-      this.suggestionsEl.style.display = 'none';
-    }
-  };
-
   private updateFilteredSuggestions = () => {
+    if (this.isSelectionInProgress) return;
     const value = this.inputEl.value.toLowerCase().trim();
     const allData = this.getDataFunc();
     const filteredData =
       value === '' ? allData : allData.filter(item => item.toLowerCase().includes(value));
     this.populateSuggestions(filteredData);
+  };
+
+  private populateSuggestions = (suggestions: string[]) => {
+    this.suggestionsEl.empty();
+    this.activeSuggestionIndex = -1;
+
+    if (suggestions.length > 0) {
+      suggestions.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.textContent = item;
+        div.classList.add('autocomplete-suggestion-item');
+
+        div.addEventListener('mousedown', e => {
+          e.preventDefault(); // Prevent blur event from firing first
+          this.isSelectionInProgress = true;
+          this.onSelectCallback(item);
+          this.suggestionsEl.style.display = 'none';
+          this.isSelectionInProgress = false;
+        });
+
+        this.suggestionsEl.appendChild(div);
+      });
+      this.suggestionsEl.style.display = 'block';
+    } else {
+      this.suggestionsEl.style.display = 'none';
+    }
   };
 
   private updateActiveSuggestion(suggestions: HTMLElement[], index: number) {

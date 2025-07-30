@@ -12,7 +12,7 @@
  * @license See LICENSE.md
  */
 
-import { Notice, Plugin, TFile, TFolder, TAbstractFile } from 'obsidian';
+import { Notice, Plugin, TFile, App } from 'obsidian';
 import { CalendarView, FULL_CALENDAR_SIDEBAR_VIEW_TYPE, FULL_CALENDAR_VIEW_TYPE } from './ui/view';
 import { renderCalendar } from './ui/calendar';
 import { toEventInput } from './core/interop';
@@ -31,12 +31,12 @@ import DailyNoteCalendar from './calendars/DailyNoteCalendar';
 import ICSCalendar from './calendars/ICSCalendar';
 import CalDAVCalendar from './calendars/CalDAVCalendar';
 import { manageTimezone } from './core/Timezone';
-import { AnalysisView, ANALYSIS_VIEW_TYPE } from './chrono_analyser/AnalysisView';
 import { CategorizationManager } from './core/CategorizationManager';
 
 export default class FullCalendarPlugin extends Plugin {
   settings: FullCalendarSettings = DEFAULT_SETTINGS;
   categorizationManager!: CategorizationManager;
+  isMobile: boolean = false;
 
   // To parse `data.json` file.`
   cache: EventCache = new EventCache(this, {
@@ -88,6 +88,7 @@ export default class FullCalendarPlugin extends Plugin {
    * listeners for Vault file changes (create, rename, delete).
    */
   async onload() {
+    this.isMobile = (this.app as App & { isMobile: boolean }).isMobile;
     this.categorizationManager = new CategorizationManager(this);
     await this.loadSettings();
     await manageTimezone(this);
@@ -124,7 +125,18 @@ export default class FullCalendarPlugin extends Plugin {
 
     this.registerView(FULL_CALENDAR_SIDEBAR_VIEW_TYPE, leaf => new CalendarView(leaf, this, true));
 
-    this.registerView(ANALYSIS_VIEW_TYPE, leaf => new AnalysisView(leaf, this));
+    if (!this.isMobile) {
+      // Lazily import the view to avoid loading plotly on mobile.
+      import('./chrono_analyser/AnalysisView')
+        .then(({ AnalysisView, ANALYSIS_VIEW_TYPE }) => {
+          this.registerView(ANALYSIS_VIEW_TYPE, leaf => new AnalysisView(leaf, this));
+        })
+        .catch(err => {
+          console.error('Full Calendar: Failed to load Chrono Analyser view', err);
+          new Notice('Failed to load Chrono Analyser. Please check the console.');
+        });
+    }
+
     // Register the calendar icon on left-side bar
     this.addRibbonIcon('calendar-glyph', 'Open Full Calendar', async (_: MouseEvent) => {
       await this.activateView();
@@ -164,6 +176,19 @@ export default class FullCalendarPlugin extends Plugin {
         this.activateView();
       }
     });
+    // vvv ADD THIS BLOCK vvv
+    if (this.isMobile) {
+      this.addCommand({
+        id: 'full-calendar-open-analysis-mobile-disabled',
+        name: 'Open Chrono Analyser (Desktop Only)',
+        callback: () => {
+          new Notice(
+            'The Chrono Analyser feature is only available on the desktop version of Obsidian.'
+          );
+        }
+      });
+    }
+    // ^^^ END OF BLOCK ^^^
     this.addCommand({
       id: 'full-calendar-open-sidebar',
       name: 'Open in sidebar',

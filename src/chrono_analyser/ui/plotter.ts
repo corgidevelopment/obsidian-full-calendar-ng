@@ -14,7 +14,6 @@ import {
   ProcessingError
 } from '../data/types';
 import * as Utils from '../data/utils';
-import { OFCEvent } from '../../types';
 
 type ShowDetailPopupFn = (categoryName: string, recordsList: TimeRecord[], context?: any) => void;
 
@@ -60,7 +59,9 @@ export function renderChartMessage(rootEl: HTMLElement, message: string) {
     currentlyObservedChart = null;
   }
   Plotly.purge(mainChartEl);
-  mainChartEl.innerHTML = `<p class="chart-message">${message}</p>`;
+
+  (mainChartEl as any).empty(); // Safely clear content
+  (mainChartEl as any).createEl('p', { cls: 'chart-message', text: message });
 }
 
 function getThemedLayout(chartLayout: Partial<Plotly.Layout>): Partial<Plotly.Layout> {
@@ -96,7 +97,7 @@ export function renderPieChartDisplay(
 
   if (isNewChartType) {
     Plotly.purge(mainChartEl);
-    mainChartEl.innerHTML = '';
+    (mainChartEl as any).empty();
   }
 
   const levelSelect = rootEl.querySelector<HTMLSelectElement>('#levelSelect_pie');
@@ -151,15 +152,18 @@ export function renderSunburstChartDisplay(
 
   if (isNewChartType) {
     Plotly.purge(mainContainerEl);
-    mainContainerEl.innerHTML = `
-      <div id="sunburst-wrapper" style="display: flex; flex-direction: row; gap: 15px; width: 100%; height: 100%;">
-        <div id="sunburst-chart-div" style="flex-grow: 1; min-width: 0;"></div>
-        <div id="customLegend" style="flex-basis: 250px; flex-shrink: 0; overflow-y: auto; padding-left: 10px; border-left: 1px solid var(--background-modifier-border);"></div>
-      </div>
-    `;
+    const container = mainContainerEl as any;
+    container.empty();
+    const wrapper = container.createDiv({ cls: 'sunburst-wrapper' });
+    wrapper.createDiv({ cls: 'sunburst-chart-div' });
+    wrapper.createDiv({
+      cls: 'custom-legend',
+      attr: { id: 'customLegend' } // Keep ID for now, style with class
+    });
   }
-  const chartEl = mainContainerEl.querySelector<HTMLElement>('#sunburst-chart-div');
-  const legendEl = mainContainerEl.querySelector<HTMLElement>('#customLegend');
+
+  const chartEl = mainContainerEl.querySelector<HTMLElement>('.sunburst-chart-div');
+  const legendEl = mainContainerEl.querySelector<HTMLElement>('.custom-legend');
   if (!chartEl || !legendEl) return;
 
   const data: Plotly.Data[] = [
@@ -182,7 +186,9 @@ export function renderSunburstChartDisplay(
   };
 
   plotChart(chartEl, data, layout, useReact);
-  legendEl.innerHTML = '';
+  if (legendEl) {
+    (legendEl as any).empty();
+  }
 
   const plotlyChart = chartEl as any;
   plotlyChart.removeAllListeners('plotly_sunburstclick');
@@ -209,7 +215,7 @@ export function renderTimeSeriesChart(
   if (!mainChartEl) return;
   if (isNewChartType) {
     Plotly.purge(mainChartEl);
-    mainChartEl.innerHTML = '';
+    (mainChartEl as any).empty();
   }
 
   if (!filteredRecords || filteredRecords.length === 0) {
@@ -315,7 +321,7 @@ export function renderActivityPatternChart(
   if (!mainChartEl) return;
   if (isNewChartType) {
     Plotly.purge(mainChartEl);
-    mainChartEl.innerHTML = '';
+    (mainChartEl as any).empty();
   }
 
   if (!filteredRecords || filteredRecords.length === 0) {
@@ -483,7 +489,8 @@ export function renderErrorLog(
   const errorLogEntries = rootEl.querySelector<HTMLElement>('#errorLogEntries');
   if (!errorLogContainer || !errorLogSummary || !errorLogEntries) return;
 
-  errorLogEntries.innerHTML = '';
+  const entriesContainer = errorLogEntries as any;
+  entriesContainer.empty();
 
   if (processingErrors.length === 0) {
     errorLogSummary.textContent =
@@ -495,15 +502,18 @@ export function renderErrorLog(
   errorLogSummary.textContent = `Found ${processingErrors.length} issue(s) during data translation:`;
 
   processingErrors.forEach(err => {
-    const details = document.createElement('details');
-    details.className = 'log-entry';
-    const summary = document.createElement('summary');
+    const details = entriesContainer.createEl('details', { cls: 'log-entry' });
+
+    const summary = details.createEl('summary');
     summary.textContent = `⚠️ ${err.file || 'Unknown File'}`;
-    const content = document.createElement('div');
-    content.className = 'log-entry-content';
-    content.innerHTML = `<strong>Path:</strong> ${err.path || 'N/A'}<br><strong>Reason:</strong> ${
-      err.reason || 'No specific reason provided.'
-    }`;
+
+    const content = details.createDiv({ cls: 'log-entry-content' });
+
+    content.createEl('strong', { text: 'Path: ' });
+    content.appendText(err.path || 'N/A');
+    content.createEl('br');
+    content.createEl('strong', { text: 'Reason: ' });
+    content.appendText(err.reason || 'No specific reason provided.');
     details.appendChild(summary);
     details.appendChild(content);
     errorLogEntries.appendChild(details);

@@ -69,7 +69,7 @@ export class UIService {
     this.setupEventListeners();
     this.loadFilterState();
     await this.loadInsightsConfig();
-    this.setupProTips(); // <-- ADD THIS LINE
+    this.setupProTips();
   }
 
   private async loadInsightsConfig() {
@@ -102,6 +102,8 @@ export class UIService {
     this.rootEl.querySelector('.controls')?.scrollIntoView({ behavior: 'smooth' });
   }
 
+  // UIService.ts
+
   public setInsightsLoading(isLoading: boolean) {
     const generateBtn = this.rootEl.querySelector<HTMLButtonElement>('#generateInsightsBtn');
     const resultContainer = this.rootEl.querySelector<HTMLElement>('#insightsResultContainer');
@@ -111,7 +113,12 @@ export class UIService {
       generateBtn.textContent = 'Processing...';
       generateBtn.disabled = true;
       generateBtn.classList.add('is-loading');
-      resultContainer.innerHTML = `<div class="loading-container"><div class="loading-spinner"></div><div>Analyzing your data...</div></div>`;
+      // MODIFIED: Programmatically create the loading indicator
+      const container = resultContainer as any;
+      container.empty();
+      const loadingContainer = container.createDiv({ cls: 'loading-container' });
+      loadingContainer.createDiv({ cls: 'loading-spinner' });
+      loadingContainer.createDiv({ text: 'Analyzing your data...' });
     } else {
       generateBtn.textContent = 'Generate Insights';
       generateBtn.disabled = false;
@@ -212,13 +219,15 @@ export class UIService {
   }
 
   public showMainContainers(): void {
-    this.rootEl.querySelector<HTMLElement>('#statsGrid')!.style.display = '';
-    this.rootEl.querySelector<HTMLElement>('#mainChartContainer')!.style.display = '';
+    this.rootEl.querySelector<HTMLElement>('#statsGrid')!.classList.remove('hidden-controls');
+    this.rootEl
+      .querySelector<HTMLElement>('#mainChartContainer')!
+      .classList.remove('hidden-controls');
   }
 
   public hideMainContainers(): void {
-    this.rootEl.querySelector<HTMLElement>('#statsGrid')!.style.display = 'none';
-    this.rootEl.querySelector<HTMLElement>('#mainChartContainer')!.style.display = 'none';
+    this.rootEl.querySelector<HTMLElement>('#statsGrid')!.classList.add('hidden-controls');
+    this.rootEl.querySelector<HTMLElement>('#mainChartContainer')!.classList.add('hidden-controls');
   }
 
   private setupEventListeners = () => {
@@ -345,34 +354,33 @@ export class UIService {
 
   private handleAnalysisTypeChange = (triggerAnalysis = true) => {
     const analysisType = this.rootEl.querySelector<HTMLSelectElement>('#analysisTypeSelect')?.value;
-    const specificControlContainers = [
+    const allSpecificControls = [
       'sunburstBreakdownLevelContainer',
       'pieBreakdownLevelContainer',
-      // 'pieCategoryFilterContainer', // This line should be deleted
       'timeSeriesGranularityContainer',
       'timeSeriesTypeContainer',
       'timeSeriesStackingLevelContainer',
       'activityPatternTypeContainer'
     ];
 
-    specificControlContainers.forEach(id =>
+    // Hide all specific controls first
+    allSpecificControls.forEach(id =>
       this.rootEl.querySelector(`#${id}`)?.classList.add('hidden-controls')
     );
 
+    // Then show the relevant ones
     if (analysisType === 'sunburst') {
       this.rootEl
         .querySelector('#sunburstBreakdownLevelContainer')
         ?.classList.remove('hidden-controls');
-      // this.rootEl.querySelector('#pieCategoryFilterContainer')?.classList.remove('hidden-controls'); // removed
     } else if (analysisType === 'pie') {
       this.rootEl.querySelector('#pieBreakdownLevelContainer')?.classList.remove('hidden-controls');
-      // this.rootEl.querySelector('#pieCategoryFilterContainer')?.classList.remove('hidden-controls'); // removed
     } else if (analysisType === 'time-series') {
       this.rootEl
         .querySelector('#timeSeriesGranularityContainer')
         ?.classList.remove('hidden-controls');
       this.rootEl.querySelector('#timeSeriesTypeContainer')?.classList.remove('hidden-controls');
-      this.handleTimeSeriesTypeVis();
+      this.handleTimeSeriesTypeVis(); // This correctly shows/hides the stacking level
     } else if (analysisType === 'activity') {
       this.rootEl
         .querySelector('#activityPatternTypeContainer')

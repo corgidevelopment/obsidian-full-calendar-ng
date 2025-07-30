@@ -95,14 +95,14 @@ export const EventSchema = z.discriminatedUnion('type', [
     startRecur: ParsedDate.optional(),
     endRecur: ParsedDate.optional(),
     isTask: z.boolean().optional(),
-    skipDates: z.array(ParsedDate).default([]) // <-- ADD THIS LINE
+    skipDates: z.array(ParsedDate).default([])
   }),
   z.object({
     type: z.literal('rrule'),
     startDate: ParsedDate,
     rrule: z.string(),
     skipDates: z.array(ParsedDate).default([]),
-    isTask: z.boolean().optional() // Add this line
+    isTask: z.boolean().optional()
   })
 ]);
 

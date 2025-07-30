@@ -29,7 +29,6 @@ import { openFileForEvent } from '../actions/eventActions';
 import { launchCreateModal, launchEditModal } from './event_modal';
 import { isTask, toggleTask, unmakeTask } from '../core/tasks';
 import { UpdateViewCallback } from '../core/EventCache';
-import { activateAnalysisView } from '../chrono_analyser/AnalysisView';
 
 export const FULL_CALENDAR_VIEW_TYPE = 'full-calendar-view';
 export const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = 'full-calendar-sidebar-view';
@@ -141,7 +140,19 @@ export class CalendarView extends ItemView {
       customButtons: {
         analysis: {
           text: 'Analysis',
-          click: () => activateAnalysisView(this.plugin.app)
+          click: async () => {
+            if (this.plugin.isMobile) {
+              new Notice('The Chrono Analyser is only available on desktop.');
+              return;
+            }
+            try {
+              const { activateAnalysisView } = await import('../chrono_analyser/AnalysisView');
+              activateAnalysisView(this.plugin.app);
+            } catch (err) {
+              console.error('Full Calendar: Failed to activate Chrono Analyser view', err);
+              new Notice('Failed to open Chrono Analyser. Please check the console.');
+            }
+          }
         }
       },
       eventClick: async info => {

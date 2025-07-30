@@ -11,7 +11,8 @@ jest.mock(
     Plugin: class {},
     TFile: class {},
     TFolder: class {},
-    TAbstractFile: class {}
+    TAbstractFile: class {},
+    normalizePath: (path: string) => path.replace(/\\/g, '/') // <-- ADD THIS LINE
   }),
   { virtual: true }
 );

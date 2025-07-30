@@ -9,12 +9,12 @@ os.makedirs(EXPORT_DIR, exist_ok=True)
 
 for root, dirs, files in os.walk(BASE_DIR, topdown=True):
     # Skip the export directory
-    skip_dirs = [EXPORT_DIR, 'chrono_analyser']
+    skip_dirs = [EXPORT_DIR, 'chrono_analyser', '.github']
     dirs[:] = [d for d in dirs if d not in skip_dirs]
     # dirs[:] = [d for d in dirs if os.path.join(root, d) != os.path.join(BASE_DIR, EXPORT_DIR)]
 
     for file in files:
-        if file in ["LICENSE.md", "README.md", "export-to-txt.py"]:
+        if file in ["LICENSE.md", "README.md", ".export-to-txt.py"]:
             continue
 
         src_path = os.path.join(root, file)

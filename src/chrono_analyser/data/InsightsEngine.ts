@@ -6,15 +6,21 @@ import { FilterPayload } from '../ui/UIService';
 
 const BATCH_SIZE = 500;
 
+// --- NEW: Structured data type for rich text ---
+interface TextFragment {
+  text: string;
+  bold: boolean;
+}
+
 export interface InsightPayloadItem {
   project: string;
-  details: string;
+  detailsFragments: TextFragment[]; // MODIFIED: from details: string
   action: FilterPayload | null;
   subItems?: InsightPayloadItem[]; // For nested breakdowns
 }
 
 export interface Insight {
-  displayText: string;
+  displayTextFragments: TextFragment[]; // MODIFIED: from displayText: string
   category: string;
   sentiment: 'neutral' | 'positive' | 'warning';
   payload?: InsightPayloadItem[] | null;
@@ -84,8 +90,13 @@ export class InsightsEngine {
     if (insights.length === 0) {
       return [
         {
-          displayText:
-            'No insights found. Log more activities or configure your Insight Groups with Personas to unlock powerful analytics.',
+          displayTextFragments: [
+            // MODIFIED
+            {
+              text: 'No insights found. Log more activities or configure your Insight Groups with Personas to unlock powerful analytics.',
+              bold: false
+            }
+          ],
           category: 'Getting Started',
           sentiment: 'neutral',
           payload: null,
@@ -97,8 +108,30 @@ export class InsightsEngine {
     return insights;
   }
 
-  private _formatText(text: string): string {
-    return text.replace(/\*\*'(.+?)'\*\*/g, '<strong>$1</strong>');
+  // --- REPLACED: _formatText is now _buildTextFragments and returns structured data ---
+  private _buildTextFragments(text: string): TextFragment[] {
+    const fragments: TextFragment[] = [];
+    // Regex to find content inside **'...'**
+    const regex = /\*\*'(.+?)'\*\*/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      // Add the text before the match (if any)
+      if (match.index > lastIndex) {
+        fragments.push({ text: text.substring(lastIndex, match.index), bold: false });
+      }
+      // Add the bolded text (the content of the capture group)
+      fragments.push({ text: match[1], bold: true });
+      lastIndex = regex.lastIndex;
+    }
+
+    // Add any remaining text after the last match
+    if (lastIndex < text.length) {
+      fragments.push({ text: text.substring(lastIndex), bold: false });
+    }
+
+    return fragments;
   }
 
   private async _tagRecordsInBatches(
@@ -213,9 +246,7 @@ export class InsightsEngine {
     const mostPercentage = (most.hours / weeklyTotalHours) * 100;
     const leastPercentage = (least.hours / weeklyTotalHours) * 100;
 
-    let displayText = this._formatText(
-      `Last week, your main focus was **'${most.name}'** for **'${mostPercentage.toFixed(0)}%'**, while **'${least.name}'** for **'${leastPercentage.toFixed(0)}%'** took a backseat.`
-    );
+    let displayText = `Last week, your main focus was **'${most.name}'** for **'${mostPercentage.toFixed(0)}%'**, while **'${least.name}'** for **'${leastPercentage.toFixed(0)}%'** took a backseat.`; // MODIFIED
 
     if (monthlyTotalHours > 0) {
       const mostHoursLastMonth = monthlyDistribution.get(most.name) || 0;
@@ -223,9 +254,7 @@ export class InsightsEngine {
       if (mostHoursLastMonth > 0 || leastHoursLastMonth > 0) {
         const mostPercentageLastMonth = (mostHoursLastMonth / monthlyTotalHours) * 100;
         const leastPercentageLastMonth = (leastHoursLastMonth / monthlyTotalHours) * 100;
-        const comparisonText = this._formatText(
-          ` This compares to last month's **'${mostPercentageLastMonth.toFixed(0)}%'** on **'${most.name}'** and **'${leastPercentageLastMonth.toFixed(0)}%'** on **'${least.name}'**.`
-        );
+        const comparisonText = ` This compares to last month's **'${mostPercentageLastMonth.toFixed(0)}%'** on **'${most.name}'** and **'${leastPercentageLastMonth.toFixed(0)}%'** on **'${least.name}'**.`; // MODIFIED
         displayText += comparisonText;
       }
     }
@@ -238,7 +267,7 @@ export class InsightsEngine {
         .slice(0, 3)
         .map(([projectName, projectHours]) => ({
           project: `• ${projectName}`,
-          details: `${projectHours.toFixed(1)} hours`,
+          detailsFragments: this._buildTextFragments(`${projectHours.toFixed(1)} hours`), // MODIFIED
           action: {
             analysisTypeSelect: 'time-series',
             projectFilterInput: projectName,
@@ -250,7 +279,10 @@ export class InsightsEngine {
     const payload: InsightPayloadItem[] = [
       {
         project: most.name,
-        details: `**${mostPercentage.toFixed(0)}%** (${most.hours.toFixed(1)} hours last week)`,
+        detailsFragments: this._buildTextFragments(
+          // MODIFIED
+          `**'${mostPercentage.toFixed(0)}%'** (${most.hours.toFixed(1)} hours last week)`
+        ),
         action: {
           analysisTypeSelect: 'pie',
           hierarchyFilterInput: most.name,
@@ -261,7 +293,10 @@ export class InsightsEngine {
       },
       {
         project: least.name,
-        details: `**${leastPercentage.toFixed(0)}%** (${least.hours.toFixed(1)} hours last week)`,
+        detailsFragments: this._buildTextFragments(
+          // MODIFIED
+          `**'${leastPercentage.toFixed(0)}%'** (${least.hours.toFixed(1)} hours last week)`
+        ),
         action: {
           analysisTypeSelect: 'pie',
           hierarchyFilterInput: least.name,
@@ -273,7 +308,7 @@ export class InsightsEngine {
     ];
 
     return {
-      displayText,
+      displayTextFragments: this._buildTextFragments(displayText), // MODIFIED
       category: 'WEEKLY SNAPSHOT',
       sentiment: 'neutral',
       payload: payload,
@@ -337,9 +372,7 @@ export class InsightsEngine {
     const topGroupsTotalHours = topGroups.reduce((sum, g) => sum + g.hours, 0);
     const topGroupsPercentage = (topGroupsTotalHours / trueGrandTotalHours) * 100;
 
-    const displayText = this._formatText(
-      `Your top ${topGroups.length === 1 ? 'activity was' : 'activities were'} ${topGroupsText}, accounting for **'${topGroupsPercentage.toFixed(0)}%'** of your total logged time.`
-    );
+    const displayText = `Your top ${topGroups.length === 1 ? 'activity was' : 'activities were'} ${topGroupsText}, accounting for **'${topGroupsPercentage.toFixed(0)}%'** of your total logged time.`; // MODIFIED
 
     const payload: InsightPayloadItem[] = topGroups.map(group => {
       const percentage = (group.hours / trueGrandTotalHours) * 100;
@@ -353,7 +386,7 @@ export class InsightsEngine {
           .forEach(([projectName, projectHours]) => {
             subItems.push({
               project: `• ${projectName}`,
-              details: `${projectHours.toFixed(1)} hours`,
+              detailsFragments: this._buildTextFragments(`${projectHours.toFixed(1)} hours`), // MODIFIED
               action: {
                 analysisTypeSelect: 'time-series',
                 projectFilterInput: projectName,
@@ -365,7 +398,8 @@ export class InsightsEngine {
 
       return {
         project: group.groupName,
-        details: this._formatText(
+        detailsFragments: this._buildTextFragments(
+          // MODIFIED
           `**'${percentage.toFixed(0)}%'** (${group.hours.toFixed(1)} hours)`
         ),
         action: {
@@ -379,7 +413,7 @@ export class InsightsEngine {
     });
 
     return {
-      displayText,
+      displayTextFragments: this._buildTextFragments(displayText), // MODIFIED
       category: 'Activity Overview',
       sentiment: 'neutral',
       payload: payload,
@@ -440,7 +474,8 @@ export class InsightsEngine {
         topProjectArr.length > 0 ? `'${topProjectArr[0][0]}'` : 'various projects';
 
       insights.push({
-        displayText: this._formatText(
+        displayTextFragments: this._buildTextFragments(
+          // MODIFIED
           `Your productive time was **'${focusText}'** this week, with a significant portion dedicated to **${topProjectName}**.`
         ),
         category: '🎯 PRODUCTIVITY',
@@ -471,7 +506,8 @@ export class InsightsEngine {
     if (topMovers.length > 0) {
       const moversPayload: InsightPayloadItem[] = topMovers.map(([project, delta]) => ({
         project: project,
-        details: this._formatText(
+        detailsFragments: this._buildTextFragments(
+          // MODIFIED
           `**'${delta > 0 ? '+' : ''}${delta.toFixed(1)}'** hours vs last week`
         ),
         action: {
@@ -482,7 +518,8 @@ export class InsightsEngine {
       }));
 
       insights.push({
-        displayText: this._formatText(
+        displayTextFragments: this._buildTextFragments(
+          // MODIFIED
           `This week's biggest productivity movers were **'${topMovers.map(p => p[0]).join("'** and **'")}'**`
         ),
         category: '🎯 PRODUCTIVITY',
@@ -497,7 +534,8 @@ export class InsightsEngine {
     if (lapsedHabitInsight) {
       lapsedHabitInsight.category = '🎯 PRODUCTIVITY';
       lapsedHabitInsight.sentiment = 'warning';
-      lapsedHabitInsight.displayText = this._formatText(
+      lapsedHabitInsight.displayTextFragments = this._buildTextFragments(
+        // MODIFIED
         `You have **'${lapsedHabitInsight.payload?.length}'** at-risk initiatives that haven't been logged in over a week.`
       );
       insights.push(lapsedHabitInsight);
@@ -562,7 +600,9 @@ export class InsightsEngine {
         if (weekDailyAvg < monthDailyAvg * 0.8) {
           consistencyAlerts.push({
             project: key,
-            details: `Time was **${((1 - weekDailyAvg / monthDailyAvg) * 100).toFixed(0)}% lower** than your 30-day average.`,
+            detailsFragments: this._buildTextFragments(
+              `Time was **${((1 - weekDailyAvg / monthDailyAvg) * 100).toFixed(0)}% lower** than your 30-day average.`
+            ), // MODIFIED
             action: null
           });
         }
@@ -571,7 +611,8 @@ export class InsightsEngine {
 
     if (consistencyAlerts.length > 0) {
       insights.push({
-        displayText: this._formatText(
+        displayTextFragments: this._buildTextFragments(
+          // MODIFIED
           `**Consistency Check:** Found deviations in ${consistencyAlerts.length} of your wellness routines this week.`
         ),
         category: '❤️ WELLNESS & ROUTINE',
@@ -581,7 +622,9 @@ export class InsightsEngine {
       });
     } else if (last7DaysByHierarchy.size > 0) {
       insights.push({
-        displayText: 'Your wellness routines were consistent this week. Keep it up!',
+        displayTextFragments: [
+          { text: 'Your wellness routines were consistent this week. Keep it up!', bold: false }
+        ], // MODIFIED
         category: '❤️ WELLNESS & ROUTINE',
         sentiment: 'positive',
         payload: null,
@@ -598,7 +641,8 @@ export class InsightsEngine {
       const wellnessPercentage = (totalWellnessHoursLast30Days / totalHours) * 100;
 
       insights.push({
-        displayText: this._formatText(
+        displayTextFragments: this._buildTextFragments(
+          // MODIFIED
           `This month, wellness and routine activities made up **'${wellnessPercentage.toFixed(0)}%'** of your tracked time.`
         ),
         category: '❤️ WELLNESS & ROUTINE',
@@ -606,12 +650,16 @@ export class InsightsEngine {
         payload: [
           {
             project: 'Wellness & Routine Hours',
-            details: `${totalWellnessHoursLast30Days.toFixed(1)} hours`,
+            detailsFragments: this._buildTextFragments(
+              `${totalWellnessHoursLast30Days.toFixed(1)} hours`
+            ), // MODIFIED
             action: null
           },
           {
             project: 'Productivity Hours',
-            details: `${totalProductiveHoursLast30Days.toFixed(1)} hours`,
+            detailsFragments: this._buildTextFragments(
+              `${totalProductiveHoursLast30Days.toFixed(1)} hours`
+            ), // MODIFIED
             action: null
           }
         ],
@@ -656,7 +704,9 @@ export class InsightsEngine {
       if (count >= 2 && !recentProjects.has(project)) {
         lapsedHabitsPayload.push({
           project,
-          details: this._formatText(`(logged **'${count}'** times in the month prior)`),
+          detailsFragments: this._buildTextFragments(
+            `(logged **'${count}'** times in the month prior)`
+          ), // MODIFIED
           action: {
             analysisTypeSelect: 'time-series',
             projectFilterInput: project,
@@ -669,13 +719,15 @@ export class InsightsEngine {
     if (lapsedHabitsPayload.length === 0) return null;
 
     lapsedHabitsPayload.sort((a, b) => {
-      const countA = parseInt(a.details.match(/\d+/)?.[0] || '0', 10);
-      const countB = parseInt(b.details.match(/\d+/)?.[0] || '0', 10);
+      // Note: This sort is now less direct but still works by finding the bolded number.
+      const countA = parseInt(a.detailsFragments.find(f => f.bold)?.text || '0', 10);
+      const countB = parseInt(b.detailsFragments.find(f => f.bold)?.text || '0', 10);
       return countB - countA;
     });
 
     return {
-      displayText: this._formatText(
+      displayTextFragments: this._buildTextFragments(
+        // MODIFIED
         `You have **'${lapsedHabitsPayload.length} activities'** that you haven't logged in over a week, but were previously consistent.`
       ),
       category: 'Habit Consistency',

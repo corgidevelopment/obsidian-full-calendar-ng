@@ -226,3 +226,64 @@
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+/* Onboarding Screen Styles */
+.full-calendar-onboarding-container {
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* Day Choice Button for Edit Event Modal */
+.day-choice-button {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+    padding: 0;
+    background-color: var(--interactive-normal);
+    color: var(--text-normal);
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+}
+
+.day-choice-button.is-selected {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+/* Generic styles for inputs in calendar settings */
+.fc-setting-input {
+    width: 100%;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+/* Styles for the Heading setting component */
+.fc-heading-setting-control {
+    display: block;
+    text-align: center;
+}
+
+.fc-heading-setting-control .fc-setting-input.is-inline {
+    margin-left: 4px;
+    margin-right: 4px;
+    /* Overriding width for inline appearance */
+    width: auto;
+}
+
+.fc-heading-setting-control .fc-heading-setting-suffix {
+    padding-right: .5rem;
+}
+
+/* Styles for specific controls in calendar settings */
+.fc-setting-delete-btn {
+    max-width: 15%;
+}
+
+.fc-setting-color-input {
+    max-width: 25%;
+    min-width: 3rem;
+}

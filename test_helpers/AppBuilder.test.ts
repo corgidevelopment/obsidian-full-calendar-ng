@@ -55,13 +55,14 @@ describe('AppBuilder read tests', () => {
               "parent": "[Circular]",
             },
           ],
+          "isRootVal": true,
           "name": "",
           "parent": null,
         },
         "[Circular]",
       ]
     `);
-    expect(normalizePaths(files[0].path)).toMatchInlineSnapshot(`""`);
+    expect(normalizePaths(files[0].path)).toMatchInlineSnapshot(`"."`);
     const file = app.vault.getAbstractFileByPath('name.md');
     expect(normalizePaths(file)).toMatchInlineSnapshot(`
       {
@@ -70,6 +71,7 @@ describe('AppBuilder read tests', () => {
           "children": [
             "[Circular]",
           ],
+          "isRootVal": true,
           "name": "",
           "parent": null,
         },
@@ -246,7 +248,7 @@ describe('AppBuilder read tests', () => {
     const files = app.vault.getAllLoadedFiles();
     expect(normalizePaths(files.map(f => f.path))).toMatchInlineSnapshot(`
       [
-        "",
+        ".",
         "root.md",
         "nested",
         "nested/nestedfile.md",
@@ -288,6 +290,7 @@ describe('AppBuilder read tests', () => {
                   },
                   "[Circular]",
                 ],
+                "isRootVal": true,
                 "name": "",
                 "parent": null,
               },

@@ -45,25 +45,37 @@ export class MockVault implements Vault {
         return [this.root, ...collectChildren(this.root)];
     }
 
+
     getAbstractFileByPath(path: string): TAbstractFile | null {
-        // Normalize all paths to use forward slashes for cross-platform compatibility
-        const normalizePath = (p: string) => p.replace(/\\/g, '/');
-        const normalizedPath = normalizePath(join("/", path));
+        const normalize = (p: string) => p.replace(/\\/g, '/').replace(/^\//, '');
+        const normalizedPath = normalize(path);
 
-        const allFiles = this.getAllLoadedFiles();
-        const availablePaths = allFiles.map(f => join("/", normalize(f.path)));
+        if (normalizedPath === '') {
+            return this.root;
+        }
 
-        return (
-            allFiles.find(
-                (f) => {
-                    const currentPath = normalizePath(join("/", f.path));
-                    const isMatch = currentPath === normalizedPath;
-                    // Optional: uncomment for extreme verbosity
-                    // console.log(`[DEBUG_MockVault] Comparing "${currentPath}" with "${normalizedPath}" -> ${isMatch}`);
-                    return isMatch;
-                }
-            ) || null
-        );
+        const parts = normalizedPath.split('/');
+        let current: TAbstractFile | undefined = this.root;
+
+        for (const part of parts) {
+            if (!(current instanceof TFolder)) {
+                return null; // Path continues, but current is a file.
+            }
+            current = current.children.find(child => child.name === part);
+            if (!current) {
+                return null; // Part of path not found.
+            }
+        }
+        return current || null;
+    }
+
+    async read(file: TFile): Promise<string> {
+        const p = join("/", file.path);
+        const contents = this.contents.get(p);
+        if (!contents) {
+            throw new Error(`File at path ${p} does not have contents`);
+        }
+        return contents;
     }
     
     getFileByPath(path: string): TFile | null {
@@ -82,14 +94,7 @@ export class MockVault implements Vault {
     getRoot(): TFolder {
         return this.root;
     }
-    async read(file: TFile): Promise<string> {
-        const p = join("/", file.path);
-        const contents = this.contents.get(p);
-        if (!contents) {
-            throw new Error(`File at path ${p} does not have contents`);
-        }
-        return contents;
-    }
+
     cachedRead(file: TFile): Promise<string> {
         return this.read(file);
     }

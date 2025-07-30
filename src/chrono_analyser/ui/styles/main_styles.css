@@ -449,6 +449,7 @@ body.theme-dark .chrono-analyser-view .main-chart-container .plotly .slicetext {
     font-size: var(--font-ui-medium);
     color: var(--text-faint);
     gap: var(--size-4-2);
+    width: 100%;
 }
 
 .chrono-analyser-view .chart-message .error {
@@ -1311,4 +1312,46 @@ body.theme-dark .chrono-analyser-view .main-chart-container .plotly .slicetext {
     padding-top: var(--size-4-3);
     margin: var(--size-2-2) var(--size-4-3) var(--size-2-2) var(--size-4-3);
     border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Sunburst Chart Layout */
+.chrono-analyser-view .sunburst-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    width: 100%;
+    height: 100%;
+}
+
+.chrono-analyser-view .sunburst-chart-div {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.chrono-analyser-view .custom-legend {
+    flex-basis: 250px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    padding-left: 10px;
+    border-left: 1px solid var(--background-modifier-border);
+}
+
+.chrono-analyser-view #cacheStatusDisplay {
+    margin-bottom: 15px;
+    background-color: #eef2ff;
+    border-color: #c7d2fe;
+    padding: 12px 15px;
+    font-size: 0.95rem;
+}
+
+body.theme-dark .chrono-analyser-view #cacheStatusDisplay {
+    background-color: var(--background-secondary-alt);
+    border-color: var(--interactive-accent);
+}
+
+.chrono-analyser-view #mainChart {
+    flex-grow: 1; /* Grow to fill vertical space in parent */
+    min-width: 0;  /* Prevent horizontal overflow for flex children */
+    display: flex;   /* CRITICAL: Make this a flex container */
+    min-height: 0; /* Allow scrolling children in a flex container */
 }

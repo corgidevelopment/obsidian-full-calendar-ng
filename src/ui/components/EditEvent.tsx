@@ -33,18 +33,7 @@ interface DayChoiceProps {
 const DayChoice = ({ code, label, isSelected, onClick }: DayChoiceProps) => (
   <button
     type="button"
-    style={{
-      marginLeft: '0.25rem',
-      marginRight: '0.25rem',
-      padding: '0',
-      backgroundColor: isSelected ? 'var(--interactive-accent)' : 'var(--interactive-normal)',
-      color: isSelected ? 'var(--text-on-accent)' : 'var(--text-normal)',
-      borderStyle: 'solid',
-      borderWidth: '1px',
-      borderRadius: '50%',
-      width: '25px',
-      height: '25px'
-    }}
+    className={`day-choice-button ${isSelected ? 'is-selected' : ''}`}
     onClick={() => onClick(code)}
   >
     <b>{label[0]}</b>
@@ -199,8 +188,8 @@ export const EditEvent = ({
               daysOfWeek: daysOfWeek,
               startRecur: date || undefined,
               endRecur: endRecur,
-              isTask: isTask, // <-- ADD THIS LINE
-              skipDates: initialEvent?.type === 'recurring' ? initialEvent.skipDates : [] // <-- ADD THIS LINE
+              isTask: isTask,
+              skipDates: initialEvent?.type === 'recurring' ? initialEvent.skipDates : []
             }
           : {
               type: 'single',
@@ -332,7 +321,7 @@ export const EditEvent = ({
                 type="checkbox"
                 checked={allDay}
                 onChange={e => setAllDay(e.target.checked)}
-                disabled={isChildOverride} // <-- ADD THIS LINE
+                disabled={isChildOverride}
               />{' '}
               All day
             </label>

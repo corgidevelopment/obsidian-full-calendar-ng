@@ -55,6 +55,8 @@ All build output will appear in the plugin directory created above.
 
 > 📘 **Start Here:** To understand the architecture and get familiar with the codebase, read our [Architecture Guide](https://github.com/YouFoundJK/plugin-full-calendar/blob/chrono-insights/src/README.md).
 
+> 📱 **Android Testing** For testing Android devices use `adb` together with `chrome://inspect/#devices` to see the console on the PC.
+
 ---
 
 Thanks for helping improve Full Calendar! 🎨🗓️

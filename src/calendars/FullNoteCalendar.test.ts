@@ -1,5 +1,49 @@
 import { join } from 'path';
-import { TFile } from 'obsidian';
+import { TFile, normalizePath } from 'obsidian'; // Import normalizePath here
+
+jest.mock(
+  'obsidian',
+  () => {
+    // Basic mock for TAbstractFile to have a `path` property.
+    class TAbstractFile {
+      name: string = '';
+      parent: TFolder | null = null;
+      get path(): string {
+        if (this.parent && this.parent.path) {
+          return `${this.parent.path}/${this.name}`;
+        }
+        return this.name;
+      }
+    }
+
+    class TFile extends TAbstractFile {}
+
+    class TFolder extends TAbstractFile {
+      children: TAbstractFile[] = [];
+      isRootVal: boolean = false;
+
+      // The root folder's path is an empty string.
+      get path(): string {
+        if (this.isRootVal) return '';
+        return super.path;
+      }
+
+      isRoot(): boolean {
+        return this.isRootVal;
+      }
+    }
+
+    return {
+      normalizePath: (path: string) => path.replace(/\\/g, '/'),
+      TFile,
+      TFolder,
+      Notice: class {},
+      // Use the imported 'load' function as our mock implementation
+      parseYaml: (s: string) => load(s)
+    };
+  },
+  { virtual: true }
+);
 
 import { ObsidianInterface } from '../ObsidianAdapter';
 import { MockApp, MockAppBuilder } from '../../test_helpers/AppBuilder';
@@ -10,6 +54,7 @@ import { parseEvent } from '../types/schema';
 import { DEFAULT_SETTINGS } from '../types/settings';
 import { CalendarInfo } from '../types';
 import FullCalendarPlugin from '../main';
+import { load } from 'js-yaml';
 
 async function assertFailed(func: () => Promise<any>, message: RegExp) {
   try {
@@ -219,7 +264,7 @@ describe('FullNoteCalendar Tests', () => {
       enableCategoryColoring: true
     });
 
-    const path = 'events/' + filename; // Use forward slash instead of join
+    const path = normalizePath(`events/${filename}`); // Use forward slash instead of join
     const firstFile = obsidian.getAbstractFileByPath(path) as TFile;
 
     const contents = await obsidian.read(firstFile);

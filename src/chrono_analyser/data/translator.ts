@@ -27,9 +27,7 @@ export function storedEventToTimeRecord(
   // This path is just a unique identifier for the DataManager, it's okay to have a fallback.
   const path = location?.path || `remote-event-${storedEvent.id}`;
 
-  // --- ADD THIS LINE ---
   const uniqueId = `${path}::${storedEvent.id}`;
-  // --- END OF ADDITION ---
 
   const startTime = 'startTime' in event ? event.startTime : null;
   const endTime = 'endTime' in event ? event.endTime : null;
@@ -118,7 +116,7 @@ export function storedEventToTimeRecord(
   }
 
   return {
-    _id: uniqueId, // <-- ADD THIS LINE
+    _id: uniqueId,
     path,
     hierarchy,
     project,

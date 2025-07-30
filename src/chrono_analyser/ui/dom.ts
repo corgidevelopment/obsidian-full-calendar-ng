@@ -144,7 +144,7 @@ export function createDOMStructure(rootEl: HTMLElement): void {
         </div>
 
         <div class="dashboard-layout-container">
-          <div class="stats-grid" id="statsGrid" style="display: none;">
+          <div class="stats-grid hidden-controls" id="statsGrid">
             <div class="stat-card">
               <div class="stat-value" id="totalHours">0</div>
               <div class="stat-label">Total Hours (Filtered)</div>
@@ -158,14 +158,14 @@ export function createDOMStructure(rootEl: HTMLElement): void {
               <div class="stat-label">Active Analysis</div>
             </div>
           </div>
-          <div class="main-chart-container" id="mainChartContainer" style="display: none; padding: 15px;">
-            <div id="mainChart" style="flex-grow: 1; min-width: 0;"></div>
+          <div class="main-chart-container hidden-controls" id="mainChartContainer">
+            <div id="mainChart"></div>
           </div>
         </div>
 
-        <div class="log-container" id="errorLogContainer" style="display: none;">
+        <div class="log-container hidden-controls" id="errorLogContainer">
           <h2>📋 Processing Log & Issues</h2>
-          <div id="cacheStatusDisplay" class="log-summary" style="margin-bottom: 15px; background-color: #eef2ff; border-color: #c7d2fe; padding: 12px 15px; font-size: 0.95rem; display: none;">
+          <div id="cacheStatusDisplay" class="log-summary hidden-controls">
           </div>
           <div class="log-summary" id="errorLogSummary">No issues found.</div>
           <div id="errorLogEntries"></div>

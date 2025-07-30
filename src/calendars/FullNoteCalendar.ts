@@ -13,7 +13,7 @@
  * @license See LICENSE.md
  */
 
-import { TFile, TFolder, Notice } from 'obsidian';
+import { TFile, TFolder, Notice, normalizePath } from 'obsidian';
 import { rrulestr } from 'rrule';
 import { EventPathLocation } from '../core/EventStore';
 import { ObsidianInterface } from '../ObsidianAdapter';
@@ -26,19 +26,29 @@ import { newFrontmatter, modifyFrontmatterString, replaceFrontmatter } from './f
 import { constructTitle, parseTitle } from '../core/categoryParser';
 import FullCalendarPlugin from '../main';
 
+function sanitizeTitleForFilename(title: string): string {
+  // Replace characters that are invalid in filenames on most OSes.
+  // We'll replace them with a space.
+  return title
+    .replace(/[\\/:"*?<>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 const basenameFromEvent = (event: OFCEvent, settings: FullCalendarSettings): string => {
   // Use the full, constructed title for the filename IF the feature is enabled.
   const fullTitle = settings.enableCategoryColoring
     ? constructTitle(event.category, event.title)
     : event.title;
+  const sanitizedTitle = sanitizeTitleForFilename(fullTitle);
   switch (event.type) {
     case undefined:
     case 'single':
-      return `${event.date} ${fullTitle}`;
+      return `${event.date} ${sanitizedTitle}`;
     case 'recurring':
-      return `(Every ${event.daysOfWeek.join(',')}) ${fullTitle}`;
+      return `(Every ${event.daysOfWeek.join(',')}) ${sanitizedTitle}`;
     case 'rrule':
-      return `(${rrulestr(event.rrule).toText()}) ${fullTitle}`;
+      return `(${rrulestr(event.rrule).toText()}) ${sanitizedTitle}`;
   }
 };
 
@@ -161,7 +171,7 @@ export default class FullNoteCalendar extends EditableCalendar {
   }
 
   async createEvent(event: OFCEvent): Promise<EventLocation> {
-    const path = `${this.directory}/${filenameForEvent(event, this.settings)}`;
+    const path = normalizePath(`${this.directory}/${filenameForEvent(event, this.settings)}`);
     if (this.app.getAbstractFileByPath(path)) {
       throw new Error(`Event at ${path} already exists.`);
     }
@@ -198,7 +208,7 @@ export default class FullNoteCalendar extends EditableCalendar {
     }
 
     const parentPath = file.parent?.path ?? '';
-    const updatedPath = `${parentPath}/${filenameForEvent(event, this.settings)}`;
+    const updatedPath = normalizePath(`${parentPath}/${filenameForEvent(event, this.settings)}`);
     return { file: { path: updatedPath }, lineNumber: undefined };
   }
 

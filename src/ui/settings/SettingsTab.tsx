@@ -232,7 +232,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
           showFullChangelog = false;
           render(); // Re-render the settings view
         });
-        header.createEl('h2', { text: 'Changelog' });
+        new Setting(header).setName('Changelog').setHeading();
 
         changelogData.forEach((version, index) => {
           const versionContainer = changelogWrapper.createDiv('full-calendar-version-container');
@@ -279,10 +279,8 @@ export class FullCalendarSettingTab extends PluginSettingTab {
       // Standard Settings View
       // ====================================================================
 
-      containerEl.createEl('h2', { text: 'Calendar Preferences' });
-
       new Setting(containerEl)
-        .setName('Desktop Initial View')
+        .setName('Desktop initial view')
         .setDesc('Choose the initial view range on desktop devices.')
         .addDropdown(dropdown => {
           Object.entries(INITIAL_VIEW_OPTIONS.DESKTOP).forEach(([value, display]) => {
@@ -296,7 +294,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
         });
 
       new Setting(containerEl)
-        .setName('Mobile Initial View')
+        .setName('Mobile initial view')
         .setDesc('Choose the initial view range on mobile devices.')
         .addDropdown(dropdown => {
           Object.entries(INITIAL_VIEW_OPTIONS.MOBILE).forEach(([value, display]) => {
@@ -310,7 +308,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
         });
 
       new Setting(containerEl)
-        .setName('Starting Day of the Week')
+        .setName('Starting day of the week')
         .setDesc('Choose what day of the week to start.')
         .addDropdown(dropdown => {
           WEEKDAYS.forEach((day, code) => {
@@ -324,14 +322,14 @@ export class FullCalendarSettingTab extends PluginSettingTab {
         });
 
       new Setting(containerEl)
-        .setName('Daily Note Timezone')
+        .setName('Daily note timezone')
         .setDesc(
           'Choose how times in daily notes are handled. "Local" means times are relative to your computer\'s current timezone. "Strict" will anchor events to the display timezone, writing it to the note.'
         )
         .addDropdown(dropdown => {
           dropdown
             .addOption('local', 'Local (Flexible)')
-            .addOption('strict', 'Strict (Anchored to Display Timezone)');
+            .addOption('strict', 'Strict (Anchored to display timezone)');
 
           dropdown.setValue(this.plugin.settings.dailyNotesTimezone);
 
@@ -342,7 +340,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
         });
 
       new Setting(containerEl)
-        .setName('Display Timezone')
+        .setName('Display timezone')
         .setDesc(
           'Choose the timezone for displaying events. Defaults to your system timezone. Changing this will reload the calendar.'
         )
@@ -385,10 +383,10 @@ export class FullCalendarSettingTab extends PluginSettingTab {
       // ====================================================================
       // CATEGORY COLORING SECTION
       // ====================================================================
-      containerEl.createEl('h2', { text: 'Category Coloring' });
+      new Setting(containerEl).setName('Category coloring').setHeading();
 
       new Setting(containerEl)
-        .setName('Enable Category Coloring')
+        .setName('Enable category coloring')
         .setDesc('Color events based on a category in their title (e.g., "Work - My Event").')
         .addToggle(toggle => {
           toggle.setValue(this.plugin.settings.enableCategoryColoring).onChange(async value => {
@@ -533,7 +531,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
       const latestVersion = changelogData[0];
 
       const headerEl = whatsNewContainer.createDiv('full-calendar-whats-new-header');
-      headerEl.createEl('h2', { text: "What's New" });
+      new Setting(headerEl).setName("What's new").setHeading();
       new Setting(headerEl).addExtraButton(button => {
         button
           .setIcon('ellipsis')
@@ -576,7 +574,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
       // ====================================================================
       // Manage Calendars Section
       // ====================================================================
-      containerEl.createEl('h2', { text: 'Manage Calendars' });
+      new Setting(containerEl).setName('Manage calendars').setHeading();
       containerEl.createEl('hr', { cls: 'settings-view-new-divider' });
       const sourcesDiv = containerEl.createDiv();
       sourcesDiv.style.display = 'block';

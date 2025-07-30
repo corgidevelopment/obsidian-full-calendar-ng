@@ -16,19 +16,13 @@ import { addCalendarButton } from './settings/SettingsTab';
 import { CalendarInfo } from '../types';
 
 export function renderOnboarding(plugin: FullCalendarPlugin, el: HTMLElement) {
-  el.style.height = '100%';
-  const nocal = el.createDiv();
-  nocal.style.height = '100%';
-  nocal.style.display = 'flex';
-  nocal.style.alignItems = 'center';
-  nocal.style.justifyContent = 'center';
+  const nocal = el.createDiv('full-calendar-onboarding-container');
   const notice = nocal.createDiv();
   notice.createEl('h1').textContent = 'No calendar available';
   notice.createEl('p').textContent =
     'Thanks for downloading Full Calendar! Create a calendar below to begin.';
 
   const container = notice.createDiv();
-  container.style.position = 'fixed';
   addCalendarButton(plugin, container, async (source: CalendarInfo) => {
     const { calendarSources } = plugin.settings;
     calendarSources.push(source);

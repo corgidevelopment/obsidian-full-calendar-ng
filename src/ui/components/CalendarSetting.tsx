@@ -30,7 +30,7 @@ function DirectorySetting<T extends Partial<CalendarInfo>>({ source }: BasicProp
         disabled
         type="text"
         value={sourceWithDirectory.directory}
-        style={{ width: '100%', marginLeft: 4, marginRight: 4 }}
+        className="fc-setting-input"
       />
     </div>
   );
@@ -39,15 +39,15 @@ function DirectorySetting<T extends Partial<CalendarInfo>>({ source }: BasicProp
 function HeadingSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
   let sourceWithHeading = source as SourceWith<T, { heading: undefined }>;
   return (
-    <div className="setting-item-control" style={{ display: 'block', textAlign: 'center' }}>
-      <span>Under heading</span>{' '}
+    <div className="setting-item-control fc-heading-setting-control">
+      <span>Under heading</span>
       <input
         disabled
         type="text"
         value={sourceWithHeading.heading}
-        style={{ marginLeft: 4, marginRight: 4 }}
-      />{' '}
-      <span style={{ paddingRight: '.5rem' }}>in daily notes</span>
+        className="fc-setting-input is-inline"
+      />
+      <span className="fc-heading-setting-suffix">in daily notes</span>
     </div>
   );
 }
@@ -56,12 +56,7 @@ function UrlSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) 
   let sourceWithUrl = source as SourceWith<T, { url: undefined }>;
   return (
     <div className="setting-item-control">
-      <input
-        disabled
-        type="text"
-        value={sourceWithUrl.url}
-        style={{ width: '100%', marginLeft: 4, marginRight: 4 }}
-      />
+      <input disabled type="text" value={sourceWithUrl.url} className="fc-setting-input" />
     </div>
   );
 }
@@ -70,12 +65,7 @@ function NameSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>)
   let sourceWithName = source as SourceWith<T, { name: undefined }>;
   return (
     <div className="setting-item-control">
-      <input
-        disabled
-        type="text"
-        value={sourceWithName.name}
-        style={{ width: '100%', marginLeft: 4, marginRight: 4 }}
-      />
+      <input disabled type="text" value={sourceWithName.name} className="fc-setting-input" />
     </div>
   );
 }
@@ -88,7 +78,7 @@ function Username<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
         disabled
         type="text"
         value={sourceWithUsername.username}
-        style={{ width: '100%', marginLeft: 4, marginRight: 4 }}
+        className="fc-setting-input"
       />
     </div>
   );
@@ -160,20 +150,17 @@ export class CalendarSettings
         <div className="setting-item-control">
           {this.state.dirty && (
             <button
+              className="mod-cta"
               onClick={() => {
                 if (this.state.sources.filter(s => s.type === 'dailynote').length > 1) {
-                  new Notice('Only one daily note calendar is allowed.');
+                  new Notice('Only one daily note is allowed.');
                   return;
                 }
                 this.props.submit(this.state.sources.map(elt => elt as CalendarInfo));
                 this.setState({ dirty: false });
               }}
-              style={{
-                backgroundColor: this.state.dirty ? 'var(--interactive-accent)' : undefined,
-                color: this.state.dirty ? 'var(--text-on-accent)' : undefined
-              }}
             >
-              {this.state.dirty ? 'Save' : 'Settings Saved'}
+              Save
             </button>
           )}
         </div>
@@ -196,7 +183,7 @@ export const CalendarSettingRow = ({
   const isCalDAV = setting.type === 'caldav';
   return (
     <div className="setting-item">
-      <button type="button" onClick={deleteCalendar} style={{ maxWidth: '15%' }}>
+      <button type="button" onClick={deleteCalendar} className="fc-setting-delete-btn">
         ✕
       </button>
       {setting.type === 'local' ? (
@@ -209,9 +196,9 @@ export const CalendarSettingRow = ({
       {isCalDAV && <NameSetting source={setting} />}
       {isCalDAV && <Username source={setting} />}
       <input
-        style={{ maxWidth: '25%', minWidth: '3rem' }}
         type="color"
         value={setting.color}
+        className="fc-setting-color-input"
         onChange={e => onColorChange(e.target.value)}
       />
     </div>

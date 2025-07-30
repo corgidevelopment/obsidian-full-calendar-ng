@@ -19,7 +19,7 @@ export function ColorPicker<T extends Partial<CalendarInfo>>({
           required
           type="color"
           value={source.color}
-          style={{ maxWidth: '25%', minWidth: '3rem' }}
+          className="fc-setting-color-input"
           onChange={changeListener(x => ({ ...source, color: x }))}
         />
       </div>

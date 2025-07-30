@@ -22,13 +22,8 @@ main.js
 
 # Ignore everything in obsidian-dev-vault
 obsidian-dev-vault/
-!obsidian-dev-vault/.obsidian/plugins/Full-Calender/main.js
-!obsidian-dev-vault/.obsidian/plugins/Full-Calender/styles.css
-!obsidian-dev-vault/.obsidian/plugins/Full-Calender/manifest.json
-
-
 
 # Others
-src/.*
+src/**/.*
 exported
 .DS_Store
