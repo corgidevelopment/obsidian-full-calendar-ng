@@ -6,26 +6,22 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ## Version 0.11.4
 
-- **New:** Full Support for Recurring Tasks and Overrides  
-  _Recurring events can now be completed or edited per instance — drag, resize, or check off tasks without affecting the full series. Changes are reversible and tracked via overrides._
+-   **New:** Smarter Recurring Events and Tasks  
+    _Recurring events can now be edited per-instance — drag, resize, or complete a task without affecting the whole series. Changes are reversible and tracked cleanly._
 
-- **New:** Confirmation Modals for Recurring Edits and Deletions  
-  _You’ll now be prompted with "This one", "This and future", or "Entire series" when modifying or deleting recurring events for more control and safety._
+-   **Improvement:** Safe Deletion with Confirmation Options  
+    _Deleting a recurring event now asks whether to remove just one instance, the entire series, or promote existing edits to standalone events._
 
-- **New:** Global Event ID Infrastructure  
-  _Introduces stable, persistent calendar IDs and global event identifiers — improving cross-session reliability and setting the stage for future integrations._
+-   **Improvement:** Better Task Behavior for Repeating Events  
+    _Recurring tasks now behave just like regular ones — you can check them off individually, and they show up correctly in the calendar._
 
-- **Improve:** Smarter Calendar Architecture  
-  _Recurring logic has been refactored into a dedicated manager for better performance, maintainability, and clarity._
+-   **Fix:** Multiday Allday events fix by @yalikebaz 
+    _Multiday Allday events made inclusive for local calenders. Thanks to @yalikebaz for the fix!_
 
-- **Fix:** Task Completion and Timezone Issues  
-  _Resolved bugs with recurring task checkboxes, frontmatter corruption, and timezone inconsistencies in recurring events._
-
-- **Fix:** Multiday All-day Events Fix by @yalikebaz  
-  _Multiday all-day events are now rendered inclusively in local calendars. Thanks to @yalikebaz for the fix!_
+-   **Fix:** Performance and Architecture Improvements 
+    _Refactored recurring event logic, improved performance on large calendars, and cleaned up the plugin architecture to prepare for future features._
 
 ---
-
 ## Version 0.11.3
 
 - **New:** Insights Engine has smarter Dashboard with Personas  

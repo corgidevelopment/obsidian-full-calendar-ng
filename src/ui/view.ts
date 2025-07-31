@@ -136,6 +136,8 @@ export class CalendarView extends ItemView {
       this.fullCalendarView = null;
     }
     this.fullCalendarView = renderCalendar(calendarEl, sources, {
+      // timeZone:
+      //   this.plugin.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone, // <-- ADD THIS LINE
       forceNarrow: this.inSidebar,
       customButtons: {
         analysis: {
@@ -367,6 +369,15 @@ export class CalendarView extends ItemView {
         }
       }
     });
+
+    // // ==================== DEBUG ====================
+    // if (this.fullCalendarView) {
+    //   const calData = this.fullCalendarView.getCurrentData();
+    //   console.log(`[DEBUG] CALENDAR VIEW onload:
+    //     - FullCalendar's Internal Timezone: ${calData.dateEnv.timeZone}`);
+    // }
+    // // ===============================================
+
     // @ts-ignore
     window.fc = this.fullCalendarView;
 
@@ -385,6 +396,34 @@ export class CalendarView extends ItemView {
         this.fullCalendarView?.removeAllEventSources();
         const sources = this.translateSources();
         sources.forEach(source => this.fullCalendarView?.addEventSource(source));
+        // // this.fullCalendarView?.removeAllEventSources();
+        // // const sources = this.translateSources();
+        // // sources.forEach(source => this.fullCalendarView?.addEventSource(source));
+
+        // this.fullCalendarView?.batchRendering(() => {
+        //   // 1. Set the new timezone on the calendar instance.
+        //   const newTimezone =
+        //     this.plugin.settings.displayTimezone ||
+        //     Intl.DateTimeFormat().resolvedOptions().timeZone;
+        //   this.fullCalendarView?.setOption('timeZone', newTimezone);
+
+        //   // 2. Remove all old event sources.
+        //   this.fullCalendarView?.removeAllEventSources();
+
+        //   // 3. Add the newly-translated event sources.
+        //   // The translateSources function will use the updated settings to convert
+        //   // events to the new timezone before adding them.
+        //   const sources = this.translateSources();
+        //   sources.forEach(source => this.fullCalendarView?.addEventSource(source));
+        // });
+
+        // // ==================== DEBUG ====================
+        // if (this.fullCalendarView) {
+        //   const calData = this.fullCalendarView.getCurrentData();
+        //   console.log(`[DEBUG] CALENDAR VIEW on resync:
+        // - FullCalendar's Internal Timezone: ${calData.dateEnv.timeZone}`);
+        // }
+        // // =
         return;
       } else if (payload.type === 'events') {
         const { toRemove, toAdd } = payload;

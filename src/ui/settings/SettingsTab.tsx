@@ -345,7 +345,14 @@ export class FullCalendarSettingTab extends PluginSettingTab {
           'Choose the timezone for displaying events. Defaults to your system timezone. Changing this will reload the calendar.'
         )
         .addDropdown(dropdown => {
-          const timezones = Intl.supportedValuesOf('timeZone');
+          // ==================== TEMPORARY DEBUG MODIFICATION ====================
+          // const timezones = [
+          //   'Europe/Budapest',
+          //   'Australia/Perth',
+          //   'Asia/Kolkata' // Note: 'India/Calcutta' is a legacy name, 'Asia/Kolkata' is the standard.
+          // ];
+          const timezones = Intl.supportedValuesOf('timeZone'); // <-- This is the original line
+          // ======================================================================
           timezones.forEach(tz => {
             dropdown.addOption(tz, tz);
           });

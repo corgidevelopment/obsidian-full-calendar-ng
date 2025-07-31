@@ -25,6 +25,7 @@ import { convertEvent } from '../core/Timezone';
 import { newFrontmatter, modifyFrontmatterString, replaceFrontmatter } from './frontmatter';
 import { constructTitle, parseTitle } from '../core/categoryParser';
 import FullCalendarPlugin from '../main';
+import { DateTime } from 'luxon';
 
 function sanitizeTitleForFilename(title: string): string {
   // Replace characters that are invalid in filenames on most OSes.
@@ -45,8 +46,21 @@ const basenameFromEvent = (event: OFCEvent, settings: FullCalendarSettings): str
     case undefined:
     case 'single':
       return `${event.date} ${sanitizedTitle}`;
-    case 'recurring':
-      return `(Every ${event.daysOfWeek.join(',')}) ${sanitizedTitle}`;
+    case 'recurring': {
+      if (event.daysOfWeek && event.daysOfWeek.length > 0) {
+        return `(Every ${event.daysOfWeek.join(',')}) ${sanitizedTitle}`;
+      }
+      if (event.month && event.dayOfMonth) {
+        // Luxon months are 1-based, matching our schema.
+        const monthName = DateTime.fromObject({ month: event.month }).toFormat('MMM');
+        return `(Every year on ${monthName} ${event.dayOfMonth}) ${sanitizedTitle}`;
+      }
+      if (event.dayOfMonth) {
+        return `(Every month on the ${event.dayOfMonth}) ${sanitizedTitle}`;
+      }
+      // Fallback for an invalid recurring event, though schema should prevent this.
+      return `(Recurring) ${sanitizedTitle}`;
+    }
     case 'rrule':
       return `(${rrulestr(event.rrule).toText()}) ${sanitizedTitle}`;
   }
@@ -94,7 +108,7 @@ export default class FullNoteCalendar extends EditableCalendar {
       return [];
     }
 
-    // MODIFICATION: Conditional Parsing
+    // MODIFICATION: Conditional Parsing for Category Coloring
     let eventData: any = { ...frontmatter };
     const rawTitle = frontmatter.title || file.basename;
 
@@ -176,22 +190,33 @@ export default class FullNoteCalendar extends EditableCalendar {
       throw new Error(`Event at ${path} already exists.`);
     }
 
+    // The incoming event is in the display timezone. It needs to be converted
+    // to its designated source timezone before being written to disk.
     const displayTimezone =
       this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    let eventToWrite = { ...event };
 
-    // MODIFICATION: Conditional Title Construction
+    // If a timezone is not present on the event, it's a new event and should be assigned the display timezone.
+    if (!eventToWrite.timezone) {
+      eventToWrite.timezone = displayTimezone;
+    }
+
+    // If the event's designated timezone is different from the display timezone, convert its times.
+    if (eventToWrite.timezone !== displayTimezone) {
+      eventToWrite = convertEvent(event, displayTimezone, eventToWrite.timezone);
+    }
+
     const titleToWrite = this.settings.enableCategoryColoring
-      ? constructTitle(event.category, event.title)
-      : event.title;
+      ? constructTitle(eventToWrite.category, eventToWrite.title)
+      : eventToWrite.title;
 
-    const eventToCreate = {
-      ...event,
-      title: titleToWrite,
-      timezone: displayTimezone
+    const eventWithFullTitle = {
+      ...eventToWrite,
+      title: titleToWrite
     };
-    delete (eventToCreate as Partial<OFCEvent>).category;
+    delete (eventWithFullTitle as Partial<OFCEvent>).category;
 
-    const newPage = replaceFrontmatter('', newFrontmatter(eventToCreate));
+    const newPage = replaceFrontmatter('', newFrontmatter(eventWithFullTitle));
     const file = await this.app.create(path, newPage);
     return { file, lineNumber: undefined };
   }

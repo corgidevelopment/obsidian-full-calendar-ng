@@ -82,29 +82,63 @@ export const CommonSchema = z.object({
   recurringEventId: z.string().optional() // The ID of the parent recurring event.
 });
 
-export const EventSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('single'),
-    date: ParsedDate,
-    endDate: ParsedDate.nullable().default(null),
-    completed: ParsedDate.or(z.literal(false)).or(z.literal(null)).optional()
-  }),
-  z.object({
-    type: z.literal('recurring'),
-    daysOfWeek: z.array(z.enum(['U', 'M', 'T', 'W', 'R', 'F', 'S'])),
-    startRecur: ParsedDate.optional(),
-    endRecur: ParsedDate.optional(),
-    isTask: z.boolean().optional(),
-    skipDates: z.array(ParsedDate).default([])
-  }),
-  z.object({
-    type: z.literal('rrule'),
-    startDate: ParsedDate,
-    rrule: z.string(),
-    skipDates: z.array(ParsedDate).default([]),
-    isTask: z.boolean().optional()
-  })
-]);
+export const EventSchema = z
+  .discriminatedUnion('type', [
+    z.object({
+      type: z.literal('single'),
+      date: ParsedDate,
+      endDate: ParsedDate.nullable().default(null),
+      completed: ParsedDate.or(z.literal(false)).or(z.literal(null)).optional()
+    }),
+    z.object({
+      type: z.literal('recurring'),
+      daysOfWeek: z.array(z.enum(['U', 'M', 'T', 'W', 'R', 'F', 'S'])).optional(),
+      month: z.number().int().min(1).max(12).optional(),
+      dayOfMonth: z.number().int().min(1).max(31).optional(),
+      startRecur: ParsedDate.optional(),
+      endRecur: ParsedDate.optional(),
+      isTask: z.boolean().optional(),
+      skipDates: z.array(ParsedDate).default([])
+    }),
+    z.object({
+      type: z.literal('rrule'),
+      startDate: ParsedDate,
+      rrule: z.string(),
+      skipDates: z.array(ParsedDate).default([]),
+      isTask: z.boolean().optional()
+    })
+  ])
+  .superRefine((data, ctx) => {
+    if (data.type !== 'recurring') return;
+
+    const weeklyDefined = data.daysOfWeek !== undefined && data.daysOfWeek.length > 0;
+    const monthlyOrYearlyDefined = data.dayOfMonth !== undefined;
+
+    if (weeklyDefined && monthlyOrYearlyDefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'A recurring event cannot be both weekly (daysOfWeek) and monthly/yearly (dayOfMonth).',
+        path: ['daysOfWeek']
+      });
+    }
+
+    if (!weeklyDefined && !monthlyOrYearlyDefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'A recurring event must define a recurrence rule (either daysOfWeek or dayOfMonth).'
+      });
+    }
+
+    if (data.month !== undefined && data.dayOfMonth === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'A yearly recurring event (with month) must also have a dayOfMonth.',
+        path: ['month']
+      });
+    }
+  });
 
 type EventType = z.infer<typeof EventSchema>;
 type TimeType = z.infer<typeof TimeSchema>;

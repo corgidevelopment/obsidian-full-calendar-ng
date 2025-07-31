@@ -25,19 +25,29 @@ export const isTask = (e: OFCEvent) => {
 };
 
 export const unmakeTask = (event: OFCEvent): OFCEvent => {
-  if (event.type !== 'single') {
-    return event;
+  if (event.type === 'single') {
+    return { ...event, completed: null };
   }
-  return { ...event, completed: null };
+  if (event.type === 'recurring' || event.type === 'rrule') {
+    return { ...event, isTask: false };
+  }
+  return event;
 };
 
 export const toggleTask = (event: OFCEvent, isDone: boolean): OFCEvent => {
-  if (event.type !== 'single') {
-    return event;
+  if (event.type === 'single') {
+    if (isDone) {
+      return { ...event, completed: DateTime.now().toISO() };
+    } else {
+      return { ...event, completed: false };
+    }
   }
-  if (isDone) {
-    return { ...event, completed: DateTime.now().toISO() };
-  } else {
-    return { ...event, completed: false };
+
+  if (event.type === 'recurring' || event.type === 'rrule') {
+    // For a recurring series, "toggling" means defining it as a task series.
+    // The `isDone` parameter is irrelevant here.
+    return { ...event, isTask: true };
   }
+
+  return event;
 };

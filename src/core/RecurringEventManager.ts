@@ -142,7 +142,24 @@ export class RecurringEventManager {
       );
     }
 
+    // Destructure the master event to inherit common properties (like title, category, etc.)
+    // while explicitly excluding properties that ONLY apply to recurring definitions.
+    const {
+      // recurring type props
+      daysOfWeek,
+      startRecur,
+      endRecur,
+      // rrule type props
+      rrule,
+      startDate,
+      // props for both recurring types
+      skipDates,
+      // The rest of the properties will be inherited.
+      ...parentPropsToInherit
+    } = masterEvent as any; // Cast to `any` to easily destructure props from a union type.
+
     const finalOverrideEvent: OFCEvent = {
+      ...parentPropsToInherit,
       ...overrideEventData,
       recurringEventId: masterLocalIdentifier
     };

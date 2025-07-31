@@ -74,6 +74,8 @@ const DaySelect = ({
   );
 };
 
+type RecurrenceType = 'none' | 'weekly' | 'monthly' | 'yearly';
+
 interface EditEventProps {
   submit: (frontmatter: OFCEvent, calendarIndex: number) => Promise<void>;
   readonly calendars: {
@@ -88,6 +90,22 @@ interface EditEventProps {
   open?: () => Promise<void>;
   deleteEvent?: () => Promise<void>;
   onAttemptEditInherited?: () => void; // Add this new prop
+}
+
+function getInitialRecurrenceType(event?: Partial<OFCEvent>): RecurrenceType {
+  if (event?.type !== 'recurring') {
+    return 'none';
+  }
+  if (event.daysOfWeek && event.daysOfWeek.length > 0) {
+    return 'weekly';
+  }
+  if (event.month) {
+    return 'yearly';
+  }
+  if (event.dayOfMonth) {
+    return 'monthly';
+  }
+  return 'none';
 }
 
 export const EditEvent = ({
@@ -127,7 +145,11 @@ export const EditEvent = ({
   );
   const [title, setTitle] = useState(initialEvent?.title || '');
   const [category, setCategory] = useState(initialEvent?.category || '');
-  const [isRecurring, setIsRecurring] = useState(initialEvent?.type === 'recurring' || false);
+  // const [isRecurring, setIsRecurring] = useState(initialEvent?.type === 'recurring' || false);
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(
+    getInitialRecurrenceType(initialEvent)
+  );
+  const isRecurring = recurrenceType !== 'none';
   const [allDay, setAllDay] = useState(initialEvent?.allDay || false);
   const [calendarIndex, setCalendarIndex] = useState(defaultCalendarIndex);
   const [isTask, setIsTask] = useState(
@@ -162,9 +184,9 @@ export const EditEvent = ({
     : '';
 
   useEffect(() => {
-    // If user switches to a daily note calendar, force 'isRecurring' to false.
+    // If user switches to a daily note calendar, force recurrence off.
     if (isDailyNoteCalendar) {
-      setIsRecurring(false);
+      setRecurrenceType('none');
     }
   }, [isDailyNoteCalendar]);
 
@@ -176,30 +198,48 @@ export const EditEvent = ({
       completedValue = complete || false;
     }
 
-    await submit(
-      {
-        ...{ title, category: category || undefined },
-        ...(allDay
-          ? { allDay: true }
-          : { allDay: false, startTime: startTime || '', endTime: endTime || null }),
-        ...(isRecurring
-          ? {
-              type: 'recurring',
-              daysOfWeek: daysOfWeek,
-              startRecur: date || undefined,
-              endRecur: endRecur,
-              isTask: isTask,
-              skipDates: initialEvent?.type === 'recurring' ? initialEvent.skipDates : []
-            }
-          : {
-              type: 'single',
-              date: date || '',
-              endDate: endDate || null,
-              completed: completedValue
-            })
-      } as OFCEvent,
-      calendarIndex
-    );
+    const timeInfo = allDay
+      ? { allDay: true as const }
+      : { allDay: false as const, startTime: startTime || '', endTime: endTime || null };
+
+    let eventData: Partial<OFCEvent>;
+
+    if (recurrenceType === 'none') {
+      eventData = {
+        type: 'single',
+        date: date || '',
+        endDate: endDate || null,
+        completed: completedValue
+      };
+    } else {
+      const recurringData: Partial<OFCEvent> & { type: 'recurring' } = {
+        type: 'recurring',
+        startRecur: date || undefined,
+        endRecur: endRecur,
+        isTask: isTask,
+        skipDates: initialEvent?.type === 'recurring' ? initialEvent.skipDates : []
+      };
+
+      if (recurrenceType === 'weekly') {
+        recurringData.daysOfWeek = daysOfWeek as ('U' | 'M' | 'T' | 'W' | 'R' | 'F' | 'S')[];
+      } else if (recurrenceType === 'monthly' && date) {
+        recurringData.dayOfMonth = DateTime.fromISO(date).day;
+      } else if (recurrenceType === 'yearly' && date) {
+        const dt = DateTime.fromISO(date);
+        recurringData.month = dt.month;
+        recurringData.dayOfMonth = dt.day;
+      }
+      eventData = recurringData;
+    }
+
+    const finalEvent = {
+      title,
+      category: category || undefined,
+      ...timeInfo,
+      ...eventData
+    } as OFCEvent;
+
+    await submit(finalEvent, calendarIndex);
   };
 
   return (
@@ -308,7 +348,7 @@ export const EditEvent = ({
           </div>
         </div>
 
-        {/* Options section */}
+        {/* Options section replaced */}
         <div className="setting-item">
           <div className="setting-item-info">
             <div className="setting-item-name">Options</div>
@@ -316,7 +356,6 @@ export const EditEvent = ({
           <div className="setting-item-control options-group">
             <label title={isChildOverride ? disabledTooltip : ''}>
               {' '}
-              {/* <-- ADD THIS LINE */}
               <input
                 type="checkbox"
                 checked={allDay}
@@ -324,15 +363,6 @@ export const EditEvent = ({
                 disabled={isChildOverride}
               />{' '}
               All day
-            </label>
-            <label title={recurringTooltip} className={isDailyNoteCalendar ? 'is-disabled' : ''}>
-              <input
-                type="checkbox"
-                checked={isRecurring}
-                onChange={e => setIsRecurring(e.target.checked)}
-                disabled={isDailyNoteCalendar}
-              />{' '}
-              Recurring
             </label>
             <label>
               <input type="checkbox" checked={isTask} onChange={e => setIsTask(e.target.checked)} />{' '}
@@ -360,17 +390,56 @@ export const EditEvent = ({
           </div>
         </div>
 
-        {/* Recurring fields */}
+        {/* New "Repeats" section */}
+        <div className="setting-item">
+          <div className="setting-item-info">
+            <div className="setting-item-name">Repeats</div>
+          </div>
+          <div className="setting-item-control">
+            <select
+              value={recurrenceType}
+              onChange={e => setRecurrenceType(e.target.value as RecurrenceType)}
+              disabled={isDailyNoteCalendar}
+              title={recurringTooltip}
+            >
+              <option value="none">None</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Recurring fields fragment replaced */}
         {isRecurring && (
           <>
-            <div className="setting-item">
-              <div className="setting-item-info">
-                <div className="setting-item-name">Repeat on</div>
+            {recurrenceType === 'weekly' && (
+              <div className="setting-item">
+                <div className="setting-item-info">
+                  <div className="setting-item-name">Repeat on</div>
+                </div>
+                <div className="setting-item-control">
+                  <DaySelect value={daysOfWeek} onChange={setDaysOfWeek} />
+                </div>
               </div>
-              <div className="setting-item-control">
-                <DaySelect value={daysOfWeek} onChange={setDaysOfWeek} />
+            )}
+            {recurrenceType === 'monthly' && date && (
+              <div className="setting-item">
+                <div className="setting-item-info"></div>
+                <div className="setting-item-control">
+                  Repeats on day {DateTime.fromISO(date).day} of every month.
+                </div>
               </div>
-            </div>
+            )}
+            {recurrenceType === 'yearly' && date && (
+              <div className="setting-item">
+                <div className="setting-item-info"></div>
+                <div className="setting-item-control">
+                  Repeats every year on {DateTime.fromISO(date).toFormat('MMMM d')}.
+                </div>
+              </div>
+            )}
+
             <div className="setting-item">
               <div className="setting-item-info">
                 <div className="setting-item-name">End Repeat</div>

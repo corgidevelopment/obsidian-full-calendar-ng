@@ -71,6 +71,7 @@ interface ExtraRenderProps {
   openContextMenuForEvent?: (event: EventApi, mouseEvent: MouseEvent) => Promise<void>;
   toggleTask?: (event: EventApi, isComplete: boolean) => Promise<boolean>;
   forceNarrow?: boolean;
+  // timeZone?: string;
 }
 
 export function renderCalendar(
@@ -108,6 +109,7 @@ export function renderCalendar(
 
   const cal = new Calendar(containerEl, {
     customButtons: customButtons,
+    // timeZone: settings?.timeZone,
     plugins: [
       // View plugins
       dayGridPlugin,

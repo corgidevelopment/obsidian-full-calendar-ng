@@ -19,7 +19,7 @@ Right-click on any event to open a context menu with quick actions.
 
 For local, editable events, you can:
 -   **Turn into task / Remove checkbox:** Quickly toggle an event's task status.
--   **Go to note:** Jump directly to the event's source note.
+-   **Go to note:** Jump directly to the event's source note, opening it in a **new tab**.
 -   **Delete:** Delete the event without opening the editor.
 
 ![Context Menu](../assets/context-menu.gif)

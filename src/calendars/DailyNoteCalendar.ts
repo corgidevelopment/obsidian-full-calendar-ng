@@ -386,15 +386,25 @@ export default class DailyNoteCalendar extends EditableCalendar {
   async createEvent(event: OFCEvent): Promise<EventLocation> {
     if (event.type !== 'single' && event.type !== undefined)
       throw new Error('Cannot create a recurring event in a daily note.');
-    const eventToCreate = {
-      ...event,
-      // The native timezone of a new daily note event is always the current system time.
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    };
+
+    let eventToCreate = { ...event };
     const displayTimezone =
       this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    // If in strict mode, stamp the event with the display timezone.
-    if (this.settings.dailyNotesTimezone === 'strict') eventToCreate.timezone = displayTimezone;
+
+    // Assign a timezone if one doesn't exist.
+    if (!eventToCreate.timezone) {
+      if (this.settings.dailyNotesTimezone === 'strict') {
+        eventToCreate.timezone = displayTimezone;
+      } else {
+        eventToCreate.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      }
+    }
+
+    // Convert if the event's target timezone differs from the display timezone.
+    if (eventToCreate.timezone !== displayTimezone) {
+      eventToCreate = convertEvent(event, displayTimezone, eventToCreate.timezone);
+    }
+
     const m = moment(eventToCreate.date);
     let file = getDailyNote(m, getAllDailyNotes()) as TFile;
     if (!file) file = (await createDailyNote(m)) as TFile;

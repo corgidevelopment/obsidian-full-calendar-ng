@@ -434,7 +434,7 @@ export default class EventCache {
             const dateToUnskip = event.date;
             return {
               ...e,
-              skipDates: e.skipDates.filter(d => d !== dateToUnskip)
+              skipDates: e.skipDates.filter((d: string) => d !== dateToUnskip)
             };
           },
           { silent: true }
