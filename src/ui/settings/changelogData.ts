@@ -14,6 +14,41 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.11.5-beta',
+    changes: [
+      {
+        type: 'new',
+        title: 'Monthly and Yearly Recurring Events',
+        description:
+          'You can now create events that repeat every month or every year — perfect for anniversaries, billing cycles, or annual planning.'
+      },
+      {
+        type: 'new',
+        title: 'Repeats Dropdown in Event Modal',
+        description:
+          'Replaced the old recurring checkbox with a dropdown menu for choosing None, Weekly, Monthly, or Yearly recurrence, with context-aware controls.'
+      },
+      {
+        type: 'improvement',
+        title: 'Descriptive Filenames for Recurring Notes',
+        description:
+          'Recurring events now generate clean, readable filenames like "(Every month on the 15th) My Event.md".'
+      },
+      {
+        type: 'improvement',
+        title: 'Improved Timezone and All-Day Support',
+        description:
+          'Timezone handling for recurring events has been refined, and all-day recurring events now display correctly.'
+      },
+      {
+        type: 'fix',
+        title: 'Right-Click Toggle for Recurring Tasks',
+        description:
+          'Recurring tasks can now be marked complete via right-click, just like one-time tasks.'
+      }
+    ]
+  },
+  {
     version: '0.11.4',
     changes: [
       {

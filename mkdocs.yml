@@ -58,3 +58,4 @@ nav:
           - Display & Behavior: settings/fc_config.md
     - Advanced:
           - Dataview Integration: advanced/dataview.md
+          - Data Integrity and File Modifications: advanced/data_integrity.md

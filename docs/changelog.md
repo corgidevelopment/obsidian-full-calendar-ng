@@ -4,6 +4,28 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
+## Version 0.11.5-beta
+
+-   **New:** Monthly and Yearly Recurring Events  
+    _You can now create events that repeat every month or every year — perfect for things like anniversaries, billing cycles, or project reviews._
+
+-   **New:** Smarter "Repeats" Menu in Event Modal  
+    _The old "Recurring" checkbox is gone. Instead, use a new dropdown to choose from Weekly, Monthly, or Yearly recurrence. The UI updates dynamically to match your selection._
+
+-   **Improvement:** Human-Friendly Filenames for Recurring Notes  
+    _Recurring event notes now get cleaner, more descriptive names like `(Every year on July 30th) My Event.md`._
+
+-   **Improvement:** Enhanced Timezone and All-Day Support  
+    _Timezone handling for recurring events is now more accurate, and All-Day events display correctly across time boundaries._
+
+-   **Fix:** Right-Click Task Toggle for Recurring Tasks  
+    _Recurring tasks can now be marked as complete using the right-click menu, just like one-off tasks._
+
+-   **Fix:** Safer Rendering and UI Cleanups  
+    _Removed use of unsafe HTML injection in the UI. Improved event rendering, loading states, and general UI responsiveness._
+
+---
+
 ## Version 0.11.4
 
 -   **New:** Smarter Recurring Events and Tasks  
