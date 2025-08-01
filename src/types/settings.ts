@@ -13,7 +13,7 @@ export interface FullCalendarSettings {
   clickToCreateEventFromMonthView: boolean;
   displayTimezone: string | null;
   lastSystemTimezone: string | null;
-  enableCategoryColoring: boolean;
+  enableAdvancedCategorization: boolean;
   chrono_analyser_config: any;
   categorySettings: { name: string; color: string }[];
 }
@@ -31,7 +31,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   clickToCreateEventFromMonthView: true,
   displayTimezone: null,
   lastSystemTimezone: null,
-  enableCategoryColoring: false,
+  enableAdvancedCategorization: false,
   chrono_analyser_config: null,
   categorySettings: []
 };

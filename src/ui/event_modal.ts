@@ -48,7 +48,7 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
       calendars,
       defaultCalendarIndex: 0,
       availableCategories,
-      enableCategory: plugin.settings.enableCategoryColoring,
+      enableCategory: plugin.settings.enableAdvancedCategorization,
       submit: async (data, calendarIndex) => {
         const calendarId = calendars[calendarIndex].id;
         try {
@@ -121,7 +121,7 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
       calendars,
       defaultCalendarIndex: calIdx, // <-- RESTORED THIS PROP
       availableCategories,
-      enableCategory: plugin.settings.enableCategoryColoring,
+      enableCategory: plugin.settings.enableAdvancedCategorization,
       submit: async (data, calendarIndex) => {
         try {
           if (calendarIndex !== calIdx) {

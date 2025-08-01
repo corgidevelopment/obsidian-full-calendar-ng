@@ -104,7 +104,7 @@ export const getInlineEventFromLine = (
 
   const hasInlineFields = Object.keys(attrs).length > 0;
 
-  if (!settings.enableCategoryColoring && !hasInlineFields) {
+  if (!settings.enableAdvancedCategorization && !hasInlineFields) {
     return null;
   }
 
@@ -115,10 +115,11 @@ export const getInlineEventFromLine = (
   }
 
   let eventData: any = {};
-  if (settings.enableCategoryColoring) {
-    const { category, title } = parseTitle(rawTitle);
+  if (settings.enableAdvancedCategorization) {
+    const { category, subCategory, title } = parseTitle(rawTitle);
     eventData.title = title.trim(); // Trim the final components
     eventData.category = category ? category.trim() : undefined; // Trim the final components
+    eventData.subCategory = subCategory ? subCategory.trim() : undefined;
   } else {
     eventData.title = rawTitle.trim(); // Trim the final title
   }
@@ -174,7 +175,7 @@ const makeListItem = (
   settings: FullCalendarSettings
 ): string => {
   if (data.type !== 'single') throw new Error('Can only pass in single event.');
-  const { completed, title, category } = data;
+  const { completed, title, category, subCategory } = data; // <-- Add subCategory
   const checkbox = (() => {
     if (completed !== null && completed !== undefined) {
       return `[${completed ? 'x' : ' '}]`;
@@ -182,7 +183,9 @@ const makeListItem = (
     return null;
   })();
 
-  const titleToWrite = settings.enableCategoryColoring ? constructTitle(category, title) : title;
+  const titleToWrite = settings.enableAdvancedCategorization
+    ? constructTitle(category, subCategory, title) // <-- Update this line
+    : title;
 
   const attrs: Partial<OFCEvent> = { ...data };
   delete attrs['completed'];
@@ -190,6 +193,7 @@ const makeListItem = (
   delete attrs['type'];
   delete attrs['date'];
   delete attrs['category']; // Don't write category as an inline field
+  delete attrs['subCategory']; // <-- ADD THIS LINE
 
   for (const key of <(keyof OFCEvent)[]>Object.keys(attrs)) {
     if (attrs[key] === undefined || attrs[key] === null) {
@@ -495,15 +499,21 @@ export default class DailyNoteCalendar extends EditableCalendar {
           // If not forcing (smart), we use the clean title from our parsed event.
           const titleToCategorize = force ? rawTitle : existingEvent.title;
 
-          const newFullTitle = constructTitle(newCategory, titleToCategorize);
+          // The `subCategory` will be undefined here, which is correct. We are only adding a top-level category.
+          const newFullTitle = constructTitle(newCategory, undefined, titleToCategorize);
 
           // Now parse the final result to get the components for the new event object.
-          const { category: finalCategory, title: finalTitle } = parseTitle(newFullTitle);
+          const {
+            category: finalCategory,
+            subCategory: finalSubCategory,
+            title: finalTitle
+          } = parseTitle(newFullTitle);
 
           const eventWithNewCategory: OFCEvent = {
             ...existingEvent,
             title: finalTitle,
-            category: finalCategory
+            category: finalCategory,
+            subCategory: finalSubCategory
           };
 
           const newLine = modifyListItem(line, eventWithNewCategory, this.settings);
@@ -531,7 +541,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
 
     const removalSettings: FullCalendarSettings = {
       ...this.settings,
-      enableCategoryColoring: true
+      enableAdvancedCategorization: true
     };
 
     const processor = async (file: TFile) => {
@@ -573,7 +583,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
 
   public getLocalIdentifier(event: OFCEvent): string | null {
     if (event.type === 'single' && event.date) {
-      const fullTitle = constructTitle(event.category, event.title);
+      const fullTitle = constructTitle(event.category, event.subCategory, event.title);
       return `${event.date}::${fullTitle}`;
     }
     return null;

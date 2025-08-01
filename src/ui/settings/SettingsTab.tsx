@@ -71,7 +71,7 @@ export interface FullCalendarSettings {
   clickToCreateEventFromMonthView: boolean;
   displayTimezone: string | null;
   lastSystemTimezone: string | null;
-  enableCategoryColoring: boolean;
+  enableAdvancedCategorization: boolean;
   chrono_analyser_config: InsightsConfig | null;
   categorySettings: { name: string; color: string }[];
 }
@@ -89,7 +89,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   clickToCreateEventFromMonthView: true,
   displayTimezone: null,
   lastSystemTimezone: null,
-  enableCategoryColoring: false,
+  enableAdvancedCategorization: false,
   chrono_analyser_config: null,
   categorySettings: []
 };
@@ -279,11 +279,17 @@ export class FullCalendarSettingTab extends PluginSettingTab {
       // Standard Settings View
       // ====================================================================
 
+      const desktopViewOptions: { [key: string]: string } = { ...INITIAL_VIEW_OPTIONS.DESKTOP };
+      if (this.plugin.settings.enableAdvancedCategorization) {
+        desktopViewOptions['resourceTimelineWeek'] = 'Timeline Week';
+        desktopViewOptions['resourceTimelineDay'] = 'Timeline Day';
+      }
+
       new Setting(containerEl)
         .setName('Desktop initial view')
         .setDesc('Choose the initial view range on desktop devices.')
         .addDropdown(dropdown => {
-          Object.entries(INITIAL_VIEW_OPTIONS.DESKTOP).forEach(([value, display]) => {
+          Object.entries(desktopViewOptions).forEach(([value, display]) => {
             dropdown.addOption(value, display);
           });
           dropdown.setValue(this.plugin.settings.initialView.desktop);
@@ -390,124 +396,132 @@ export class FullCalendarSettingTab extends PluginSettingTab {
       // ====================================================================
       // CATEGORY COLORING SECTION
       // ====================================================================
-      new Setting(containerEl).setName('Category coloring').setHeading();
+      new Setting(containerEl).setName('Advanced categorization and Timeline').setHeading();
 
       new Setting(containerEl)
-        .setName('Enable category coloring')
-        .setDesc('Color events based on a category in their title (e.g., "Work - My Event").')
+        .setName('Enable Advanced Categorization (Title-based)')
+        .setDesc(
+          'Enable category-based coloring and unlock timeline views. This will modify event note titles and allow timeline visualization by category.'
+        )
         .addToggle(toggle => {
-          toggle.setValue(this.plugin.settings.enableCategoryColoring).onChange(async value => {
-            const isTogglingOn = value;
+          toggle
+            .setValue(this.plugin.settings.enableAdvancedCategorization)
+            .onChange(async value => {
+              const isTogglingOn = value;
 
-            if (isTogglingOn) {
-              const confirmModal = new Modal(this.app);
-              // Add a class to the modal's container for specific styling
-              confirmModal.modalEl.addClass('full-calendar-confirm-modal');
+              if (isTogglingOn) {
+                const confirmModal = new Modal(this.app);
+                // Add a class to the modal's container for specific styling
+                confirmModal.modalEl.addClass('full-calendar-confirm-modal');
 
-              const { contentEl } = confirmModal;
+                const { contentEl } = confirmModal;
 
-              contentEl.createEl('h2', { text: '⚠️ Permanent Vault Modification' });
+                contentEl.createEl('h2', { text: '⚠️ Permanent Vault Modification' });
 
-              contentEl.createEl('p', {
-                text: 'Enabling this feature will permanently modify event notes in your vault.'
-              });
+                contentEl.createEl('p', {
+                  text: 'Enabling this feature will permanently modify event notes in your vault.'
+                });
 
-              // Use a highlighted div for the technical explanation
-              const highlightEl = contentEl.createDiv('fc-confirm-highlight');
-              const p1 = highlightEl.createEl('p');
-              p1.innerHTML =
-                'We use the delimiter <code> - </code> (a dash with space on either side) to add a category to event titles.';
+                // Use a highlighted div for the technical explanation
+                const highlightEl = contentEl.createDiv('fc-confirm-highlight');
+                const p1 = highlightEl.createEl('p');
+                p1.innerHTML =
+                  'We use the delimiter <code> - </code> (a dash with space on either side) to add a category to event titles.';
 
-              const p2 = highlightEl.createEl('p');
-              p2.innerHTML =
-                'For example, an event named <strong>"My Meeting"</strong> will become <strong>"Category - My Meeting"</strong>.';
+                const p2 = highlightEl.createEl('p');
+                p2.innerHTML =
+                  'For example, an event named <strong>"My Meeting"</strong> will become <strong>"Category - My Meeting"</strong>.';
 
-              contentEl.createEl('p', {
-                text: 'This process will also rename the associated note files to match the new titles. This cannot be easily undone.'
-              });
+                contentEl.createEl('p', {
+                  text: 'This process will also rename the associated note files to match the new titles. This cannot be easily undone.'
+                });
 
-              const backupEl = contentEl.createEl('p');
-              backupEl.innerHTML =
-                'It is <strong>STRONGLY RECOMMENDED</strong> to <strong>BACKUP</strong> your vault before continuing.';
+                const backupEl = contentEl.createEl('p');
+                backupEl.innerHTML =
+                  'It is <strong>STRONGLY RECOMMENDED</strong> to <strong>BACKUP</strong> your vault before continuing.';
 
-              new Setting(contentEl)
-                .addButton(btn =>
-                  btn
-                    .setButtonText('Proceed and Modify My Notes')
-                    .setWarning() // Keep the warning class for button color
-                    .onClick(async () => {
-                      confirmModal.close();
-                      // Show the second, choice modal
-                      new BulkCategorizeModal(this.app, async (choice, defaultCategory) => {
-                        this.plugin.settings.enableCategoryColoring = true;
+                new Setting(contentEl)
+                  .addButton(btn =>
+                    btn
+                      .setButtonText('Proceed and Modify My Notes')
+                      .setWarning() // Keep the warning class for button color
+                      .onClick(async () => {
+                        confirmModal.close();
+                        // Show the second, choice modal
+                        new BulkCategorizeModal(this.app, async (choice, defaultCategory) => {
+                          this.plugin.settings.enableAdvancedCategorization = true;
+                          await this.plugin.saveData(this.plugin.settings);
+
+                          await this.plugin.categorizationManager.bulkUpdateCategories(
+                            choice,
+                            defaultCategory
+                          );
+
+                          this.display(); // Re-render the settings tab
+                        }).open();
+                      })
+                  )
+                  .addButton(btn =>
+                    btn.setButtonText('Cancel').onClick(() => confirmModal.close())
+                  );
+
+                confirmModal.open();
+              } else {
+                // Logic for turning the feature OFF
+                const confirmModal = new Modal(this.app);
+                // Add the same class for consistent styling
+                confirmModal.modalEl.addClass('full-calendar-confirm-modal');
+
+                const { contentEl } = confirmModal;
+
+                contentEl.createEl('h2', { text: '⚠️ Disable and Clean Up' });
+
+                contentEl.createEl('p', {
+                  text: 'Disabling this feature will remove known category prefixes from your event titles to restore the previous format.'
+                });
+
+                // Use a highlighted div for the technical explanation
+                const highlightEl = contentEl.createDiv('fc-confirm-highlight');
+                const p1 = highlightEl.createEl('p');
+                p1.innerHTML =
+                  'For example, an event named <strong>"Work - My Meeting"</strong> will become <strong>"My Meeting"</strong> again.';
+
+                const p2 = highlightEl.createEl('p');
+                p2.innerHTML =
+                  'This process will also <strong>permanently delete</strong> all of your saved category color settings.';
+
+                contentEl.createEl('p', {
+                  text: 'This action cannot be easily undone.'
+                });
+
+                const backupEl = contentEl.createEl('p');
+                backupEl.innerHTML =
+                  'It is <strong>STRONGLY RECOMMENDED</strong> to <strong>BACKUP</strong> your vault before continuing.';
+
+                new Setting(contentEl)
+                  .addButton(btn =>
+                    btn
+                      .setButtonText('Disable and Clean Up Notes')
+                      .setWarning()
+                      .onClick(async () => {
+                        this.plugin.settings.enableAdvancedCategorization = false;
+                        this.plugin.settings.categorySettings = [];
                         await this.plugin.saveData(this.plugin.settings);
+                        await this.plugin.categorizationManager.bulkRemoveCategories();
+                        confirmModal.close();
+                        this.display();
+                      })
+                  )
+                  .addButton(btn =>
+                    btn.setButtonText('Cancel').onClick(() => confirmModal.close())
+                  );
 
-                        await this.plugin.categorizationManager.bulkUpdateCategories(
-                          choice,
-                          defaultCategory
-                        );
-
-                        this.display(); // Re-render the settings tab
-                      }).open();
-                    })
-                )
-                .addButton(btn => btn.setButtonText('Cancel').onClick(() => confirmModal.close()));
-
-              confirmModal.open();
-            } else {
-              // Logic for turning the feature OFF
-              const confirmModal = new Modal(this.app);
-              // Add the same class for consistent styling
-              confirmModal.modalEl.addClass('full-calendar-confirm-modal');
-
-              const { contentEl } = confirmModal;
-
-              contentEl.createEl('h2', { text: '⚠️ Disable and Clean Up' });
-
-              contentEl.createEl('p', {
-                text: 'Disabling this feature will remove known category prefixes from your event titles to restore the previous format.'
-              });
-
-              // Use a highlighted div for the technical explanation
-              const highlightEl = contentEl.createDiv('fc-confirm-highlight');
-              const p1 = highlightEl.createEl('p');
-              p1.innerHTML =
-                'For example, an event named <strong>"Work - My Meeting"</strong> will become <strong>"My Meeting"</strong> again.';
-
-              const p2 = highlightEl.createEl('p');
-              p2.innerHTML =
-                'This process will also <strong>permanently delete</strong> all of your saved category color settings.';
-
-              contentEl.createEl('p', {
-                text: 'This action cannot be easily undone.'
-              });
-
-              const backupEl = contentEl.createEl('p');
-              backupEl.innerHTML =
-                'It is <strong>STRONGLY RECOMMENDED</strong> to <strong>BACKUP</strong> your vault before continuing.';
-
-              new Setting(contentEl)
-                .addButton(btn =>
-                  btn
-                    .setButtonText('Disable and Clean Up Notes')
-                    .setWarning()
-                    .onClick(async () => {
-                      this.plugin.settings.enableCategoryColoring = false;
-                      this.plugin.settings.categorySettings = [];
-                      await this.plugin.saveData(this.plugin.settings);
-                      await this.plugin.categorizationManager.bulkRemoveCategories();
-                      confirmModal.close();
-                      this.display();
-                    })
-                )
-                .addButton(btn => btn.setButtonText('Cancel').onClick(() => confirmModal.close()));
-
-              confirmModal.open();
-            }
-          });
+                confirmModal.open();
+              }
+            });
         });
 
-      if (this.plugin.settings.enableCategoryColoring) {
+      if (this.plugin.settings.enableAdvancedCategorization) {
         const categoryDiv = containerEl.createDiv();
         const categoryRoot = ReactDOM.createRoot(categoryDiv);
 
@@ -637,4 +651,28 @@ export function ensureCalendarIds(sources: any[]): { updated: boolean; sources: 
   });
 
   return { updated, sources: updatedSources as CalendarInfo[] };
+}
+
+/**
+ * Ensures that the initial desktop view is valid. If advanced categorization is
+ * disabled, but a timeline view is selected, it resets the view to a safe
+ * default to prevent crashes.
+ * @param settings The FullCalendarSettings object.
+ * @returns The corrected settings object.
+ */
+export function sanitizeInitialView(settings: FullCalendarSettings): FullCalendarSettings {
+  if (
+    !settings.enableAdvancedCategorization &&
+    settings.initialView.desktop.startsWith('resourceTimeline')
+  ) {
+    new Notice('Timeline view is disabled. Resetting default desktop view to "Week".', 5000);
+    return {
+      ...settings,
+      initialView: {
+        ...settings.initialView,
+        desktop: 'timeGridWeek'
+      }
+    };
+  }
+  return settings;
 }

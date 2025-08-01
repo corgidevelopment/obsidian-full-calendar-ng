@@ -185,7 +185,7 @@ describe('FullNoteCalendar Tests', () => {
       };
       const calendar = new FullNoteCalendar(obsidian, mockPlugin, info, {
         ...DEFAULT_SETTINGS,
-        enableCategoryColoring: true
+        enableAdvancedCategorization: true
       });
       const res = await calendar.getEvents();
       expect(res.length).toBe(inputs.length);
@@ -211,7 +211,7 @@ describe('FullNoteCalendar Tests', () => {
     };
     const calendar = new FullNoteCalendar(obsidian, mockPlugin, info, {
       ...DEFAULT_SETTINGS,
-      enableCategoryColoring: true
+      enableAdvancedCategorization: true
     });
     const event = {
       title: 'Test Event',
@@ -261,7 +261,7 @@ describe('FullNoteCalendar Tests', () => {
     };
     const calendar = new FullNoteCalendar(obsidian, mockPlugin, info, {
       ...DEFAULT_SETTINGS,
-      enableCategoryColoring: true
+      enableAdvancedCategorization: true
     });
 
     const path = normalizePath(`events/${filename}`); // Use forward slash instead of join

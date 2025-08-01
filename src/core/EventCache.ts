@@ -406,7 +406,7 @@ export default class EventCache {
 
   async deleteEvent(
     eventId: string,
-    options?: { silent?: boolean; force?: boolean }
+    options?: { silent?: boolean; force?: boolean; instanceDate?: string }
   ): Promise<void> {
     const { calendar, location, event } = this.getInfoForEditableEvent(eventId);
 

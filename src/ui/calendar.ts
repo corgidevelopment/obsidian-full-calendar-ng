@@ -28,8 +28,8 @@ import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import googleCalendarPlugin from '@fullcalendar/google-calendar';
 import iCalendarPlugin from '@fullcalendar/icalendar';
-
-import { TFolder, Notice } from 'obsidian';
+import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
+import { Menu } from 'obsidian';
 
 // There is an issue with FullCalendar RRule support around Daylight Saving Time boundaries
 // which is fixed by this monkeypatch:
@@ -63,7 +63,7 @@ interface ExtraRenderProps {
   };
 
   select?: (startDate: Date, endDate: Date, allDay: boolean, viewType: string) => Promise<void>;
-  modifyEvent?: (event: EventApi, oldEvent: EventApi) => Promise<boolean>;
+  modifyEvent?: (event: EventApi, oldEvent: EventApi, newResource?: string) => Promise<boolean>;
   eventMouseEnter?: (info: EventHoveringArg) => void;
   firstDay?: number;
   initialView?: { desktop: string; mobile: string };
@@ -71,13 +71,14 @@ interface ExtraRenderProps {
   openContextMenuForEvent?: (event: EventApi, mouseEvent: MouseEvent) => Promise<void>;
   toggleTask?: (event: EventApi, isComplete: boolean) => Promise<boolean>;
   forceNarrow?: boolean;
+  resources?: { id: string; title: string; eventColor?: string }[];
   // timeZone?: string;
 }
 
 export function renderCalendar(
   containerEl: HTMLElement,
   eventSources: EventSourceInput[],
-  settings?: ExtraRenderProps
+  settings?: ExtraRenderProps & { enableAdvancedCategorization?: boolean }
 ): Calendar {
   const isMobile = window.innerWidth < 500;
   const isNarrow = settings?.forceNarrow || isMobile;
@@ -88,33 +89,150 @@ export function renderCalendar(
     eventMouseEnter,
     openContextMenuForEvent,
     toggleTask,
-    customButtons
+    customButtons,
+    resources,
+    enableAdvancedCategorization
   } = settings || {};
   const modifyEventCallback =
     modifyEvent &&
     (async ({
       event,
       oldEvent,
-      revert
+      revert,
+      newResource
     }: {
       event: EventApi;
       oldEvent: EventApi;
       revert: () => void;
+      newResource?: { id: string };
     }) => {
-      const success = await modifyEvent(event, oldEvent);
+      // Extract the string ID from the newResource object
+      const success = await modifyEvent(event, oldEvent, newResource?.id);
       if (!success) {
         revert();
       }
     });
 
+  // Only show resource timeline views if category coloring is enabled
+  const showResourceViews = !!enableAdvancedCategorization;
+
+  // Group the standard and timeline views together with a space.
+  // This tells FullCalendar to render them as a single, connected button group.
+  const viewButtonGroup = ['views', showResourceViews ? 'timeline' : null]
+    .filter(Boolean)
+    .join(',');
+
+  // The comma between 'analysis' and the view group creates the visual separation.
+  const rightToolbarGroup = [!isNarrow ? 'analysis' : null, viewButtonGroup]
+    .filter(Boolean)
+    .join(' ');
+
+  const headerToolbar = !isNarrow
+    ? {
+        left: 'prev,next today',
+        center: 'title',
+        right: rightToolbarGroup
+      }
+    : false; // On narrow views (including mobile), the header is empty.
+
+  const footerToolbar = isNarrow
+    ? {
+        left: 'today,prev,next',
+        right: rightToolbarGroup // Analysis is already filtered out for narrow views.
+      }
+    : false;
+
+  const views: any = {
+    timeGridDay: {
+      type: 'timeGrid',
+      duration: { days: 1 },
+      buttonText: isNarrow ? '1' : 'day'
+    },
+    timeGrid3Days: {
+      type: 'timeGrid',
+      duration: { days: 3 },
+      buttonText: '3'
+    }
+  };
+  if (showResourceViews) {
+    views.resourceTimelineDay = {
+      type: 'resourceTimeline',
+      duration: { days: 1 },
+      buttonText: 'Timeline Day'
+    };
+    views.resourceTimelineWeek = {
+      type: 'resourceTimeline',
+      duration: { weeks: 1 },
+      buttonText: 'Timeline Week',
+      slotMinWidth: 100
+    };
+  }
+
+  const customButtonConfig: any = customButtons || {};
+
+  // Always add the "Views" dropdown
+  customButtonConfig.views = {
+    text: 'View ▾',
+    click: (ev: MouseEvent) => {
+      const menu = new Menu();
+
+      const views = isNarrow
+        ? {
+            timeGrid3Days: '3 Days',
+            timeGridDay: 'Day',
+            listWeek: 'List'
+          }
+        : {
+            dayGridMonth: 'Month',
+            timeGridWeek: 'Week',
+            timeGridDay: 'Day',
+            listWeek: 'List'
+          };
+
+      for (const [viewName, viewLabel] of Object.entries(views)) {
+        menu.addItem(item =>
+          item.setTitle(viewLabel).onClick(() => {
+            cal.changeView(viewName);
+          })
+        );
+      }
+      menu.showAtMouseEvent(ev);
+    }
+  };
+
+  // Conditionally add the "Timeline" dropdown
+  if (showResourceViews) {
+    customButtonConfig.timeline = {
+      text: 'Timeline ▾',
+      click: (ev: MouseEvent) => {
+        const menu = new Menu();
+        menu.addItem(item =>
+          item.setTitle('Timeline Week').onClick(() => {
+            cal.changeView('resourceTimelineWeek');
+          })
+        );
+        menu.addItem(item =>
+          item.setTitle('Timeline Day').onClick(() => {
+            cal.changeView('resourceTimelineDay');
+          })
+        );
+        menu.showAtMouseEvent(ev);
+      }
+    };
+  }
+
+  // FullCalendar Premium open-source license key (GPLv3 projects)
+  // See: https://fullcalendar.io/license for details
   const cal = new Calendar(containerEl, {
-    customButtons: customButtons,
+    schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
+    customButtons: customButtonConfig,
     // timeZone: settings?.timeZone,
     plugins: [
       // View plugins
       dayGridPlugin,
       timeGridPlugin,
       listPlugin,
+      resourceTimelinePlugin,
       // Drag + drop and editing
       interactionPlugin,
       // Remote sources
@@ -129,38 +247,23 @@ export function renderCalendar(
     nowIndicator: true,
     scrollTimeReset: false,
     dayMaxEvents: true,
+    headerToolbar,
+    footerToolbar,
+    views,
+    resourceAreaHeaderContent: 'Categories',
+    resources,
+    resourcesInitiallyExpanded: false,
 
-    headerToolbar: !isNarrow
-      ? {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'analysis dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-        }
-      : !isMobile
-        ? {
-            right: 'today,prev,next',
-            left: 'timeGrid3Days,timeGridDay,listWeek'
-          }
-        : false,
-    footerToolbar: isMobile
-      ? {
-          right: 'today,prev,next',
-          left: 'timeGrid3Days,timeGridDay,listWeek'
-        }
-      : false,
-
-    views: {
-      timeGridDay: {
-        type: 'timeGrid',
-        duration: { days: 1 },
-        buttonText: isNarrow ? '1' : 'day'
-      },
-      timeGrid3Days: {
-        type: 'timeGrid',
-        duration: { days: 3 },
-        buttonText: '3'
+    // Prevent dropping events onto parent category rows
+    eventAllow: (dropInfo, draggedEvent) => {
+      // <-- ADD THIS BLOCK
+      // dropInfo.resource is the resource that the event is being dropped on
+      if (dropInfo.resource?.extendedProps?.isParent) {
+        return false; // Disallow drop on parent
       }
+      return true; // Allow drop on children (or in non-resource views)
     },
+
     firstDay: settings?.firstDay,
     ...(settings?.timeFormat24h && {
       eventTimeFormat: {

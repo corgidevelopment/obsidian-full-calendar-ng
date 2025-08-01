@@ -14,7 +14,9 @@ You can find the full documentation [here](https://youfoundjk.github.io/plugin-f
 
 ![Sample Calendar](https://raw.githubusercontent.com/YouFoundJK/plugin-full-calendar/main/docs/assets/sample-calendar.png)
 
-The FullCalendar library is released under the [MIT license](https://github.com/fullcalendar/fullcalendar/blob/master/LICENSE.txt) by [Adam Shaw](https://github.com/arshaw). It's an awesome piece of work, and it would not have been possible to make something like this plugin so easily without it.
+The FullCalendar library is released under the [GPLv3 license](https://fullcalendar.io/license). It's an awesome piece of work, and it would not have been possible to make something like this plugin so easily without it.
+
+[![Support me on Ko-Fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/youfoundjk)
 
 ### Installation
 

@@ -1,52 +1,75 @@
 /**
  * @file categoryParser.ts
- * @brief Provides utility functions for parsing and constructing event titles with categories.
+ * @brief Provides utility functions for parsing and constructing event titles with categories and sub-categories.
  *
  * @description
- * This file centralizes the logic for handling the `Category - Title` format.
+ * This file centralizes the logic for handling the `Category - SubCategory - Title` format.
  * It ensures that the parsing and reconstruction of event titles are consistent
- * across the entire plugin, from data ingress (reading files) to egress (writing files).
+ * across the entire plugin.
  *
  * @license See LICENSE.md
  */
 
 /**
- * Parses a full title string into its category and clean title components.
- * The category is everything before the first " - " delimiter.
+ * Parses a full title string into its category, sub-category, and clean title components.
+ * The format is `Category - SubCategory - Title`. A sub-category is only parsed
+ * if at least two ` - ` delimiters are present.
  *
  * @param fullTitle The complete title string from the event source.
- * @returns An object containing the parsed `category` (or undefined) and `title`.
+ * @returns An object containing the parsed `category`, `subCategory`, and `title`.
  */
-export function parseTitle(fullTitle: string): { category: string | undefined; title: string } {
-  // Use `indexOf` and `slice` for performance and to only split on the first occurrence.
-  const delimiterIndex = fullTitle.indexOf(' - ');
+export function parseTitle(fullTitle: string): {
+  category: string | undefined;
+  subCategory: string | undefined;
+  title: string;
+} {
+  const parts = fullTitle.split(' - ');
 
-  if (delimiterIndex === -1) {
-    // No delimiter found, the entire string is the title.
-    return { category: undefined, title: fullTitle };
+  if (parts.length >= 3) {
+    // Case: "Category - SubCategory - Title"
+    const category = parts[0].trim();
+    const subCategory = parts[1].trim();
+    const title = parts.slice(2).join(' - ').trim();
+
+    // Ensure parts are not empty strings
+    if (category && subCategory && title) {
+      return { category, subCategory, title };
+    }
   }
 
-  const category = fullTitle.slice(0, delimiterIndex);
-  const title = fullTitle.slice(delimiterIndex + 3); // +3 to skip ' - '
+  if (parts.length === 2) {
+    // Case: "Category - Title"
+    const category = parts[0].trim();
+    const title = parts[1].trim();
 
-  // Ensure category is not an empty string if the title was e.g. " - My Event"
-  if (category.trim() === '') {
-    return { category: undefined, title: fullTitle };
+    // Ensure parts are not empty strings
+    if (category && title) {
+      return { category, subCategory: undefined, title };
+    }
   }
 
-  return { category, title };
+  // Case: "Title only" or invalid format
+  return { category: undefined, subCategory: undefined, title: fullTitle };
 }
 
 /**
- * Constructs the full title string from a category and a clean title.
+ * Constructs the full title string from a category, sub-category, and a clean title.
  *
- * @param category The category string, or undefined if no category.
+ * @param category The category string.
+ * @param subCategory The sub-category string.
  * @param title The clean event title.
  * @returns The reconstructed full title string.
  */
-export function constructTitle(category: string | undefined, title: string): string {
-  if (!category || category.trim() === '') {
-    return title;
+export function constructTitle(
+  category: string | undefined,
+  subCategory: string | undefined,
+  title: string
+): string {
+  if (category && subCategory) {
+    return `${category} - ${subCategory} - ${title}`;
   }
-  return `${category} - ${title}`;
+  if (category) {
+    return `${category} - ${title}`;
+  }
+  return title;
 }

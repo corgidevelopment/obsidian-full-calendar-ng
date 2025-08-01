@@ -57,6 +57,7 @@
         "@fullcalendar/icalendar": "^6.1.18",
         "@fullcalendar/interaction": "^6.1.18",
         "@fullcalendar/list": "^6.1.18",
+        "@fullcalendar/resource-timeline": "^6.1.18",
         "@fullcalendar/rrule": "^6.1.18",
         "@fullcalendar/timegrid": "^6.1.18",
         "@ladle/react": "^5.0.3",

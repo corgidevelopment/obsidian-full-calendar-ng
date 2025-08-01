@@ -14,8 +14,8 @@ describe('DailyNoteCalendar', () => {
 
   describe('getInlineEventFromLine', () => {
     // Create settings objects for testing
-    const settingsWithCategory = { ...DEFAULT_SETTINGS, enableCategoryColoring: true };
-    const settingsWithoutCategory = { ...DEFAULT_SETTINGS, enableCategoryColoring: false };
+    const settingsWithCategory = { ...DEFAULT_SETTINGS, enableAdvancedCategorization: true };
+    const settingsWithoutCategory = { ...DEFAULT_SETTINGS, enableAdvancedCategorization: false };
 
     const MOCK_GLOBALS = { date: '2023-01-01', type: 'single' as const };
 
@@ -53,12 +53,13 @@ describe('DailyNoteCalendar', () => {
       }
     });
 
-    it('should parse an event with a multi-level category', () => {
+    it('should parse an event with a category and sub-category', () => {
       const line = '- [ ] Chores - Home - Clean garage';
       const result = getInlineEventFromLine(line, MOCK_GLOBALS, settingsWithCategory);
       expect(result).not.toBeNull();
-      expect(result?.title).toBe('Home - Clean garage');
+      expect(result?.title).toBe('Clean garage');
       expect(result?.category).toBe('Chores');
+      expect(result?.subCategory).toBe('Home');
     });
 
     it('should parse an event with only inline fields and no category', () => {

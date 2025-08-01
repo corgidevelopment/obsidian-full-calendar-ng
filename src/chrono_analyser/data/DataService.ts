@@ -37,12 +37,12 @@ export class DataService {
 
   /**
    * Clears the DataManager and refills it. The source of events depends on
-   * the `enableCategoryColoring` setting.
+   * the `enableAdvancedCategorization` setting.
    */
   private repopulateDataManager(): void {
     this.dataManager.clear();
     const records: TimeRecord[] = [];
-    const useCategoryFeature = this.settings.enableCategoryColoring;
+    const useCategoryFeature = this.settings.enableAdvancedCategorization;
 
     for (const calendar of this.eventCache.calendars.values()) {
       if (!useCategoryFeature && !(calendar instanceof FullNoteCalendar)) {

@@ -135,7 +135,10 @@ TRANSP:TRANSPARENT
 END:VEVENT
 END:VCALENDAR
         `;
-    const events = getEventsFromICS(ics, { ...DEFAULT_SETTINGS, enableCategoryColoring: true });
+    const events = getEventsFromICS(ics, {
+      ...DEFAULT_SETTINGS,
+      enableAdvancedCategorization: true
+    });
     expect(events).toMatchSnapshot(ics);
   });
 });

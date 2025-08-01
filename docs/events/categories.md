@@ -1,14 +1,35 @@
-# Category Coloring
+# Advanced Categories
 
-Category Coloring allows you to override the default color of a calendar on an event-by-event basis. It works by parsing a category from the beginning of an event's title.
+
+This is a very **powerful** feature that will be essential for a lot of planned upcoming features, as it unifies all the events irrespective of what source the events come from! It is **HIGHLY RECOMMENDED** to start using this to make full use of upcoming exciting features!
+
+### Suit of features leveraging this:
+1. *Category Coloring* allows you to override the default color of a calendar on an event-by-event basis. It works by parsing a category from the beginning of an event's title.
+
 
 For example, if you have a "Work" category with a blue color, an event titled `Work - Team Meeting` will appear blue, even if it's on a calendar that is normally red.
+
+
+2. *Category Timeline View*: Coming soon!
+
+
 
 !!! tip "Delimiter Format"
     The plugin uses a specific delimiter to separate the category from the title: a dash surrounded by spaces (` - `).
     - `✅ Correct: Work - Project Sync`
     - `❌ Incorrect: Work-Project Sync` (no spaces)
     - `❌ Incorrect: Work -Project Sync` (no space after dash)
+
+!!! important "Choice of this format"
+    Its easy to question why such a view implemetation and why not just add another category property to the event. This is done to make it compactible with REMOTE calenders most of them doesnt have a category property. Because current cateorization works on parsing the title it will still work for all calenders as long as the user follows it up! 
+
+## Recommendation
+
+It highly adviced to start using this feature (please read this page in full so that you are aware of what happens when you do that!) and specifically to use the following format for the title of your events: 
+
+`Category - Subcategory - Name` (Yes, it is important to have dash enclosed by spaces on both sides!). 
+
+What you will see in your calender will be `Subcategory - Name` as the event name, the Category part is parsed and striped out for internal useage. This is to keep the calender clean plus you can change category either in the Timeline view (coming soon) or in the edit modal when you create or edit an event (there is a new Category option with really cool Autocomplete feature so you don't have to byheart your Categories!).
 
 ## Enabling Category Coloring
 

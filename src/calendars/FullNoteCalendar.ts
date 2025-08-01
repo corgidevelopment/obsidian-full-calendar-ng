@@ -38,8 +38,8 @@ function sanitizeTitleForFilename(title: string): string {
 
 const basenameFromEvent = (event: OFCEvent, settings: FullCalendarSettings): string => {
   // Use the full, constructed title for the filename IF the feature is enabled.
-  const fullTitle = settings.enableCategoryColoring
-    ? constructTitle(event.category, event.title)
+  const fullTitle = settings.enableAdvancedCategorization
+    ? constructTitle(event.category, event.subCategory, event.title)
     : event.title;
   const sanitizedTitle = sanitizeTitleForFilename(fullTitle);
   switch (event.type) {
@@ -112,10 +112,11 @@ export default class FullNoteCalendar extends EditableCalendar {
     let eventData: any = { ...frontmatter };
     const rawTitle = frontmatter.title || file.basename;
 
-    if (this.settings.enableCategoryColoring) {
-      const { category, title } = parseTitle(rawTitle);
+    if (this.settings.enableAdvancedCategorization) {
+      const { category, subCategory, title } = parseTitle(rawTitle);
       eventData.title = title;
       eventData.category = category;
+      eventData.subCategory = subCategory;
     } else {
       eventData.title = rawTitle;
     }
@@ -206,8 +207,8 @@ export default class FullNoteCalendar extends EditableCalendar {
       eventToWrite = convertEvent(event, displayTimezone, eventToWrite.timezone);
     }
 
-    const titleToWrite = this.settings.enableCategoryColoring
-      ? constructTitle(eventToWrite.category, eventToWrite.title)
+    const titleToWrite = this.settings.enableAdvancedCategorization
+      ? constructTitle(eventToWrite.category, eventToWrite.subCategory, eventToWrite.title)
       : eventToWrite.title;
 
     const eventWithFullTitle = {
@@ -215,6 +216,7 @@ export default class FullNoteCalendar extends EditableCalendar {
       title: titleToWrite
     };
     delete (eventWithFullTitle as Partial<OFCEvent>).category;
+    delete (eventWithFullTitle as Partial<OFCEvent>).subCategory; // <-- ADD THIS LINE
 
     const newPage = replaceFrontmatter('', newFrontmatter(eventWithFullTitle));
     const file = await this.app.create(path, newPage);
@@ -261,8 +263,8 @@ export default class FullNoteCalendar extends EditableCalendar {
     eventToWrite.timezone = fileTimezone;
 
     // MODIFICATION: Conditional Title Construction
-    const titleToWrite = this.settings.enableCategoryColoring
-      ? constructTitle(eventToWrite.category, eventToWrite.title)
+    const titleToWrite = this.settings.enableAdvancedCategorization
+      ? constructTitle(eventToWrite.category, eventToWrite.subCategory, eventToWrite.title)
       : eventToWrite.title;
 
     const eventWithFullTitle = {
@@ -270,6 +272,7 @@ export default class FullNoteCalendar extends EditableCalendar {
       title: titleToWrite
     };
     delete (eventWithFullTitle as Partial<OFCEvent>).category;
+    delete (eventWithFullTitle as Partial<OFCEvent>).subCategory; // <-- ADD THIS LINE
 
     const newLocation = this.getNewLocation(location, eventToWrite);
 
@@ -366,7 +369,8 @@ export default class FullNoteCalendar extends EditableCalendar {
         // If forcing, we use the FULL existing title (e.g., "OldCat - Event").
         // If not forcing (smart mode), we use the clean title.
         const titleToCategorize = force ? event.title : cleanTitle;
-        frontmatter.title = constructTitle(newCategory, titleToCategorize);
+        // The subCategory will be undefined here, which is correct.
+        frontmatter.title = constructTitle(newCategory, undefined, titleToCategorize);
       });
     };
 

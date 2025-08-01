@@ -20,7 +20,8 @@ import {
   FullCalendarSettingTab,
   ensureCalendarIds,
   DEFAULT_SETTINGS,
-  FullCalendarSettings
+  FullCalendarSettings,
+  sanitizeInitialView
 } from './ui/settings/SettingsTab';
 import { PLUGIN_SLUG } from './types';
 import EventCache from './core/EventCache';
@@ -229,9 +230,14 @@ export default class FullCalendarPlugin extends Plugin {
    * Loads plugin settings from disk, merging them with default values.
    */
   async loadSettings() {
-    const loadedSettings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    let loadedSettings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+    // Sanitize settings using pure functions
+    loadedSettings = sanitizeInitialView(loadedSettings);
+
     const { updated, sources } = ensureCalendarIds(loadedSettings.calendarSources);
     this.settings = { ...loadedSettings, calendarSources: sources };
+
     if (updated) {
       new Notice('Full Calendar has updated your calendar settings to a new format.');
       await this.saveData(this.settings);

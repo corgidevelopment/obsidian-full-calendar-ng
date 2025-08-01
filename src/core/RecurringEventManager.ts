@@ -99,7 +99,11 @@ export class RecurringEventManager {
    * If so, it opens a modal to ask the user how to proceed.
    * @returns `true` if the deletion was handled (modal opened), `false` otherwise.
    */
-  public handleDelete(eventId: string, event: OFCEvent, options?: { force?: boolean }): boolean {
+  public handleDelete(
+    eventId: string,
+    event: OFCEvent,
+    options?: { force?: boolean; instanceDate?: string }
+  ): boolean {
     if (options?.force) {
       return false; // If forced, don't show the modal. Let the cache handle it.
     }
@@ -110,11 +114,26 @@ export class RecurringEventManager {
     }
 
     const children = this.findRecurringChildren(eventId);
-    if (children.length > 0) {
+    // If instanceDate is provided, show the delete-instance option
+    if (children.length > 0 || options?.instanceDate) {
       new DeleteRecurringModal(
         this.cache.plugin.app,
         () => this.promoteRecurringChildren(eventId),
-        () => this.deleteAllRecurring(eventId)
+        () => this.deleteAllRecurring(eventId),
+        options?.instanceDate
+          ? async () => {
+              // Append the date to skipDates for this master event
+              await this.cache.processEvent(eventId, e => {
+                if (e.type !== 'recurring' && e.type !== 'rrule') return e;
+                const skipDates = e.skipDates?.includes(options.instanceDate!)
+                  ? e.skipDates
+                  : [...(e.skipDates || []), options.instanceDate!];
+                return { ...e, skipDates };
+              });
+              this.cache.flushUpdateQueue([], []);
+            }
+          : undefined,
+        options?.instanceDate
       ).open();
       return true; // Deletion is handled by the modal, stop further processing.
     }

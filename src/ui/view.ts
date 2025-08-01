@@ -87,12 +87,11 @@ export class CalendarView extends ItemView {
    * Also calculates the correct text color for event backgrounds.
    */
   translateSources() {
-    const settings = this.plugin.settings; // Get settings
+    const settings = this.plugin.settings;
     return this.plugin.cache.getAllEvents().map(
       ({ events, editable, color, id }): EventSourceInput => ({
         id,
-        // Pass settings to toEventInput
-        events: events.flatMap(e => toEventInput(e.id, e.event, settings, id) || []),
+        events: events.flatMap(e => toEventInput(e.id, e.event, settings, id) || []), // <-- Use flatMap
         editable,
         ...getCalendarColors(color)
       })
@@ -129,6 +128,63 @@ export class CalendarView extends ItemView {
       return;
     }
 
+    // Generate the list of resources for the timeline view.
+    // This now builds a hierarchical structure for categories and sub-categories.
+    const resources: {
+      id: string;
+      title: string;
+      parentId?: string;
+      eventColor?: string;
+      extendedProps?: any;
+    }[] = [];
+    if (this.plugin.settings.enableAdvancedCategorization) {
+      // First, add top-level resources for each category from settings.
+      const categorySettings = this.plugin.settings.categorySettings || [];
+      categorySettings.forEach(cat => {
+        resources.push({
+          id: cat.name,
+          title: cat.name,
+          eventColor: cat.color,
+          extendedProps: { isParent: true }
+        });
+      });
+
+      // Build a map of categories to their sub-categories from actual events in the cache.
+      const categoryMap = new Map<string, Set<string>>();
+      for (const source of this.plugin.cache.getAllEvents()) {
+        for (const cachedEvent of source.events) {
+          const { category, subCategory } = cachedEvent.event;
+          if (category) {
+            if (!categoryMap.has(category)) {
+              categoryMap.set(category, new Set());
+            }
+            const sub = subCategory || 'Others';
+            categoryMap.get(category)!.add(sub);
+          }
+        }
+      }
+
+      // Now, create the child resources (sub-categories).
+      for (const [category, subCategories] of categoryMap.entries()) {
+        // Ensure the parent category exists in the resources array.
+        if (!resources.find(r => r.id === category)) {
+          resources.push({
+            id: category,
+            title: category,
+            extendedProps: { isParent: true }
+          });
+        }
+
+        for (const subCategory of subCategories) {
+          resources.push({
+            id: `${category}::${subCategory}`,
+            title: subCategory,
+            parentId: category
+          });
+        }
+      }
+    }
+
     const sources: EventSourceInput[] = this.translateSources();
 
     if (this.fullCalendarView) {
@@ -139,6 +195,8 @@ export class CalendarView extends ItemView {
       // timeZone:
       //   this.plugin.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone, // <-- ADD THIS LINE
       forceNarrow: this.inSidebar,
+      resources,
+      enableAdvancedCategorization: this.plugin.settings.enableAdvancedCategorization,
       customButtons: {
         analysis: {
           text: 'Analysis',
@@ -195,7 +253,7 @@ export class CalendarView extends ItemView {
           }
         }
       },
-      modifyEvent: async (newEvent, oldEvent) => {
+      modifyEvent: async (newEvent, oldEvent, newResource) => {
         try {
           const originalEvent = this.plugin.cache.getEventById(oldEvent.id);
           if (!originalEvent) {
@@ -248,7 +306,7 @@ export class CalendarView extends ItemView {
               throw new Error('Could not determine instance date from recurring event.');
             }
 
-            const modifiedEvent = fromEventApi(newEvent);
+            const modifiedEvent = fromEventApi(newEvent, newResource);
             await this.plugin.cache.modifyRecurringInstance(
               oldEvent.id,
               instanceDate,
@@ -261,7 +319,7 @@ export class CalendarView extends ItemView {
             // Let it update normally.
             const didModify = await this.plugin.cache.updateEventWithId(
               oldEvent.id,
-              fromEventApi(newEvent)
+              fromEventApi(newEvent, newResource)
             );
             return !!didModify;
           }
@@ -328,7 +386,15 @@ export class CalendarView extends ItemView {
               if (!this.plugin.cache) {
                 return;
               }
-              await this.plugin.cache.deleteEvent(e.id);
+              const event = this.plugin.cache.getEventById(e.id);
+              // If this is a recurring event, offer to delete only this instance
+              if (event && (event.type === 'recurring' || event.type === 'rrule') && e.start) {
+                const instanceDate =
+                  e.start instanceof Date ? e.start.toISOString().slice(0, 10) : undefined;
+                await this.plugin.cache.deleteEvent(e.id, { instanceDate });
+              } else {
+                await this.plugin.cache.deleteEvent(e.id);
+              }
               new Notice(`Deleted event "${e.title}".`);
             })
           );
@@ -393,6 +459,15 @@ export class CalendarView extends ItemView {
       // Get settings once to pass down to the parsers
       const settings = this.plugin.settings;
       if (payload.type === 'resync') {
+        if (this.fullCalendarView) {
+          this.fullCalendarView.setOption('firstDay', this.plugin.settings.firstDay);
+          this.fullCalendarView.setOption(
+            'eventTimeFormat',
+            this.plugin.settings.timeFormat24h
+              ? { hour: '2-digit', minute: '2-digit', hour12: false }
+              : { hour: 'numeric', minute: '2-digit', hour12: true }
+          );
+        }
         this.fullCalendarView?.removeAllEventSources();
         const sources = this.translateSources();
         sources.forEach(source => this.fullCalendarView?.addEventSource(source));

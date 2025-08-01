@@ -6,7 +6,9 @@ export class DeleteRecurringModal extends Modal {
   constructor(
     app: App,
     private onPromote: () => void,
-    private onDeleteAll: () => void
+    private onDeleteAll: () => void,
+    private onDeleteInstance?: () => void,
+    private instanceDate?: string
   ) {
     super(app);
   }
@@ -19,10 +21,27 @@ export class DeleteRecurringModal extends Modal {
       text: 'This is a recurring event. What would you like to do with all of its future "override" instances (i.e., events that you have dragged or modified)?'
     });
 
+    if (this.onDeleteInstance && this.instanceDate) {
+      new Setting(contentEl)
+        .setName('Delete only this instance')
+        .setDesc(
+          `Delete only the instance on ${this.instanceDate}. This will skip this date in the recurrence.`
+        )
+        .addButton((btn: ButtonComponent) =>
+          btn
+            .setButtonText('Delete This Instance')
+            .setCta()
+            .onClick(() => {
+              this.close();
+              this.onDeleteInstance && this.onDeleteInstance();
+            })
+        );
+    }
+
     new Setting(contentEl)
       .setName('Promote child events')
       .setDesc(
-        'Turn all future override events into standalone, single events. They will no longer be linked to this recurring series.'
+        'Turn all overriden events (if any) into standalone, single events. They will no longer be linked to this recurring series.'
       )
       .addButton((btn: ButtonComponent) =>
         btn
@@ -42,7 +61,7 @@ export class DeleteRecurringModal extends Modal {
       .addButton((btn: ButtonComponent) =>
         btn
           .setButtonText('Delete Everything')
-          .setWarning()
+          .setCta()
           .onClick(() => {
             this.close();
             this.onDeleteAll();
