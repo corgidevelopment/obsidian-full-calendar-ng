@@ -14,6 +14,36 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.11.6',
+    changes: [
+      {
+        type: 'new',
+        title: 'Advanced Categorization with Hierarchical Timeline View',
+        description:
+          'Events can now be organized by categories and sub-categories in a new Resource Timeline view. Expandable groups and aggregated parent rows make it easier to manage complex schedules.'
+      },
+      {
+        type: 'new',
+        title: 'License Update',
+        description:
+          'The plugin license has been updated to GPLv3 to comply with FullCalendar requirements.'
+      },
+      {
+        type: 'improvement',
+        title: 'Cleaner UI and Initial View Options',
+        description:
+          'The event modal and settings UI have been polished with dropdown options and a new initial view setting that supports the timeline view.'
+      },
+      {
+        type: 'improvement',
+        title: 'Smarter Event Titles and Filenames',
+        description:
+          'Events now display clearer titles (e.g., "SubCategory - Event Name") while keeping filenames and internal data consistent.'
+      }
+    ]
+  },
+
+  {
     version: '0.11.5-beta',
     changes: [
       {

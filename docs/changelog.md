@@ -4,6 +4,28 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
+## Version 0.11.6
+
+-   **New:** Advanced Categorization with Hierarchical Timeline View  
+    _Events can now be organized by categories and sub-categories in a new Resource Timeline view. Expandable groups and aggregated parent rows make it easier to manage complex schedules._
+
+-   **New:** Drag-and-Drop Category Reassignment  
+    _Change an event’s category or sub-category directly from the timeline view by dragging it to a different lane. Titles and metadata update automatically._
+
+-   **Improvement:** Cleaner UI and Initial View Options  
+    _The event modal and settings UI have been polished with dropdown options and a new initial view setting that supports the timeline view._
+
+-   **Improvement:** Smarter Event Titles and Filenames  
+    _Events now display clearer titles (e.g., `SubCategory - Event Name`) while keeping filenames and internal data consistent._
+
+-   **Fix:** Multi-Level Category Parsing  
+    _Parsing of event titles with multiple category levels (e.g., `Category - SubCategory - Title`) has been fixed, ensuring correct category and sub-category assignment._
+
+-   **Other:** License Update  
+    _The plugin license has been updated to GPLv3 to comply with FullCalendar requirements._
+
+---
+
 ## Version 0.11.5-beta
 
 -   **New:** Monthly and Yearly Recurring Events  

@@ -5,6 +5,19 @@ For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
 ---
 
+## 🎨 Powerful Advanced Categories & Coloring
+
+Supercharge your calendar's organization with Advanced Categories! This new system allows you to override a calendar's default color for specific events based on a category prefix in the event's title. It's the foundation for many powerful features to come.
+
+-   **Universal Organization:** Works for local and remote calendars. An event from Google Calendar titled `Work - Project Deadline` will be colored correctly in Obsidian.
+-   **Sub-Categories:** Organize even further with a `Category - SubCategory - Title` format.
+-   **Smart Setup:** When you enable the feature, the plugin can automatically categorize your existing events based on their folder structure.
+-   **Autocomplete Editor:** The event editor now has a dedicated "Category" field with autocomplete suggestions for all your existing categories, ensuring consistency.
+
+➡️ **[Learn how to set up Advanced Categories](events/categories.md)**
+
+---
+
 ## ✨ Recurring Events Reimagined
 
 The entire recurring event system has been rebuilt from the ground up to be more powerful, intuitive, and safe.
@@ -28,20 +41,6 @@ Unlock powerful insights into your time with Chrono Analyser! Chrono Analyser is
 - **Real-Time Filtering:** Instantly filter by category, project, or date range.
 
 ➡️ **[Learn more about Chrono Analyser](chrono_analyser/introduction.md)**
-
----
-
-## 🎨 Powerful Category Coloring
-
-Supercharge your calendar's organization with Category Coloring! This feature allows you to override a calendar's default color for specific events based on a category prefix in the event's title.
-
--   **Color-code your life:** Assign a color to "Work", "Personal", "Fitness", or any other category you can imagine.
--   **Intelligent Parsing:** The plugin recognizes titles like `Work - Project Deadline` and automatically applies the "Work" category color.
--   **Autocomplete:** The event editor provides autocomplete suggestions for your existing categories, ensuring consistency.
-
-<!-- ![Category Coloring Demo](assets/category-coloring-demo.gif) You'll need to create this asset -->
-
-➡️ **[Learn how to set up Category Coloring](events/categories.md)**
 
 ---
 

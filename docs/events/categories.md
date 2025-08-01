@@ -1,68 +1,65 @@
 # Advanced Categories
 
+The Advanced Categories feature is a powerful system for organizing and visualizing your events. It works by parsing a `Category` and optional `Sub-Category` from your event titles, unlocking features like fine-grained color-coding and the upcoming Timeline View.
 
-This is a very **powerful** feature that will be essential for a lot of planned upcoming features, as it unifies all the events irrespective of what source the events come from! It is **HIGHLY RECOMMENDED** to start using this to make full use of upcoming exciting features!
+This system is designed to work across **all calendar sources**, including remote calendars like Google Calendar and iCal feeds, making it a universal standard for your vault.
 
-### Suit of features leveraging this:
-1. *Category Coloring* allows you to override the default color of a calendar on an event-by-event basis. It works by parsing a category from the beginning of an event's title.
+!!! success "Why You Should Use This"
+    - **See Your Life at a Glance:** Assign unique colors to "Work," "Personal," "Fitness," etc., to instantly see how your time is allocated.
+    - **Future-Proof Your Vault:** This system is the foundation for many upcoming features, including timeline views and advanced analytics. Adopting it now will ensure you get the most out of Full Calendar.
+    - **Universal Compatibility:** A single, consistent organizational method for local and remote events.
 
+---
 
-For example, if you have a "Work" category with a blue color, an event titled `Work - Team Meeting` will appear blue, even if it's on a calendar that is normally red.
+## The Title Format
 
+The plugin uses a specific format to identify categories and sub-categories in your event titles.
 
-2. *Category Timeline View*: Coming soon!
+`Category - Sub-Category - Event Name`
 
+The delimiter is a **dash surrounded by spaces (` - `)**.
 
+-   `✅ Correct: Work - Project Sync - Daily Standup`
+-   `✅ Correct: Personal - Run` (Sub-category is optional)
+-   `❌ Incorrect: Work-Project Sync` (Missing spaces around the dash)
 
-!!! tip "Delimiter Format"
-    The plugin uses a specific delimiter to separate the category from the title: a dash surrounded by spaces (` - `).
-    - `✅ Correct: Work - Project Sync`
-    - `❌ Incorrect: Work-Project Sync` (no spaces)
-    - `❌ Incorrect: Work -Project Sync` (no space after dash)
+When displayed on the calendar, the `Category` is stripped from the title to keep the view clean (e.g., you'll see `Project Sync - Daily Standup`). The full title is always preserved in the note.
 
-!!! important "Choice of this format"
-    Its easy to question why such a view implemetation and why not just add another category property to the event. This is done to make it compactible with REMOTE calenders most of them doesnt have a category property. Because current cateorization works on parsing the title it will still work for all calenders as long as the user follows it up! 
+!!! tip "Why this format?"
+    This title-based approach was chosen for maximum compatibility. Most remote calendar systems (like Google Calendar) don't have a dedicated "category" field that syncs externally. By embedding the category in the title, you can organize events from *any* source, and the plugin will recognize them.
 
-## Recommendation
+---
 
-It highly adviced to start using this feature (please read this page in full so that you are aware of what happens when you do that!) and specifically to use the following format for the title of your events: 
+## Enabling Advanced Categories
 
-`Category - Subcategory - Name` (Yes, it is important to have dash enclosed by spaces on both sides!). 
+This feature can perform a one-time, permanent modification of your event notes. **It is highly recommended to back up your vault before enabling this feature.**
 
-What you will see in your calender will be `Subcategory - Name` as the event name, the Category part is parsed and striped out for internal useage. This is to keep the calender clean plus you can change category either in the Timeline view (coming soon) or in the edit modal when you create or edit an event (there is a new Category option with really cool Autocomplete feature so you don't have to byheart your Categories!).
-
-## Enabling Category Coloring
-
-This feature can perform a one-time, permanent modification of your event notes to add categories to titles. **It is highly recommended to back up your vault before enabling this feature.**
-
-1.  Go to **Full Calendar Settings**.
-2.  Find the **Category Coloring** section and toggle "Enable Category Coloring" on.
-3.  You will see a warning modal explaining the changes. After proceeding, a second modal will ask how you want to bulk-categorize your existing events:
-    -   **Use Parent Folder (Smart):** For any event that *doesn't* already have a category, its parent folder's name will be used as the category.
-    -   **Use Parent Folder (Forced):** The parent folder's name will be prepended to *all* event titles, even if they already have a category (e.g., `NewCat - OldCat - Title`).
-    -   **Forced Default Update:** You provide a category, and it will be prepended to *all* event titles.
+1.  Go to **Full Calendar Settings → Advanced categorization and Timeline**.
+2.  Toggle **"Enable Advanced Categorization"** on.
+3.  A warning modal will appear explaining the permanent changes. After proceeding, a second modal will ask how you want to bulk-categorize your existing local events:
+    -   **Use Parent Folder (Smart):** For any event that *doesn't* already have a category, its parent folder's name will be used as the category. This is the safest and most common choice.
+    -   **Use Parent Folder (Forced):** The parent folder's name will be prepended to *all* event titles, even if they already have one. Use with caution, as this can create nested categories (e.g., `NewCat - OldCat - Title`).
+    -   **Forced Default Update:** You provide a default category, and it will be prepended to *all* event titles.
 
 <!-- TODO: Add GIF of new enable categories flow with both modals -->
 
-## Disabling & Cleaning Up Categories
-
-If you decide to turn off this feature, the plugin will help you clean up.
-
-1.  Toggle "Enable Category Coloring" off.
-2.  A warning modal will appear, explaining that this will remove known category prefixes from your event titles and file names, and will **permanently delete your saved category color settings.**
-3.  If you proceed, the plugin will process all your local calendars to remove the `Category - ` prefix from event titles.
-
 ## Managing Category Colors
 
-Once enabled, a new section will appear in the settings where you can manage your categories.
+Once enabled, a new management section will appear in the settings.
 
--   **Add a Category:** Start typing in the input box. The plugin will suggest categories it has found in your vault that you haven't configured yet. Click "Add" to add it to the list. A new color will be automatically assigned from the palette.
--   **Change Color:** Click the color swatch next to any category to change its color.
--   **Delete a Category:** Click "Delete" to remove a category setting. This does not remove the category from your event titles.
--   **Save:** After making changes, be sure to click "Save Category Settings".
+-   **Add a Category:** Start typing in the "Add a new category..." input box. It provides autocomplete suggestions for categories found in your vault that you haven't configured yet. Click **Add**.
+-   **Change Color:** Click the color swatch next to any category to open a color picker.
+-   **Delete a Setting:** Click **Delete** to remove a category's color setting. This *does not* remove the category from your event titles.
+-   **Save:** After making changes, click **Save Category Settings**.
 
 <!-- TODO: Add GIF of new manage categories UI with autocomplete -->
 
-## Usage in Remote Calendars
+---
 
-Category Coloring also works for read-only remote calendars (ICS/CalDAV). If an event from your Google Calendar has the title `Project X - Final Review`, the plugin will parse "Project X" as the category and apply the corresponding color if you have it configured in the settings.
+## Disabling & Cleaning Up
+
+If you decide to turn this feature off, the plugin will help you clean up your notes.
+
+1.  Toggle "Enable Advanced Categorization" off in settings.
+2.  A warning modal will explain that this will remove known category prefixes from your event titles and file names. It will also **permanently delete your saved category color settings.**
+3.  If you proceed, the plugin will process all your local calendars to remove the `Category - ` prefix, restoring them to their original state.

@@ -4,6 +4,14 @@ You can add any calendar that supports CalDAV over HTTPS basic authentication wi
 
 Calendars are automatically re-fetched from their source at most every five minutes. If you would like to revalidate remote calendars directly, you can run the command `Full Calendar: Revalidate remote calendars`.
 
+## Using with Advanced Categories
+
+CalDAV calendars are fully compatible with the **[Advanced Categories feature](../events/categories.md)**.
+
+If an event from your CalDAV source has a title like `Personal - Doctor's Appointment`, the plugin will automatically parse "Personal" as the category and apply any custom color you have configured in the settings. This helps you visually organize events from all your devices.
+
+---
+
 ## Apple Calendar
 
 In order to use your [iCloud Calendar](https://www.icloud.com/calendar), you'll first need to create an [app-specific password](https://support.apple.com/en-us/HT204397). Armed with that info, you can now add your private Apple Calendars.
@@ -35,6 +43,7 @@ If your email address used in the `Username` section is `user@example.com`, then
 ```
 https://caldav.fastmail.com/dav/principals/user/user@example.com/
 ```
+
 
 If in doubt, you can find the specific URL by navigating to `Settings` -> `Calendars` and then click `Export` on any of the calendars you have.
 

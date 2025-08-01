@@ -25,6 +25,7 @@ obsidian-dev-vault/
 
 # Others
 src/**/.*
+docs/**/.*
 **/instructions
 exported
 .DS_Store

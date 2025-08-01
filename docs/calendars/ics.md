@@ -5,3 +5,9 @@ Add any calendar that you have a link to in .ics format to Obsidian. This includ
 Calendars are re-fetched automatically from their source at most every five minutes. If you would like to revalidate remote calendars directly, you can run the command `Full Calendar: Revalidate remote calendars`.
 
 ![](../assets/sync-setup-ics.gif)
+
+## Using with Advanced Categories
+
+Remote calendars are fully compatible with the **[Advanced Categories feature](../events/categories.md)**.
+
+If an event from your remote calendar has a title like `Work - Project Sync`, the plugin will automatically parse "Work" as the category and apply any custom color you have configured in the settings. This is a great way to visually organize events from external sources.
