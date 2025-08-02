@@ -49,6 +49,7 @@ import FullNoteCalendar from '../calendars/FullNoteCalendar';
 import { RecurringEventManager } from './RecurringEventManager';
 import { EditableCalendar } from '../calendars/EditableCalendar';
 import { CalendarInfo, OFCEvent, validateEvent } from '../types';
+import GoogleCalendar from '../calendars/GoogleCalendar';
 
 export type CalendarInitializerMap = Record<
   CalendarInfo['type'],
@@ -342,7 +343,7 @@ export default class EventCache {
     if (!details) {
       throw new Error(`Event ID ${eventId} not present in event store.`);
     }
-    const { calendarId, location, event } = details; // Extract event here
+    const { calendarId, location, event } = details;
     const calendar = this.calendars.get(calendarId);
     if (!calendar) {
       throw new Error(`Calendar ID ${calendarId} is not registered.`);
@@ -351,10 +352,7 @@ export default class EventCache {
       // console.warn("Cannot modify event of type " + calendar.type);
       throw new Error(`Read-only events cannot be modified.`);
     }
-    if (!location) {
-      throw new Error(`Event with ID ${eventId} does not have a location in the Vault.`);
-    }
-    return { calendar, location, event }; // Return event here
+    return { calendar, location, event };
   }
 
   // ====================================================================
@@ -377,24 +375,26 @@ export default class EventCache {
       throw new Error(`Calendar ID ${calendarId} is not registered.`);
     }
     if (!(calendar instanceof EditableCalendar)) {
-      // console.error(`Event cannot be added to non-editable calendar of type ${calendar.type}`);
       throw new Error(`Cannot add event to a read-only calendar`);
     }
-    const location = await calendar.createEvent(event);
+
+    // UPDATED LOGIC
+    const [finalEvent, location] = await calendar.createEvent(event);
     const id = this._store.add({
       calendar,
       location,
-      id: event.id || this.generateId(),
-      event
+      id: finalEvent.id || this.generateId(),
+      event: finalEvent // Use the event returned by the calendar
     });
+    // END UPDATED LOGIC
 
     // Update identifier map
-    const globalIdentifier = this.getGlobalIdentifier(event, calendarId);
+    const globalIdentifier = this.getGlobalIdentifier(finalEvent, calendarId);
     if (globalIdentifier) {
       this.identifierToSessionIdMap.set(globalIdentifier, id);
     }
 
-    const cacheEntry = { event, id, calendarId: calendar.id };
+    const cacheEntry = { event: finalEvent, id, calendarId: calendar.id };
     if (options?.silent) {
       this.isBulkUpdating = true;
       this.updateQueue.toAdd.set(id, cacheEntry);
@@ -454,7 +454,7 @@ export default class EventCache {
     }
 
     this._store.delete(eventId);
-    await calendar.deleteEvent(location);
+    await calendar.deleteEvent(event, location);
 
     if (options?.silent) {
       this.isBulkUpdating = true;
@@ -502,15 +502,12 @@ export default class EventCache {
       }
     }
 
-    const { path, lineNumber } = oldLocation;
-
     // Remove old identifier
     const oldGlobalIdentifier = this.getGlobalIdentifier(oldEvent, calendar.id);
     if (oldGlobalIdentifier) {
       this.identifierToSessionIdMap.delete(oldGlobalIdentifier);
     }
-
-    await calendar.modifyEvent({ path, lineNumber }, newEvent, newLocation => {
+    await calendar.modifyEvent(oldEvent, newEvent, oldLocation, newLocation => {
       this._store.delete(eventId);
       this._store.add({
         calendar,

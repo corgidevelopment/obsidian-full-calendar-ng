@@ -85,7 +85,7 @@ export class CategorizationManager {
     await this.performBulkOperation(async () => {
       // The manager is ONLY responsible for gathering categories from the settings.
       const settings = this.plugin.settings;
-      const knownCategories = new Set(
+      const knownCategories = new Set<string>(
         settings.categorySettings.map((s: { name: string }) => s.name)
       );
 

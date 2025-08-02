@@ -19,8 +19,8 @@ const calendars = [
 ];
 
 const submit = async function (event: OFCEvent, calendarIndex: number): Promise<void> {
-  alert('Event submitted, see console for details');
-  console.log({ event, calendarIndex });
+  // alert('Event submitted, see console for details');
+  // console.log({ event, calendarIndex });
 };
 
 const EventModal = ({ initialEvent }: { initialEvent: Partial<OFCEvent> | undefined }) => (

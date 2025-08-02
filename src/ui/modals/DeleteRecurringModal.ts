@@ -8,7 +8,8 @@ export class DeleteRecurringModal extends Modal {
     private onPromote: () => void,
     private onDeleteAll: () => void,
     private onDeleteInstance?: () => void,
-    private instanceDate?: string
+    private instanceDate?: string,
+    private isGoogle: boolean = false // Add this new parameter
   ) {
     super(app);
   }
@@ -38,20 +39,23 @@ export class DeleteRecurringModal extends Modal {
         );
     }
 
-    new Setting(contentEl)
-      .setName('Promote child events')
-      .setDesc(
-        'Turn all overriden events (if any) into standalone, single events. They will no longer be linked to this recurring series.'
-      )
-      .addButton((btn: ButtonComponent) =>
-        btn
-          .setButtonText('Promote Children')
-          .setCta()
-          .onClick(() => {
-            this.close();
-            this.onPromote();
-          })
-      );
+    // Wrap the "Promote" setting in a condition
+    if (!this.isGoogle) {
+      new Setting(contentEl)
+        .setName('Promote child events')
+        .setDesc(
+          'Turn all overriden events (if any) into standalone, single events. They will no longer be linked to this recurring series.'
+        )
+        .addButton((btn: ButtonComponent) =>
+          btn
+            .setButtonText('Promote Children')
+            .setCta()
+            .onClick(() => {
+              this.close();
+              this.onPromote();
+            })
+        );
+    }
 
     new Setting(contentEl)
       .setName('Delete child events')

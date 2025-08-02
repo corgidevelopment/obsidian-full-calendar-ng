@@ -185,7 +185,7 @@ export default class FullNoteCalendar extends EditableCalendar {
     return events;
   }
 
-  async createEvent(event: OFCEvent): Promise<EventLocation> {
+  async createEvent(event: OFCEvent): Promise<[OFCEvent, EventLocation]> {
     const path = normalizePath(`${this.directory}/${filenameForEvent(event, this.settings)}`);
     if (this.app.getAbstractFileByPath(path)) {
       throw new Error(`Event at ${path} already exists.`);
@@ -220,7 +220,8 @@ export default class FullNoteCalendar extends EditableCalendar {
 
     const newPage = replaceFrontmatter('', newFrontmatter(eventWithFullTitle));
     const file = await this.app.create(path, newPage);
-    return { file, lineNumber: undefined };
+    const location = { file, lineNumber: undefined };
+    return [event, location];
   }
 
   getNewLocation(location: EventPathLocation, event: OFCEvent): EventLocation {
@@ -240,10 +241,15 @@ export default class FullNoteCalendar extends EditableCalendar {
   }
 
   async modifyEvent(
-    location: EventPathLocation,
-    event: OFCEvent,
+    oldEvent: OFCEvent,
+    newEvent: OFCEvent,
+    location: EventPathLocation | null,
     updateCacheWithLocation: (loc: EventLocation) => void
   ): Promise<void> {
+    if (!location) {
+      throw new Error('FullNoteCalendar.modifyEvent requires a file location.');
+    }
+    const event = newEvent;
     const { path } = location;
     const file = this.app.getFileByPath(path);
     if (!file) {
@@ -313,7 +319,11 @@ export default class FullNoteCalendar extends EditableCalendar {
     await this.app.rename(file, newPath);
   }
 
-  deleteEvent({ path, lineNumber }: EventPathLocation): Promise<void> {
+  async deleteEvent(event: OFCEvent, location: EventPathLocation | null): Promise<void> {
+    if (!location) {
+      throw new Error('FullNoteCalendar.deleteEvent requires a file location.');
+    }
+    const { path, lineNumber } = location;
     if (lineNumber !== undefined) {
       throw new Error('Note calendar cannot handle inline events.');
     }

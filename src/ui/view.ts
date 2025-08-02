@@ -19,10 +19,10 @@
 import './overrides.css';
 import { ItemView, Menu, Notice, WorkspaceLeaf } from 'obsidian';
 import { DateTime } from 'luxon';
-import { Calendar, EventSourceInput } from '@fullcalendar/core';
+import { Calendar, EventSourceInput, EventInput } from '@fullcalendar/core';
 import { renderCalendar } from './calendar';
 import FullCalendarPlugin from '../main';
-import { FCError, PLUGIN_SLUG, CalendarInfo } from '../types';
+import { PLUGIN_SLUG, CalendarInfo } from '../types';
 import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from '../core/interop';
 import { renderOnboarding } from './onboard';
 import { openFileForEvent } from '../actions/eventActions';
@@ -91,7 +91,9 @@ export class CalendarView extends ItemView {
     return this.plugin.cache.getAllEvents().map(
       ({ events, editable, color, id }): EventSourceInput => ({
         id,
-        events: events.flatMap(e => toEventInput(e.id, e.event, settings, id) || []), // <-- Use flatMap
+        events: events
+          .map(e => toEventInput(e.id, e.event, settings, id))
+          .filter((e): e is EventInput => !!e),
         editable,
         ...getCalendarColors(color)
       })
@@ -140,7 +142,7 @@ export class CalendarView extends ItemView {
     if (this.plugin.settings.enableAdvancedCategorization) {
       // First, add top-level resources for each category from settings.
       const categorySettings = this.plugin.settings.categorySettings || [];
-      categorySettings.forEach(cat => {
+      categorySettings.forEach((cat: { name: string; color: string }) => {
         resources.push({
           id: cat.name,
           title: cat.name,
@@ -158,8 +160,10 @@ export class CalendarView extends ItemView {
             if (!categoryMap.has(category)) {
               categoryMap.set(category, new Set());
             }
-            const sub = subCategory || 'Others';
+            // START MODIFICATION
+            const sub = subCategory || '__NONE__';
             categoryMap.get(category)!.add(sub);
+            // END MODIFICATION
           }
         }
       }
@@ -176,11 +180,13 @@ export class CalendarView extends ItemView {
         }
 
         for (const subCategory of subCategories) {
+          // START MODIFICATION
           resources.push({
             id: `${category}::${subCategory}`,
-            title: subCategory,
+            title: subCategory === '__NONE__' ? '(none)' : subCategory,
             parentId: category
           });
+          // END MODIFICATION
         }
       }
     }
@@ -507,14 +513,20 @@ export class CalendarView extends ItemView {
         //   toAdd
         // });
         toRemove.forEach(id => {
-          const event = this.fullCalendarView?.getEventById(id);
-          if (event) {
-            // console.debug('removing event', event.toPlainObject());
-            event.remove();
+          // Remove main event if it exists
+          const mainEvent = this.fullCalendarView?.getEventById(id);
+          if (mainEvent) {
+            mainEvent.remove();
           } else {
             console.warn(
               `Event with id=${id} was slated to be removed but does not exist in the calendar.`
             );
+          }
+
+          // Also remove the corresponding shadow event, if it exists.
+          const shadowEvent = this.fullCalendarView?.getEventById(`${id}-shadow`);
+          if (shadowEvent) {
+            shadowEvent.remove();
           }
         });
         toAdd.forEach(({ id, event, calendarId }) => {

@@ -16,6 +16,14 @@ export interface FullCalendarSettings {
   enableAdvancedCategorization: boolean;
   chrono_analyser_config: any;
   categorySettings: { name: string; color: string }[];
+  googleAuth: {
+    refreshToken: string | null;
+    accessToken: string | null;
+    expiryDate: number | null;
+  } | null;
+  useCustomGoogleClient: boolean;
+  googleClientId: string;
+  googleClientSecret: string;
 }
 
 export const DEFAULT_SETTINGS: FullCalendarSettings = {
@@ -33,5 +41,9 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   lastSystemTimezone: null,
   enableAdvancedCategorization: false,
   chrono_analyser_config: null,
-  categorySettings: []
+  categorySettings: [],
+  googleAuth: null,
+  useCustomGoogleClient: false,
+  googleClientId: '',
+  googleClientSecret: ''
 };

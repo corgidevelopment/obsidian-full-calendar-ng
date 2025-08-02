@@ -176,7 +176,7 @@ export async function manageTimezone(plugin: FullCalendarPlugin): Promise<void> 
     settings.displayTimezone = systemTimezone;
     // Use saveData directly to avoid triggering a full cache reset.
     await plugin.saveData(settings);
-    console.log(`Full Calendar: Initialized timezone to ${systemTimezone}`);
+    // console.log(`Full Calendar: Initialized timezone to ${systemTimezone}`);
   } else if (settings.lastSystemTimezone !== systemTimezone) {
     // Case 2: The system timezone has changed since the last time Obsidian was run.
     // This is a critical change. We must update the user's view.

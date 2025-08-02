@@ -1,19 +1,38 @@
-name: docs
+name: Deploy Docs
+
 on:
-    push:
-        branches:
-            - main
-        paths:
-            - docs/**
-            - mkdocs.yml # this isn't actual docs but could affect rendering
+  push:
+    branches:
+      - main
+      - feat-GCal
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-python@v2
-              with:
-                  python-version: 3.x
-            - run: |
-                  pip install mkdocs-material
-                  mkdocs gh-deploy --force
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3 # Use a more recent version of checkout
+
+      - name: Set up Python
+        uses: actions/setup-python@v4 # Use a more recent version of setup-python
+        with:
+          python-version: 3.x
+
+      - name: Install dependencies
+        run: pip install mkdocs-material
+
+      - name: Build MkDocs site
+        run: mkdocs build
+
+      - name: Copy static files
+        run: cp docs/google-auth-callback.html site/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true # Creates a clean history for the gh-pages branch

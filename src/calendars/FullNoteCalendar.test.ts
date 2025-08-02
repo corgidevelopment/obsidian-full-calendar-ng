@@ -278,8 +278,9 @@ describe('FullNoteCalendar Tests', () => {
     });
 
     await calendar.modifyEvent(
-      { path, lineNumber: undefined }, // Use the same path variable
+      initialEvent as OFCEvent, // <-- PASS THE ORIGINAL EVENT DATA
       newEvent,
+      { path, lineNumber: undefined }, // Use the same path variable
       mockFn
     );
 

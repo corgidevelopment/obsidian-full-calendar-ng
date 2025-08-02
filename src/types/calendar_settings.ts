@@ -28,6 +28,11 @@ const calendarOptionsSchema = z.discriminatedUnion('type', [
     homeUrl: z.string().url(),
     username: z.string(),
     password: z.string()
+  }),
+  z.object({
+    type: z.literal('google'),
+    id: z.string(),
+    name: z.string()
   })
 ]);
 

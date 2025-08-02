@@ -148,7 +148,8 @@ export function toEventInput(
   frontmatter: OFCEvent,
   settings: FullCalendarSettings,
   calendarId?: string
-): EventInput | EventInput[] | null {
+): EventInput | null {
+  // MODIFICATION: Return type is now EventInput | null
   const displayTitle = frontmatter.subCategory
     ? `${frontmatter.subCategory} - ${frontmatter.title}`
     : frontmatter.title;
@@ -158,6 +159,7 @@ export function toEventInput(
     title: displayTitle,
     allDay: frontmatter.allDay,
     extendedProps: {
+      uid: frontmatter.uid,
       recurringEventId: frontmatter.recurringEventId,
       category: frontmatter.category,
       subCategory: frontmatter.subCategory,
@@ -176,6 +178,10 @@ export function toEventInput(
       baseEvent.color = color;
       baseEvent.textColor = textColor;
     }
+
+    // NEW: Assign resource ID for timeline view
+    const subCategoryName = frontmatter.subCategory || '__NONE__';
+    baseEvent.resourceId = `${frontmatter.category}::${subCategoryName}`;
   }
 
   // --- Main Event Logic (largely the same, but populates baseEvent) ---
@@ -387,26 +393,7 @@ export function toEventInput(
     }
   }
 
-  // --- NEW AGGREGATION LOGIC ---
-  if (frontmatter.category) {
-    const subCategory = frontmatter.subCategory || 'Others';
-    baseEvent.resourceId = `${frontmatter.category}::${subCategory}`;
-
-    // Create a non-interactive "shadow" event for the parent row.
-    const shadowEvent: EventInput = {
-      ...baseEvent,
-      id: `${id}-shadow`,
-      resourceId: frontmatter.category,
-      display: 'background',
-      interactive: false,
-      extendedProps: {
-        ...baseEvent.extendedProps,
-        isShadow: true
-      }
-    };
-    return [baseEvent, shadowEvent];
-  }
-
+  // REMOVED SHADOW EVENT LOGIC
   return baseEvent;
 }
 
@@ -444,6 +431,7 @@ export function fromEventApi(event: EventApi, newResource?: string): OFCEvent {
   const endDate = event.end ? getDate(new Date(event.end.getTime() - 1)) : startDate;
 
   return {
+    uid: event.extendedProps.uid,
     title: event.extendedProps.cleanTitle || event.title,
     category,
     subCategory, // Add subCategory here

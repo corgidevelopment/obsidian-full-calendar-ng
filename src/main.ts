@@ -19,10 +19,9 @@ import { toEventInput } from './core/interop';
 import {
   FullCalendarSettingTab,
   ensureCalendarIds,
-  DEFAULT_SETTINGS,
-  FullCalendarSettings,
   sanitizeInitialView
 } from './ui/settings/SettingsTab';
+import { FullCalendarSettings, DEFAULT_SETTINGS } from './types/settings';
 import { PLUGIN_SLUG } from './types';
 import EventCache from './core/EventCache';
 import { ObsidianIO } from './ObsidianAdapter';
@@ -31,13 +30,16 @@ import FullNoteCalendar from './calendars/FullNoteCalendar';
 import DailyNoteCalendar from './calendars/DailyNoteCalendar';
 import ICSCalendar from './calendars/ICSCalendar';
 import CalDAVCalendar from './calendars/CalDAVCalendar';
+import GoogleCalendar from './calendars/GoogleCalendar';
 import { manageTimezone } from './core/Timezone';
 import { CategorizationManager } from './core/CategorizationManager';
+import { exchangeCodeForToken } from './calendars/parsing/google/auth';
 
 export default class FullCalendarPlugin extends Plugin {
   settings: FullCalendarSettings = DEFAULT_SETTINGS;
   categorizationManager!: CategorizationManager;
   isMobile: boolean = false;
+  settingsTab?: FullCalendarSettingTab;
 
   // To parse `data.json` file.`
   cache: EventCache = new EventCache(this, {
@@ -52,6 +54,8 @@ export default class FullCalendarPlugin extends Plugin {
     ical: (info, settings) => (info.type === 'ical' ? new ICSCalendar(info, settings) : null),
     caldav: (info, settings) =>
       info.type === 'caldav' ? new CalDAVCalendar(info, settings) : null,
+    google: (info, settings) =>
+      info.type === 'google' ? new GoogleCalendar(this, info, settings) : null,
     FOR_TEST_ONLY: () => null
   });
 
@@ -143,7 +147,8 @@ export default class FullCalendarPlugin extends Plugin {
       await this.activateView();
     });
 
-    this.addSettingTab(new FullCalendarSettingTab(this.app, this));
+    this.settingsTab = new FullCalendarSettingTab(this.app, this);
+    this.addSettingTab(this.settingsTab);
 
     // Commands visible in the command palette
     this.addCommand({
@@ -213,6 +218,18 @@ export default class FullCalendarPlugin extends Plugin {
     (this.app.workspace as any).registerHoverLinkSource(PLUGIN_SLUG, {
       display: 'Full Calendar',
       defaultMod: true
+    });
+
+    this.registerObsidianProtocolHandler('full-calendar-google-auth', async params => {
+      if (params.code && params.state) {
+        await exchangeCodeForToken(params.code, params.state, this);
+        if (this.settingsTab) {
+          this.settingsTab.display();
+        }
+      } else {
+        new Notice('Google authentication failed. Please try again.');
+        console.error('Google Auth Callback Error: Missing code or state.', params);
+      }
     });
   }
 

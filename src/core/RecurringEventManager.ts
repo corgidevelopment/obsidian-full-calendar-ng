@@ -18,6 +18,7 @@ import EventCache from './EventCache';
 import { StoredEvent } from './EventStore';
 import { OFCEvent } from '../types';
 import { DeleteRecurringModal } from '../ui/modals/DeleteRecurringModal';
+import GoogleCalendar from '../calendars/GoogleCalendar';
 
 /**
  * Manages all complex business logic related to recurring events.
@@ -113,8 +114,11 @@ export class RecurringEventManager {
       return false;
     }
 
+    const { calendar } = this.cache.getInfoForEditableEvent(eventId);
+    const isGoogle = calendar instanceof GoogleCalendar;
+
     const children = this.findRecurringChildren(eventId);
-    // If instanceDate is provided, show the delete-instance option
+
     if (children.length > 0 || options?.instanceDate) {
       new DeleteRecurringModal(
         this.cache.plugin.app,
@@ -122,7 +126,8 @@ export class RecurringEventManager {
         () => this.deleteAllRecurring(eventId),
         options?.instanceDate
           ? async () => {
-              // Append the date to skipDates for this master event
+              // This GENERIC logic now correctly triggers the "modifyEvent" flow for ALL calendar types.
+              // The calendar-specific implementation (in GoogleCalendar.ts) will handle the rest.
               await this.cache.processEvent(eventId, e => {
                 if (e.type !== 'recurring' && e.type !== 'rrule') return e;
                 const skipDates = e.skipDates?.includes(options.instanceDate!)
@@ -133,7 +138,8 @@ export class RecurringEventManager {
               this.cache.flushUpdateQueue([], []);
             }
           : undefined,
-        options?.instanceDate
+        options?.instanceDate,
+        isGoogle
       ).open();
       return true; // Deletion is handled by the modal, stop further processing.
     }
@@ -223,6 +229,39 @@ export class RecurringEventManager {
     if (newEventData.type !== 'single') {
       throw new Error('Cannot create a recurring override from a non-single event.');
     }
+    const { event: masterEventForDebug } = this.cache.getInfoForEditableEvent(masterEventId);
+    console.log('[DEBUG] modifyRecurringInstance:', {
+      masterEventUID: masterEventForDebug.uid,
+      newEventData: JSON.stringify(newEventData, null, 2)
+    });
+
+    // Check calendar type and delegate
+    const { calendar, event: masterEvent } = this.cache.getInfoForEditableEvent(masterEventId);
+    if (calendar instanceof GoogleCalendar) {
+      const newExceptionEvent = await calendar.createInstanceOverride(
+        masterEvent,
+        instanceDate,
+        newEventData
+      );
+      // Add the new exception to the cache silently. The caller is responsible for the UI update.
+      await this.cache.addEvent(calendar.id, newExceptionEvent, { silent: true });
+
+      // Now, update the in-memory master event to hide the original instance date.
+      await this.cache.processEvent(
+        masterEventId,
+        e => {
+          if (e.type !== 'recurring' && e.type !== 'rrule') return e;
+          const skipDates = e.skipDates.includes(instanceDate)
+            ? e.skipDates
+            : [...e.skipDates, instanceDate];
+          return { ...e, skipDates };
+        },
+        { silent: true }
+      );
+
+      return;
+    }
+
     await this._createRecurringOverride(masterEventId, instanceDate, newEventData);
   }
 
@@ -300,15 +339,21 @@ export class RecurringEventManager {
         recurringEventId: newParentIdentifier
       };
 
-      await childCalendar.modifyEvent(childLocation, updatedChildEvent, newChildLocation => {
-        this.cache.store.delete(childStoredEvent.id);
-        this.cache.store.add({
-          calendar: childCalendar,
-          location: newChildLocation,
-          id: childStoredEvent.id,
-          event: updatedChildEvent
-        });
-      });
+      // We pass the child's own data as the "old event"
+      await childCalendar.modifyEvent(
+        childEvent,
+        updatedChildEvent,
+        childLocation,
+        newChildLocation => {
+          this.cache.store.delete(childStoredEvent.id);
+          this.cache.store.add({
+            calendar: childCalendar,
+            location: newChildLocation,
+            id: childStoredEvent.id,
+            event: updatedChildEvent
+          });
+        }
+      );
 
       this.cache.isBulkUpdating = true;
       this.cache.updateQueue.toRemove.add(childStoredEvent.id);

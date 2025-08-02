@@ -190,6 +190,8 @@ export const CalendarSettingRow = ({
         <DirectorySetting source={setting} />
       ) : setting.type === 'dailynote' ? (
         <HeadingSetting source={setting} />
+      ) : setting.type === 'google' ? (
+        <NameSetting source={setting} />
       ) : (
         <UrlSetting source={setting} />
       )}

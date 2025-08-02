@@ -63,33 +63,31 @@ export abstract class EditableCalendar extends Calendar {
   /**
    * Create an event in this calendar.
    * @param event Event to create.
+   * @returns A tuple containing the authoritative event data from the source and its location.
    */
-  abstract createEvent(event: OFCEvent): Promise<EventLocation>;
+  abstract createEvent(event: OFCEvent): Promise<[OFCEvent, EventLocation | null]>;
 
   /**
    * Delete an event from the calendar.
-   * @param location Location of event to delete.
+   * @param event The event object being deleted.
+   * @param location Location of event to delete. Can be null for remote events.
    */
-  abstract deleteEvent(location: EventPathLocation): Promise<void>;
+  abstract deleteEvent(event: OFCEvent, location: EventPathLocation | null): Promise<void>;
 
   /**
-   * Modify an event on disk.
-   * Implementations of this method are responsible for all file I/O to update
-   * an event. This includes modifying frontmatter, changing file content, or
-   * even renaming/moving the file if the event's date or title changes.
+   * Modify an event on disk or via an API.
    *
-   * @param location - The current location of the event on disk.
+   * @param oldEvent - The original event data from the cache.
    * @param newEvent - The new event details to be saved.
+   * @param location - The current location of the event. Can be null for remote events.
    * @param updateCacheWithLocation - A critical callback that MUST be called by the
-   *        implementation *before* any file modifications are written to disk.
-   *        This prevents race conditions by ensuring the in-memory cache is
-   *        updated with the new potential location of the event. If the file write
-   *        fails, the cache is still consistent with what's on disk.
+   *        implementation to update the in-memory cache.
    */
   abstract modifyEvent(
-    location: EventPathLocation,
+    oldEvent: OFCEvent,
     newEvent: OFCEvent,
-    updateCacheWithLocation: (loc: EventLocation) => void
+    location: EventPathLocation | null,
+    updateCacheWithLocation: (loc: EventLocation | null) => void
   ): Promise<void>;
 
   /**

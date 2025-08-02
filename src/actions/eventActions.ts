@@ -14,7 +14,7 @@
  * @license See LICENSE.md
  */
 
-import { MarkdownView, TFile, Vault, Workspace } from 'obsidian';
+import { MarkdownView, TFile, Vault, Workspace, Notice } from 'obsidian';
 import EventCache from '../core/EventCache';
 
 /**
@@ -30,8 +30,9 @@ export async function openFileForEvent(
   id: string
 ) {
   const details = cache.getInfoForEditableEvent(id);
-  if (!details) {
-    throw new Error('Event does not have local representation.');
+  if (!details || !details.location) {
+    new Notice('Cannot open note for a remote event.');
+    return;
   }
   const {
     location: { path, lineNumber }

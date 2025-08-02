@@ -312,12 +312,16 @@ export default class DailyNoteCalendar extends EditableCalendar {
   }
 
   async modifyEvent(
-    loc: EventPathLocation,
+    oldEvent: OFCEvent,
     newEvent: OFCEvent,
+    location: EventPathLocation | null,
     updateCacheWithLocation: (loc: EventLocation) => void
   ): Promise<void> {
+    if (!location) {
+      throw new Error('DailyNoteCalendar.modifyEvent requires a file location.');
+    }
     if (newEvent.type !== 'single' && newEvent.type !== undefined)
-      throw new Error('Recurring events in daily notes are not supported.');
+      throw new Error('Cannot modify a recurring event in a daily note.');
     if (newEvent.endDate) throw new Error('Multi-day events are not supported in daily notes.');
     const displayTimezone =
       this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -326,7 +330,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
     if (this.settings.dailyNotesTimezone === 'local') {
       targetTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     } else {
-      const { file, lineNumber } = this.getConcreteLocation(loc);
+      const { file, lineNumber } = this.getConcreteLocation(location);
       const contents = await this.app.read(file);
       const line = contents.split('\n')[lineNumber];
       const sourceEvent = getInlineEventFromLine(line, {}, this.settings);
@@ -339,7 +343,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
     eventToWrite.timezone = targetTimezone;
 
     // The rest of the file modification logic remains the same...
-    const { file, lineNumber } = this.getConcreteLocation(loc);
+    const { file, lineNumber } = this.getConcreteLocation(location);
     const oldDate = getDateFromFile(file as any, 'day')?.format('YYYY-MM-DD');
     if (!oldDate) throw new Error(`Could not get date from file at path ${file.path}`);
 
@@ -387,7 +391,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
     return (await Promise.all(files.map(f => this.getEventsInFile(f)))).flat();
   }
 
-  async createEvent(event: OFCEvent): Promise<EventLocation> {
+  async createEvent(event: OFCEvent): Promise<[OFCEvent, EventLocation]> {
     if (event.type !== 'single' && event.type !== undefined)
       throw new Error('Cannot create a recurring event in a daily note.');
 
@@ -424,7 +428,8 @@ export default class DailyNoteCalendar extends EditableCalendar {
       );
       return [page, lineNumber] as [string, number];
     });
-    return { file, lineNumber };
+    const location = { file, lineNumber };
+    return [event, location];
   }
 
   private getConcreteLocation({ path, lineNumber }: EventPathLocation): {
@@ -437,8 +442,11 @@ export default class DailyNoteCalendar extends EditableCalendar {
     return { file, lineNumber };
   }
 
-  async deleteEvent(loc: EventPathLocation): Promise<void> {
-    const { file, lineNumber } = this.getConcreteLocation(loc);
+  async deleteEvent(event: OFCEvent, location: EventPathLocation | null): Promise<void> {
+    if (!location) {
+      throw new Error('DailyNoteCalendar.deleteEvent requires a file location.');
+    }
+    const { file, lineNumber } = this.getConcreteLocation(location);
     this.app.rewrite(file, contents => {
       let lines = contents.split('\n');
       lines.splice(lineNumber, 1);

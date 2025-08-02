@@ -19,7 +19,6 @@
  * - "What's New" and full changelog display.
  *
  * @exports FullCalendarSettingTab
- * @exports DEFAULT_SETTINGS
  * @exports ensureCalendarIds
  *
  * @see ../components/CalendarSetting.tsx
@@ -57,42 +56,10 @@ import { CategorySettingsManager } from '../components/CategorySetting';
 import { InsightsConfig } from '../../chrono_analyser/ui/ui';
 import { generateCalendarId } from '../../types/calendar_settings';
 import { BulkCategorizeModal } from '../modals/BulkCategorizeModal';
-
-export interface FullCalendarSettings {
-  calendarSources: CalendarInfo[];
-  defaultCalendar: number;
-  firstDay: number;
-  initialView: {
-    desktop: string;
-    mobile: string;
-  };
-  timeFormat24h: boolean;
-  dailyNotesTimezone: 'local' | 'strict';
-  clickToCreateEventFromMonthView: boolean;
-  displayTimezone: string | null;
-  lastSystemTimezone: string | null;
-  enableAdvancedCategorization: boolean;
-  chrono_analyser_config: InsightsConfig | null;
-  categorySettings: { name: string; color: string }[];
-}
-
-export const DEFAULT_SETTINGS: FullCalendarSettings = {
-  calendarSources: [],
-  defaultCalendar: 0,
-  firstDay: 0,
-  initialView: {
-    desktop: 'timeGridWeek',
-    mobile: 'timeGrid3Days'
-  },
-  timeFormat24h: false,
-  dailyNotesTimezone: 'local',
-  clickToCreateEventFromMonthView: true,
-  displayTimezone: null,
-  lastSystemTimezone: null,
-  enableAdvancedCategorization: false,
-  chrono_analyser_config: null,
-  categorySettings: []
-};
+import { FullCalendarSettings } from '../../types/settings';
+import { startGoogleLogin } from '../../calendars/parsing/google/auth';
+import { fetchGoogleCalendarList } from '../../calendars/parsing/google/api';
+import { getNextColor } from '../colors';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -132,13 +99,34 @@ export function addCalendarButton(
           dailynote: 'Daily Note',
           icloud: 'iCloud',
           caldav: 'CalDAV',
-          ical: 'Remote (.ics format)'
+          ical: 'Remote (.ics format)',
+          google: 'Google Calendar'
         }))
     )
     .addExtraButton(button => {
       button.setTooltip('Add Calendar');
       button.setIcon('plus-with-circle');
-      button.onClick(() => {
+      button.onClick(async () => {
+        const sourceType = dropdown.getValue();
+
+        if (sourceType === 'google') {
+          if (!plugin.settings.googleAuth?.refreshToken) {
+            new Notice('Please connect your Google Account first.');
+            return;
+          }
+
+          try {
+            const calendars = await fetchGoogleCalendarList(plugin);
+            new SelectGoogleCalendarsModal(plugin, calendars, selected => {
+              selected.forEach(cal => submitCallback(cal));
+            }).open();
+          } catch (e: any) {
+            new Notice(`Error fetching calendar list: ${e.message}`);
+            console.error(e);
+          }
+          return;
+        }
+
         let modal = new ReactModal(plugin.app, async () => {
           await plugin.loadSettings();
           const usedDirectories = (
@@ -619,6 +607,79 @@ export class FullCalendarSettingTab extends PluginSettingTab {
         },
         () => calendarSettingsRef.current?.getUsedDirectories() ?? []
       );
+
+      // ====================================================================
+      // Google Calendar Integration Section
+      // ====================================================================
+      new Setting(containerEl).setName('Google Calendar Integration').setHeading();
+
+      new Setting(containerEl)
+        .setName('Use custom Google Cloud credentials')
+        .setDesc(
+          'Use your own Google Cloud project for authentication. This is recommended for privacy and to avoid rate limits on the public client. Requires a plugin restart after changing.'
+        )
+        .addToggle(toggle => {
+          toggle.setValue(this.plugin.settings.useCustomGoogleClient).onChange(async value => {
+            // Changing the client invalidates any existing token.
+            this.plugin.settings.googleAuth = null;
+            this.plugin.settings.useCustomGoogleClient = value;
+            await this.plugin.saveSettings();
+            this.display(); // Re-render the tab
+          });
+        });
+
+      if (this.plugin.settings.useCustomGoogleClient) {
+        new Setting(containerEl).setName('Google Client ID').addText(text =>
+          text
+            .setPlaceholder('Enter your Client ID')
+            .setValue(this.plugin.settings.googleClientId)
+            .onChange(async value => {
+              this.plugin.settings.googleClientId = value.trim();
+              await this.plugin.saveData(this.plugin.settings);
+            })
+        );
+        new Setting(containerEl).setName('Google Client Secret').addText(text =>
+          text
+            .setPlaceholder('Enter your Client Secret')
+            .setValue(this.plugin.settings.googleClientSecret)
+            .onChange(async value => {
+              this.plugin.settings.googleClientSecret = value.trim();
+              await this.plugin.saveData(this.plugin.settings);
+            })
+        );
+      }
+
+      new Setting(containerEl)
+        .setName('Google Account')
+        .setDesc(
+          this.plugin.settings.googleAuth?.refreshToken
+            ? 'Your account is connected.'
+            : 'Connect your Google Account to add calendars.'
+        )
+        .addButton(button => {
+          button
+            .setButtonText(this.plugin.settings.googleAuth?.refreshToken ? 'Disconnect' : 'Connect')
+            .onClick(async () => {
+              if (this.plugin.settings.googleAuth?.refreshToken) {
+                this.plugin.settings.googleAuth = null;
+                await this.plugin.saveSettings();
+                this.display();
+              } else {
+                startGoogleLogin(this.plugin);
+              }
+            });
+        });
+
+      // ====================================================================
+      // Initial Setup Reminder
+      // ====================================================================
+      if (!this.plugin.settings.calendarSources.length) {
+        const notice = containerEl.createDiv('full-calendar-initial-setup-notice');
+        notice.createEl('h2', { text: 'Quick Start: Add Your First Calendar' });
+        notice.createEl('p', {
+          text: 'To begin using Full Calendar, add a calendar source. Click the "+" button in the "Manage calendars" section.'
+        });
+      }
     };
 
     render(); // Initial render
@@ -675,4 +736,85 @@ export function sanitizeInitialView(settings: FullCalendarSettings): FullCalenda
     };
   }
   return settings;
+}
+
+class SelectGoogleCalendarsModal extends Modal {
+  plugin: FullCalendarPlugin;
+  calendars: any[];
+  onSubmit: (selected: CalendarInfo[]) => void;
+  googleCalendarSelection: Set<string>;
+
+  constructor(
+    plugin: FullCalendarPlugin,
+    calendars: any[],
+    onSubmit: (selected: CalendarInfo[]) => void
+  ) {
+    super(plugin.app);
+    this.plugin = plugin;
+    this.calendars = calendars;
+    this.onSubmit = onSubmit;
+    this.googleCalendarSelection = new Set();
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl('h2', { text: 'Select Google Calendars to Add' });
+
+    const existingGoogleCalendarIds = new Set(
+      this.plugin.settings.calendarSources
+        .filter(s => s.type === 'google')
+        .map(s => (s as Extract<CalendarInfo, { type: 'google' }>).id)
+    );
+
+    this.calendars.forEach(cal => {
+      if (!cal.id || existingGoogleCalendarIds.has(cal.id)) {
+        return;
+      }
+
+      new Setting(contentEl)
+        .setName(cal.summary || cal.id)
+        .setDesc(cal.description || '')
+        .addToggle(toggle =>
+          toggle.onChange(value => {
+            if (value) {
+              this.googleCalendarSelection.add(cal.id);
+            } else {
+              this.googleCalendarSelection.delete(cal.id);
+            }
+          })
+        );
+    });
+
+    new Setting(contentEl).addButton(button =>
+      button
+        .setButtonText('Add Selected Calendars')
+        .setCta()
+        .onClick(() => {
+          const existingIds = this.plugin.settings.calendarSources.map(s => s.id);
+          const existingColors = this.plugin.settings.calendarSources.map(s => s.color);
+
+          const selectedCalendars = this.calendars
+            .filter(cal => this.googleCalendarSelection.has(cal.id))
+            .map(cal => {
+              const newColor = getNextColor(existingColors);
+              existingColors.push(newColor);
+
+              const newCalendar: Extract<CalendarInfo, { type: 'google' }> = {
+                type: 'google',
+                id: cal.id,
+                name: cal.summary,
+                color: cal.backgroundColor || newColor
+              };
+              return newCalendar;
+            });
+
+          this.onSubmit(selectedCalendars);
+          this.close();
+        })
+    );
+  }
+
+  onClose() {
+    this.contentEl.empty();
+  }
 }
