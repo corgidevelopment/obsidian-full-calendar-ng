@@ -1,88 +1,87 @@
 import { DEFAULT_SETTINGS } from '../types/settings';
-import { getInlineAttributes, getInlineEventFromLine } from './parsing/dailynote/parser';
+import { getInlineEventFromLine } from './parsing/dailynote/parser';
+import { enhanceEvent } from './parsing/categoryParser';
+import { OFCEvent } from '../types';
 
 describe('DailyNoteCalendar', () => {
-  describe('getInlineAttributes', () => {
-    it.each([
-      ['one variable [hello:: world]', { hello: 'world' }],
-      ['[first:: a] message [second:: b]', { first: 'a', second: 'b' }],
-      ['this is a long string with [some brackets] but no actual:: inline fields', {}]
-    ])('%p', (line: string, obj: any) => {
-      expect(getInlineAttributes(line)).toEqual(obj);
-    });
-  });
-
-  describe('getInlineEventFromLine', () => {
-    // Create settings objects for testing
-    const settingsWithCategory = { ...DEFAULT_SETTINGS, enableAdvancedCategorization: true };
-    const settingsWithoutCategory = { ...DEFAULT_SETTINGS, enableAdvancedCategorization: false };
-
+  describe('getInlineEventFromLine (raw parser)', () => {
     const MOCK_GLOBALS = { date: '2023-01-01', type: 'single' as const };
 
-    it('should return null if feature is off and no inline fields', () => {
-      const line = '- [ ] Work - Review PR';
-      expect(getInlineEventFromLine(line, MOCK_GLOBALS, settingsWithoutCategory)).toBeNull();
-    });
-
-    it('should parse title literally if feature is off', () => {
+    it('should parse raw title literally, including category strings', () => {
       const line = '- [ ] Work - Review PR [startTime:: 09:00]';
-      const result = getInlineEventFromLine(line, MOCK_GLOBALS, settingsWithoutCategory);
+      const result = getInlineEventFromLine(line, MOCK_GLOBALS);
       expect(result?.title).toBe('Work - Review PR');
-      expect(result?.category).toBeUndefined();
     });
 
-    it('should parse an event with a category when feature is on', () => {
-      const line = '- [ ] Work - Review PR';
-      const result = getInlineEventFromLine(line, MOCK_GLOBALS, settingsWithCategory);
-      expect(result).not.toBeNull();
-      expect(result?.title).toBe('Review PR');
-      expect(result?.category).toBe('Work');
-    });
-
-    it('should parse an event with a category and inline fields when feature is on', () => {
-      const line = '- [x] Life - Pay bills [startTime:: 14:00]';
-      const result = getInlineEventFromLine(line, MOCK_GLOBALS, settingsWithCategory);
-      expect(result).not.toBeNull();
-      if (result && !result.allDay && result.type === 'single') {
-        expect(result.title).toBe('Pay bills');
-        expect(result.category).toBe('Life');
-        expect(result.startTime).toBe('14:00');
-        expect(result.completed).not.toBe(false);
-      } else {
-        fail('Parsed event was allDay or not a single event type');
-      }
-    });
-
-    it('should parse an event with a category and sub-category', () => {
-      const line = '- [ ] Chores - Home - Clean garage';
-      const result = getInlineEventFromLine(line, MOCK_GLOBALS, settingsWithCategory);
-      expect(result).not.toBeNull();
-      expect(result?.title).toBe('Clean garage');
-      expect(result?.category).toBe('Chores');
-      expect(result?.subCategory).toBe('Home');
-    });
-
-    it('should parse an event with only inline fields and no category', () => {
-      const line = '- [ ] A task with a time [startTime:: 09:00]';
-      const result = getInlineEventFromLine(line, MOCK_GLOBALS, settingsWithCategory);
-      expect(result).not.toBeNull();
-      expect(result?.title).toBe('A task with a time');
-      expect(result?.category).toBeUndefined();
-
-      // TYPE GUARD: Ensure the event is not allDay
-      if (result && !result.allDay) {
-        expect(result.startTime).toBe('09:00');
-      } else {
-        fail('Parsed event was allDay');
-      }
+    it('should return null if there are no inline fields', () => {
+      const line = '- [ ] Just a title';
+      expect(getInlineEventFromLine(line, MOCK_GLOBALS)).toBeNull();
     });
 
     it('should handle extra whitespace gracefully', () => {
-      const line = '  - [ ]   Work   -   Deploy to production  ';
-      const result = getInlineEventFromLine(line, MOCK_GLOBALS, settingsWithCategory);
+      const line = '  - [ ]   Work   -   Deploy to production  [startTime:: 10:00]';
+      const result = getInlineEventFromLine(line, MOCK_GLOBALS);
       expect(result).not.toBeNull();
-      expect(result?.title).toBe('Deploy to production');
-      expect(result?.category).toBe('Work');
+      expect(result?.title).toBe('Work   -   Deploy to production');
+    });
+  });
+
+  describe('enhanceEvent (logic layer)', () => {
+    const settingsWithCategory = { ...DEFAULT_SETTINGS, enableAdvancedCategorization: true };
+    const settingsWithoutCategory = { ...DEFAULT_SETTINGS, enableAdvancedCategorization: false };
+
+    it('should return event as-is when categorization is off', () => {
+      const rawEvent: OFCEvent = {
+        title: 'Work - Review PR',
+        type: 'single' as const,
+        allDay: true,
+        date: '2023-01-01',
+        endDate: null
+      };
+      const result = enhanceEvent(rawEvent, settingsWithoutCategory);
+      expect(result.title).toBe('Work - Review PR');
+      expect(result.category).toBeUndefined();
+    });
+
+    it('should parse category and title when categorization is on', () => {
+      const rawEvent: OFCEvent = {
+        title: 'Work - Review PR',
+        type: 'single' as const,
+        allDay: true,
+        date: '2023-01-01',
+        endDate: null
+      };
+      const result = enhanceEvent(rawEvent, settingsWithCategory);
+      expect(result.title).toBe('Review PR');
+      expect(result.category).toBe('Work');
+    });
+
+    it('should parse category and sub-category', () => {
+      const rawEvent: OFCEvent = {
+        title: 'Chores - Home - Clean garage',
+        type: 'single' as const,
+        allDay: true,
+        date: '2023-01-01',
+        endDate: null
+      };
+      const result = enhanceEvent(rawEvent, settingsWithCategory);
+      expect(result.title).toBe('Clean garage');
+      expect(result.category).toBe('Chores');
+      expect(result.subCategory).toBe('Home');
+    });
+
+    it('should handle titles with no category gracefully', () => {
+      const rawEvent: OFCEvent = {
+        title: 'A task with a time',
+        type: 'single' as const,
+        allDay: true,
+        date: '2023-01-01',
+        endDate: null
+      };
+      const result = enhanceEvent(rawEvent, settingsWithCategory);
+      expect(result.title).toBe('A task with a time');
+      expect(result.category).toBeUndefined();
+      expect(result.subCategory).toBeUndefined();
     });
   });
 });

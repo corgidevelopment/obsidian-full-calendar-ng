@@ -10,6 +10,9 @@
  * @license See LICENSE.md
  */
 
+import { OFCEvent } from '../../types';
+import { FullCalendarSettings } from '../../types/settings';
+
 /**
  * Parses a full title string into its category, sub-category, and clean title components.
  * The format is `Category - SubCategory - Title`. A sub-category is only parsed
@@ -72,4 +75,30 @@ export function constructTitle(
     return `${category} - ${title}`;
   }
   return title;
+}
+
+/**
+ * Takes a raw OFCEvent and enhances it with parsed category/sub-category
+ * information if the advanced categorization setting is enabled.
+ *
+ * @param rawEvent The event object with an un-parsed title.
+ * @param settings The plugin's settings.
+ * @returns An enhanced OFCEvent with title, category, and subCategory correctly populated.
+ */
+export function enhanceEvent(rawEvent: OFCEvent, settings: FullCalendarSettings): OFCEvent {
+  if (!settings.enableAdvancedCategorization) {
+    // If the feature is off, just return the event as-is.
+    return rawEvent;
+  }
+
+  // If the feature is on, parse the title.
+  const { category, subCategory, title } = parseTitle(rawEvent.title);
+
+  // Return a new event object with the parsed fields.
+  return {
+    ...rawEvent,
+    title,
+    category,
+    subCategory
+  };
 }

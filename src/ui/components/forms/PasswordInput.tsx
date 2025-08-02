@@ -1,30 +1,19 @@
 // src/ui/components/forms/PasswordInput.tsx
 
-import { CalendarInfo } from '../../../types';
-import { BasicProps, SourceWith } from './common';
+interface PasswordInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  readOnly?: boolean;
+}
 
-export function PasswordInput<T extends Partial<CalendarInfo>>({
-  source,
-  changeListener
-}: BasicProps<T>) {
-  let sourceWithPassword = source as SourceWith<T, { password: undefined }>;
+export function PasswordInput({ value, onChange, readOnly }: PasswordInputProps) {
   return (
-    <div className="setting-item">
-      <div className="setting-item-info">
-        <div className="setting-item-name">Password</div>
-        <div className="setting-item-description">Password for the account</div>
-      </div>
-      <div className="setting-item-control">
-        <input
-          required
-          type="password"
-          value={sourceWithPassword.password || ''}
-          onChange={changeListener(x => ({
-            ...sourceWithPassword,
-            password: x
-          }))}
-        />
-      </div>
-    </div>
+    <input
+      required
+      type="password"
+      value={readOnly ? '••••••••' : value || ''}
+      onChange={e => onChange(e.target.value)}
+      readOnly={readOnly}
+    />
   );
 }

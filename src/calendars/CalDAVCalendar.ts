@@ -23,6 +23,7 @@ import * as transport from './parsing/caldav/transport';
 import { FullCalendarSettings } from '../types/settings';
 import { getEventsFromICS } from '../calendars/parsing/ics';
 import { Authentication, CalendarInfo, OFCEvent } from '../types';
+import { enhanceEvent } from './parsing/categoryParser';
 
 export default class CalDAVCalendar extends RemoteCalendar {
   _name: string;
@@ -63,7 +64,8 @@ export default class CalDAVCalendar extends RemoteCalendar {
     let caldavEvents = await dav.listCalendarObjects(calendar, { xhr });
     this.events = caldavEvents
       .filter(vevent => vevent.calendarData)
-      .flatMap(vevent => getEventsFromICS(vevent.calendarData, this.settings));
+      .flatMap(vevent => getEventsFromICS(vevent.calendarData))
+      .map(rawEvent => enhanceEvent(rawEvent, this.settings));
   }
 
   get type(): CalendarInfo['type'] {

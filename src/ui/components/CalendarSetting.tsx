@@ -14,73 +14,19 @@
 
 import { Notice } from 'obsidian';
 import * as React from 'react';
-import { CalendarInfo } from '../../../types';
-import { SourceWith } from '../../components/forms/common';
-import { UrlInput } from '../../components/forms/UrlInput';
-
-interface BasicProps<T extends Partial<CalendarInfo>> {
-  source: T;
-}
-
-function DirectorySetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
-  let sourceWithDirectory = source as SourceWith<T, { directory: undefined }>;
-  return (
-    <div className="setting-item-control">
-      <input
-        disabled
-        type="text"
-        value={sourceWithDirectory.directory}
-        className="fc-setting-input"
-      />
-    </div>
-  );
-}
-
-function HeadingSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
-  let sourceWithHeading = source as SourceWith<T, { heading: undefined }>;
-  return (
-    <div className="setting-item-control fc-heading-setting-control">
-      <span>Under heading</span>
-      <input
-        disabled
-        type="text"
-        value={sourceWithHeading.heading}
-        className="fc-setting-input is-inline"
-      />
-      <span className="fc-heading-setting-suffix">in daily notes</span>
-    </div>
-  );
-}
-
-function NameSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
-  let sourceWithName = source as SourceWith<T, { name: undefined }>;
-  return (
-    <div className="setting-item-control">
-      <input disabled type="text" value={sourceWithName.name} className="fc-setting-input" />
-    </div>
-  );
-}
-
-function Username<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
-  let sourceWithUsername = source as SourceWith<T, { username: undefined }>;
-  return (
-    <div className="setting-item-control">
-      <input
-        disabled
-        type="text"
-        value={sourceWithUsername.username}
-        className="fc-setting-input"
-      />
-    </div>
-  );
-}
+import { CalendarInfo } from '../../types/calendar_settings';
+import { UrlInput } from './forms/UrlInput';
+import { TextInput } from './forms/TextInput';
+import { UsernameInput } from './forms/UsernameInput';
+import { HeadingInput } from './forms/HeadingInput';
+import { DirectorySelect } from './forms/DirectorySelect';
 
 interface CalendarSettingsProps {
   sources: CalendarInfo[];
   submit: (payload: CalendarInfo[]) => void;
 }
 
-// ✅ Expose this type in `settings.tsx`
+// Expose this type in `settings.tsx`
 export interface CalendarSettingsRef {
   addSource: (source: CalendarInfo) => void;
   getUsedDirectories: () => string[];
@@ -177,23 +123,46 @@ export const CalendarSettingRow = ({
       <button type="button" onClick={deleteCalendar} className="fc-setting-delete-btn">
         ✕
       </button>
-      {setting.type === 'local' ? (
-        <DirectorySetting source={setting} />
-      ) : setting.type === 'dailynote' ? (
-        <HeadingSetting source={setting} />
-      ) : setting.type === 'google' ? (
-        <NameSetting source={setting} />
-      ) : (
-        <div className="setting-item-control">
-          <UrlInput
-            value={(setting as { url?: string }).url || ''}
+
+      {/* Primary Display Field */}
+      <div className="setting-item-control">
+        {setting.type === 'local' && (
+          <DirectorySelect
+            value={(setting as any).directory}
             onChange={() => {}}
             readOnly={true}
+            directories={[]}
           />
+        )}
+        {setting.type === 'dailynote' && (
+          <HeadingInput
+            value={(setting as any).heading}
+            onChange={() => {}}
+            readOnly={true}
+            headings={[]}
+          />
+        )}
+        {setting.type === 'google' && (
+          <TextInput value={(setting as any).name} onChange={() => {}} readOnly={true} />
+        )}
+        {(setting.type === 'ical' || setting.type === 'caldav') && (
+          <UrlInput value={(setting as any).url} onChange={() => {}} readOnly={true} />
+        )}
+      </div>
+
+      {/* Additional Fields for CalDAV */}
+      {isCalDAV && (
+        <div className="setting-item-control">
+          <TextInput value={(setting as any).name} onChange={() => {}} readOnly={true} />
         </div>
       )}
-      {isCalDAV && <NameSetting source={setting} />}
-      {isCalDAV && <Username source={setting} />}
+      {isCalDAV && (
+        <div className="setting-item-control">
+          <UsernameInput value={(setting as any).username} onChange={() => {}} readOnly={true} />
+        </div>
+      )}
+
+      {/* Color Picker */}
       <input
         type="color"
         value={setting.color}

@@ -25,7 +25,7 @@ import { EventPathLocation } from '../core/EventStore';
 import { ObsidianInterface } from '../ObsidianAdapter';
 import { FullCalendarSettings } from '../types/settings';
 import { OFCEvent, EventLocation, validateEvent } from '../types';
-import { constructTitle, parseTitle } from './parsing/categoryParser';
+import { constructTitle, parseTitle, enhanceEvent } from './parsing/categoryParser';
 import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
 import { newFrontmatter, modifyFrontmatterString, replaceFrontmatter } from './frontmatter';
 
@@ -110,25 +110,19 @@ export default class FullNoteCalendar extends EditableCalendar {
       return [];
     }
 
-    // MODIFICATION: Conditional Parsing for Category Coloring
-    let eventData: any = { ...frontmatter };
-    const rawTitle = frontmatter.title || file.basename;
+    // vvv REPLACE THE ENTIRE LOGIC BLOCK BELOW vvv
+    const rawEventData: any = {
+      ...frontmatter,
+      title: frontmatter.title || file.basename
+    };
 
-    if (this.settings.enableAdvancedCategorization) {
-      const { category, subCategory, title } = parseTitle(rawTitle);
-      eventData.title = title;
-      eventData.category = category;
-      eventData.subCategory = subCategory;
-    } else {
-      eventData.title = rawTitle;
-    }
-
-    let event = validateEvent(eventData);
-
-    if (!event) {
+    const rawEvent = validateEvent(rawEventData);
+    if (!rawEvent) {
       return [];
     }
-    // END MODIFICATION
+
+    let event = enhanceEvent(rawEvent, this.settings);
+    // ^^^ WITH THIS NEW, SIMPLIFIED LOGIC ^^^
 
     let eventTimezone = event.timezone;
     const displayTimezone = this.settings.displayTimezone;

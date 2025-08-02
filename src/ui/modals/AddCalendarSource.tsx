@@ -1,26 +1,9 @@
-/**
- * @file AddCalendarSource.tsx
- * @brief React component for the "Add New Calendar" modal form.
- *
- * @description
- * This file defines the `AddCalendarSource` React component. It renders a
- * dynamic form tailored to the type of calendar being added (e.g., showing
- * a directory dropdown for local calendars, or URL/credential fields for
- * CalDAV). It manages form state and handles submission.
- *
- * @license See LICENSE.md
- */
-
-import * as React from 'react';
-import { useState } from 'react';
-import { CalendarInfo } from '../../../types';
-import { UrlInput } from '../../components/forms/UrlInput';
-import { ChangeListener } from '../../components/forms/common';
-import { ColorPicker } from '../../components/forms/ColorPicker';
-import { HeadingInput } from '../../components/forms/HeadingInput';
-import { PasswordInput } from '../../components/forms/PasswordInput';
-import { UsernameInput } from '../../components/forms/UsernameInput';
-import { DirectorySelect } from '../../components/forms/DirectorySelect';
+import React, { useEffect, useState } from 'react';
+import { PasswordInput } from '../components/forms/PasswordInput';
+import { UsernameInput } from '../components/forms/UsernameInput';
+import { DirectorySelect } from '../components/forms/DirectorySelect';
+import { HeadingInput } from '../components/forms/HeadingInput';
+import { CalendarInfo } from '../../types/calendar_settings';
 
 interface AddCalendarProps {
   source: Partial<CalendarInfo>;
@@ -30,28 +13,22 @@ interface AddCalendarProps {
 }
 
 export const AddCalendarSource = ({ source, directories, headings, submit }: AddCalendarProps) => {
-  const isCalDAV = source.type === 'caldav';
-
   const [setting, setSettingState] = useState(source);
-  const [submitting, setSubmitingState] = useState(false);
-  const [submitText, setSubmitText] = useState(isCalDAV ? 'Import Calendars' : 'Add Calendar');
 
-  const makeChangeListener: ChangeListener = fromString => e =>
-    setSettingState({ ...setting, ...fromString(e.target.value) });
+  useEffect(() => {
+    setSettingState(source);
+  }, [source]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!submitting) {
-      setSubmitingState(true);
-      setSubmitText(isCalDAV ? 'Importing Calendars' : 'Adding Calendar');
-      await submit(setting as CalendarInfo);
-    }
+    submit(setting as CalendarInfo);
   };
+
+  const isCalDAV = source.type === 'caldav';
 
   return (
     <div className="vertical-tab-content">
       <form onSubmit={handleSubmit}>
-        {!isCalDAV && <ColorPicker source={setting} changeListener={makeChangeListener} />}
         {source.type === 'local' && (
           <div className="setting-item">
             <div className="setting-item-info">
@@ -84,20 +61,6 @@ export const AddCalendarSource = ({ source, directories, headings, submit }: Add
             </div>
           </div>
         )}
-        {source.type === 'ical' || source.type === 'caldav' ? (
-          <div className="setting-item">
-            <div className="setting-item-info">
-              <div className="setting-item-name">URL</div>
-              <div className="setting-item-description">URL of the CalDAV or .ics server</div>
-            </div>
-            <div className="setting-item-control">
-              <UrlInput
-                value={(setting as { url?: string }).url || ''}
-                onChange={value => setSettingState({ ...setting, url: value })}
-              />
-            </div>
-          </div>
-        ) : null}
         {isCalDAV && (
           <div className="setting-item">
             <div className="setting-item-info">
@@ -126,14 +89,6 @@ export const AddCalendarSource = ({ source, directories, headings, submit }: Add
             </div>
           </div>
         )}
-        <div className="setting-item">
-          <div className="setting-item-info" />
-          <div className="setting-item-control">
-            <button className="mod-cta" type="submit" disabled={submitting}>
-              {submitText}
-            </button>
-          </div>
-        </div>
       </form>
     </div>
   );

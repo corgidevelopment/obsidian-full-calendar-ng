@@ -1,4 +1,4 @@
-# Full Calendar
+# Full Calendar Remastered Plugin
 
 Keep your calendar in your vault! This plugin integrates the [FullCalendar.io](https://fullcalendar.io/) library into your Obsidian Vault. Keep your schedule, events, and plans alongside your tasks and notes, and link freely between them.
 

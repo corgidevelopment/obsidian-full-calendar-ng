@@ -1,57 +1,39 @@
 // src/ui/components/forms/HeadingInput.tsx
 
-import { CalendarInfo } from '../../../types';
-import { BasicProps, SourceWith } from './common';
+import { TextInput } from './TextInput';
 
-interface HeadingInputProps<T extends Partial<CalendarInfo>> extends BasicProps<T> {
+interface HeadingInputProps {
+  value: string;
+  onChange: (value: string) => void;
   headings: string[];
+  readOnly?: boolean;
 }
 
-export function HeadingInput<T extends Partial<CalendarInfo>>({
-  source,
-  changeListener,
-  headings
-}: HeadingInputProps<T>) {
-  let sourceWithHeading = source as SourceWith<T, { heading: undefined }>;
-  return (
-    <div className="setting-item">
-      <div className="setting-item-info">
-        <div className="setting-item-name">Heading</div>
-        <div className="setting-item-description">
-          Heading to store events under in the daily note.
-        </div>
+export function HeadingInput({ value, onChange, headings, readOnly }: HeadingInputProps) {
+  if (readOnly) {
+    return (
+      <div className="fc-heading-setting-control">
+        <span>Under heading</span>
+        <TextInput value={value || ''} onChange={() => {}} readOnly={true} />
+        <span className="fc-heading-setting-suffix">in daily notes</span>
       </div>
-      <div className="setting-item-control">
-        {headings.length > 0 ? (
-          <select
-            required
-            value={sourceWithHeading.heading || ''}
-            onChange={changeListener(x => ({
-              ...sourceWithHeading,
-              heading: x
-            }))}
-          >
-            <option value="" disabled hidden>
-              Choose a heading
-            </option>
-            {headings.map((o, idx) => (
-              <option key={idx} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <input
-            required
-            type="text"
-            value={sourceWithHeading.heading || ''}
-            onChange={changeListener(x => ({
-              ...sourceWithHeading,
-              heading: x
-            }))}
-          />
-        )}
-      </div>
-    </div>
-  );
+    );
+  }
+
+  if (headings.length > 0) {
+    return (
+      <select required value={value || ''} onChange={e => onChange(e.target.value)}>
+        <option value="" disabled hidden>
+          Choose a heading
+        </option>
+        {headings.map((o, idx) => (
+          <option key={idx} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return <TextInput value={value || ''} onChange={onChange} placeholder="Enter heading name" />;
 }

@@ -1,5 +1,4 @@
 import { getEventsFromICS } from './ics';
-import { DEFAULT_SETTINGS } from '../../types/settings'; // <-- IMPORT DEFAULTS
 
 describe('ics tests', () => {
   it('parses all day event', () => {
@@ -27,7 +26,7 @@ SUMMARY:EVENT TITLE
 TRANSP:TRANSPARENT
 END:VEVENT
 END:VCALENDAR`;
-    const events = getEventsFromICS(ics, DEFAULT_SETTINGS);
+    const events = getEventsFromICS(ics);
     expect(events).toMatchSnapshot(ics);
   });
 
@@ -135,10 +134,7 @@ TRANSP:TRANSPARENT
 END:VEVENT
 END:VCALENDAR
         `;
-    const events = getEventsFromICS(ics, {
-      ...DEFAULT_SETTINGS,
-      enableAdvancedCategorization: true
-    });
+    const events = getEventsFromICS(ics);
     expect(events).toMatchSnapshot(ics);
   });
 });

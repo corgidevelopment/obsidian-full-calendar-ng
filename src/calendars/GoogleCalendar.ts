@@ -23,6 +23,7 @@ import { makeAuthenticatedRequest } from './parsing/google/request';
 import { fromGoogleEvent, toGoogleEvent } from './parsing/google/parser';
 import { CalendarInfo, OFCEvent, EventLocation, validateEvent } from '../types';
 import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
+import { enhanceEvent } from './parsing/categoryParser';
 
 export default class GoogleCalendar extends EditableCalendar {
   private plugin: FullCalendarPlugin;
@@ -119,10 +120,11 @@ export default class GoogleCalendar extends EditableCalendar {
 
       return data.items
         .map((gEvent: any) => {
-          let parsedEvent = fromGoogleEvent(gEvent, this.settings);
-          if (!parsedEvent) {
+          let rawEvent = fromGoogleEvent(gEvent);
+          if (!rawEvent) {
             return null;
           }
+          let parsedEvent = enhanceEvent(rawEvent, this.settings);
 
           // START OF NEW LOGIC
           if (
@@ -197,10 +199,11 @@ export default class GoogleCalendar extends EditableCalendar {
     }
 
     // Parse the API response back into our internal format.
-    const finalEvent = fromGoogleEvent(createdGEvent, this.settings);
-    if (!finalEvent) {
+    const rawEvent = fromGoogleEvent(createdGEvent);
+    if (!rawEvent) {
       throw new Error("Could not parse the event returned by Google's API after creation.");
     }
+    const finalEvent = enhanceEvent(rawEvent, this.settings);
 
     // For a remote calendar, the location is null, but we return the authoritative event.
     return [finalEvent, null];
@@ -316,10 +319,11 @@ export default class GoogleCalendar extends EditableCalendar {
           body
         );
 
-        const finalEvent = fromGoogleEvent(newGEvent, this.settings);
-        if (!finalEvent) {
+        const rawEvent = fromGoogleEvent(newGEvent);
+        if (!rawEvent) {
           throw new Error('Could not parse Google API response after creating instance override.');
         }
+        const finalEvent = enhanceEvent(rawEvent, this.settings);
         return finalEvent;
       }
     }

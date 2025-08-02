@@ -22,6 +22,7 @@ import { convertEvent } from './utils/Timezone';
 import { getEventsFromICS } from './parsing/ics';
 import { CalendarInfo, OFCEvent } from '../types';
 import { FullCalendarSettings } from '../types/settings';
+import { enhanceEvent } from './parsing/categoryParser';
 
 const WEBCAL = 'webcal';
 
@@ -64,10 +65,12 @@ export default class ICSCalendar extends RemoteCalendar {
 
     const displayTimezone = this.settings.displayTimezone;
     if (!displayTimezone) {
-      return []; // Cannot process without a target timezone.
+      return [];
     }
 
-    return getEventsFromICS(this.response, this.settings).map(event => {
+    return getEventsFromICS(this.response).map(rawEvent => {
+      const event = enhanceEvent(rawEvent, this.settings);
+
       // For debugging specific events from your ICS feed.
       // if (event.title.includes('PDE II exam')) {
       //   console.log('--- STAGE 2: OFCEvent before conversion ---');

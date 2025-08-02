@@ -135,63 +135,40 @@ export function getInlineAttributes(s: string): Record<string, string | boolean>
 }
 
 export const getInlineEventFromLine = (
-  text: string,
-  globalAttrs: Partial<OFCEvent>,
-  settings: FullCalendarSettings
+  line: string,
+  globals: Partial<OFCEvent>
 ): OFCEvent | null => {
-  const attrs = getInlineAttributes(text);
-  const rawTitle = text.replace(listRegex, '').replace(fieldRegex, '');
+  const attributes = getInlineAttributes(line);
+  const rawTitle = line.replace(listRegex, '').replace(fieldRegex, '');
 
-  const hasInlineFields = Object.keys(attrs).length > 0;
+  const title = rawTitle;
 
-  if (!settings.enableAdvancedCategorization && !hasInlineFields) {
-    return null;
-  }
+  const event = {
+    title,
+    allDay: !attributes.startTime,
+    ...globals,
+    ...attributes
+  };
 
-  if (!rawTitle.trim() && !hasInlineFields) {
-    return null;
-  }
-
-  let eventData: any = {};
-  if (settings.enableAdvancedCategorization) {
-    const { category, subCategory, title } = parseTitle(rawTitle);
-    eventData.title = title.trim();
-    eventData.category = category ? category.trim() : undefined;
-    eventData.subCategory = subCategory ? subCategory.trim() : undefined;
-  } else {
-    eventData.title = rawTitle.trim();
-  }
-
-  const attrsForValidation = globalAttrs as Partial<{ date: string; [key: string]: any }>;
-  if (!attrsForValidation.date) {
-    attrsForValidation.date = '1970-01-01';
-  }
-
-  return validateEvent({
-    ...eventData,
-    completed: checkboxTodo(text),
-    ...attrsForValidation,
-    ...attrs
-  });
+  return validateEvent(event);
 };
 
 export function getAllInlineEventsFromFile(
-  fileText: string,
+  text: string,
   listItems: ListItemCache[],
-  fileGlobalAttrs: Partial<OFCEvent>,
-  settings: FullCalendarSettings
-): { lineNumber: number; event: OFCEvent }[] {
-  const lines = fileText.split('\n');
-  const listItemText: Line[] = listItems
-    .map(i => i.position.start.line)
-    .map(idx => ({ lineNumber: idx, text: lines[idx] }));
-
-  return listItemText
-    .map(l => ({
-      lineNumber: l.lineNumber,
-      event: getInlineEventFromLine(l.text, { ...fileGlobalAttrs, type: 'single' }, settings)
-    }))
-    .flatMap(({ event, lineNumber }) => (event ? [{ event, lineNumber }] : []));
+  globals: Partial<OFCEvent>
+): { event: OFCEvent; lineNumber: number }[] {
+  return listItems
+    .map(item => {
+      const lineNumber = item.position.start.line;
+      const line = text.split('\n')[lineNumber];
+      const event = getInlineEventFromLine(line, globals);
+      if (!event) {
+        return null;
+      }
+      return { event, lineNumber };
+    })
+    .flatMap(e => (e ? [e] : []));
 }
 
 export const modifyListItem = (

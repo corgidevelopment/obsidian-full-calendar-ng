@@ -1,30 +1,19 @@
 // src/ui/components/forms/UsernameInput.tsx
 
-import { CalendarInfo } from '../../../types';
-import { BasicProps, SourceWith } from './common';
+interface UsernameInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  readOnly?: boolean;
+}
 
-export function UsernameInput<T extends Partial<CalendarInfo>>({
-  source,
-  changeListener
-}: BasicProps<T>) {
-  let sourceWithUsername = source as SourceWith<T, { username: undefined }>;
+export function UsernameInput({ value, onChange, readOnly }: UsernameInputProps) {
   return (
-    <div className="setting-item">
-      <div className="setting-item-info">
-        <div className="setting-item-name">Username</div>
-        <div className="setting-item-description">Username for the account</div>
-      </div>
-      <div className="setting-item-control">
-        <input
-          required
-          type="text"
-          value={sourceWithUsername.username || ''}
-          onChange={changeListener(x => ({
-            ...sourceWithUsername,
-            username: x
-          }))}
-        />
-      </div>
-    </div>
+    <input
+      required
+      type="text"
+      value={value || ''}
+      onChange={e => onChange(e.target.value)}
+      readOnly={readOnly}
+    />
   );
 }

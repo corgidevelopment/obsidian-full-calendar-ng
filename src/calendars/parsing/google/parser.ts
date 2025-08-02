@@ -12,18 +12,16 @@
 
 import { DateTime } from 'luxon';
 import { OFCEvent } from '../../../types';
-import { FullCalendarSettings } from '../../../types/settings';
-import { parseTitle, constructTitle } from '../categoryParser';
+import { constructTitle } from '../categoryParser';
 import { rrulestr } from 'rrule';
 
 /**
  * Transforms a single event object from the Google Calendar API into the OFCEvent format.
  *
  * @param gEvent The raw event object from the Google API.
- * @param settings The current plugin settings, used to check for advanced categorization.
  * @returns An OFCEvent object, or null if the input is invalid.
  */
-export function fromGoogleEvent(gEvent: any, settings: FullCalendarSettings): OFCEvent | null {
+export function fromGoogleEvent(gEvent: any): OFCEvent | null {
   if (gEvent.status === 'cancelled') {
     // This is an exception marker for a deleted instance of a recurring event.
     // Its information is already incorporated into the master event's `exdates`.
@@ -43,14 +41,7 @@ export function fromGoogleEvent(gEvent: any, settings: FullCalendarSettings): OF
   let eventData: any = { uid, recurringEventId };
 
   // Title and Category Parsing
-  if (settings.enableAdvancedCategorization) {
-    const { category, subCategory, title } = parseTitle(gEvent.summary);
-    eventData.title = title;
-    eventData.category = category;
-    eventData.subCategory = subCategory;
-  } else {
-    eventData.title = gEvent.summary;
-  }
+  eventData.title = gEvent.summary;
 
   // All-Day vs. Timed Events
   if (gEvent.start.date) {

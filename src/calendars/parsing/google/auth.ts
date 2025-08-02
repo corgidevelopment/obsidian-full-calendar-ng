@@ -28,7 +28,7 @@ const MOBILE_REDIRECT_URI =
   'https://youfoundjk.github.io/plugin-full-calendar/google-auth-callback.html';
 const DESKTOP_REDIRECT_URI = 'http://127.0.0.1:42813/callback';
 
-const PUBLIC_CLIENT_ID = '783376961232-v90b17gr1mj1s2mnmdauvkp77u6htpke.apps.googleusercontent.com';
+const PUBLIC_CLIENT_ID = '172209881910-8tos48v1dl2s79c2ft5pbbja1fu0l3i0.apps.googleusercontent.com';
 
 // =================================================================================================
 // MODULE STATE
@@ -81,6 +81,10 @@ function startDesktopLogin(plugin: FullCalendarPlugin, authUrl: string): void {
         return;
       }
 
+      // --- vvv ADD THIS LOG vvv ---
+      console.log('[Full Calendar Google Auth] Received callback. Full request URL:', req.url);
+      // --- ^^^ END OF LOG ^^^ ---
+
       // Only process requests to the /callback path. Ignore others like /favicon.ico
       if (!req.url.startsWith('/callback')) {
         res.writeHead(204); // "No Content" response
@@ -88,9 +92,10 @@ function startDesktopLogin(plugin: FullCalendarPlugin, authUrl: string): void {
         return;
       }
 
-      // console.log('[Full Calendar Google Auth] Received callback. Full request URL:', req.url);
+      // --- vvv ADD THIS LOG vvv ---
       const queryParams = url.parse(req.url, true).query;
-      // console.log('[Full Calendar Google Auth] Parsed Query Parameters:', queryParams);
+      console.log('[Full Calendar Google Auth] Parsed Query Parameters:', queryParams);
+      // --- ^^^ END OF LOG ^^^ ---
 
       const { code, state } = url.parse(req.url, true).query;
 
@@ -195,15 +200,39 @@ export async function exchangeCodeForToken(
     body.append('client_secret', settings.googleClientSecret);
   }
 
+  // --- vvv ADD THIS LOGGING BLOCK vvv ---
+  const requestOptions = {
+    method: 'POST' as const,
+    url: TOKEN_URL,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+    throw: false // Keep this
+  };
+  console.log(
+    '[Full Calendar Google Auth] Making token exchange request with options:',
+    requestOptions
+  );
+  // --- ^^^ END OF LOGGING BLOCK ^^^ ---
+
+  console.log('[Full Calendar Google Auth] Preparing to exchange code for token.');
+  console.log('[Full Calendar Google Auth] Request URL:', TOKEN_URL);
+  console.log('[Full Calendar Google Auth] Request Body:', body.toString());
+
   try {
-    const response = await requestUrl({
-      method: 'POST',
-      url: TOKEN_URL,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString()
+    const response = await requestUrl(requestOptions); // MODIFIED: Use the logged options object
+
+    console.log('[Full Calendar Google Auth] Raw Token Exchange Response:', {
+      status: response.status,
+      headers: response.headers,
+      text: response.text,
+      json: response.json
     });
 
+    if (response.status >= 400) {
+      throw new Error(`Google API returned status ${response.status}: ${response.text}`);
+    }
     const data = response.json;
+
     if (!data.refresh_token) {
       throw new Error(
         "No refresh token received. If you are using a custom client, ensure it is configured for a 'Desktop app' and has not already been used to grant a refresh token."
@@ -219,7 +248,11 @@ export async function exchangeCodeForToken(
     new Notice('Successfully connected Google Account!');
   } catch (e) {
     new Notice('Failed to connect Google Account. Check the developer console for details.');
-    console.error(e);
+    if (e instanceof Error) {
+      console.error('Error during token exchange:', e.message);
+    } else {
+      console.error('An unknown error occurred during token exchange:', e);
+    }
   } finally {
     pkce = null;
   }

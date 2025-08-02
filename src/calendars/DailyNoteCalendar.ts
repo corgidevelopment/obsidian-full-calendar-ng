@@ -41,7 +41,7 @@ import { EventPathLocation } from '../core/EventStore';
 import { ObsidianInterface } from '../ObsidianAdapter';
 import { FullCalendarSettings } from '../types/settings';
 import { OFCEvent, EventLocation, CalendarInfo } from '../types';
-import { constructTitle, parseTitle } from './parsing/categoryParser';
+import { constructTitle, parseTitle, enhanceEvent } from './parsing/categoryParser';
 import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
 
 export default class DailyNoteCalendar extends EditableCalendar {
@@ -79,16 +79,16 @@ export default class DailyNoteCalendar extends EditableCalendar {
 
   async getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {
     const date = getDateFromFile(file as any, 'day')?.format('YYYY-MM-DD');
-    if (!date) return [];
     const cache = this.app.getMetadata(file);
     if (!cache) return [];
     const listItems = getListsUnderHeading(this.heading, cache);
     const inlineEvents = await this.app.process(file, text =>
-      getAllInlineEventsFromFile(text, listItems, { date }, this.settings)
+      getAllInlineEventsFromFile(text, listItems, { date })
     );
     const displayTimezone =
       this.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    return inlineEvents.map(({ event, lineNumber }) => {
+    return inlineEvents.map(({ event: rawEvent, lineNumber }) => {
+      const event = enhanceEvent(rawEvent, this.settings);
       let sourceTimezone: string;
 
       // If mode is 'local', the event's source is always the current system time.
@@ -129,7 +129,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
       const { file, lineNumber } = this.getConcreteLocation(location);
       const contents = await this.app.read(file);
       const line = contents.split('\n')[lineNumber];
-      const sourceEvent = getInlineEventFromLine(line, {}, this.settings);
+      const sourceEvent = getInlineEventFromLine(line, {}); // Updated call
       targetTimezone = sourceEvent?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     }
     if (displayTimezone !== targetTimezone && newEvent.type === 'single') {
@@ -280,12 +280,15 @@ export default class DailyNoteCalendar extends EditableCalendar {
         for (const item of listItems) {
           const lineNumber = item.position.start.line;
           const line = lines[lineNumber];
-
-          // For the "smart" check, we still need to parse to see if a category exists.
-          const existingEvent = getInlineEventFromLine(line, {}, this.settings);
+          const existingEvent = getInlineEventFromLine(line, {}); // Updated call
           if (!existingEvent) continue;
 
-          if (existingEvent.category && !force) {
+          const enhancedExistingEvent = enhanceEvent(existingEvent, {
+            ...this.settings,
+            enableAdvancedCategorization: true
+          });
+
+          if (enhancedExistingEvent.category && !force) {
             continue; // Smart mode: skip.
           }
 
@@ -362,9 +365,10 @@ export default class DailyNoteCalendar extends EditableCalendar {
         for (const item of listItems) {
           const lineNumber = item.position.start.line;
           const line = lines[lineNumber];
+          const eventWithCategory = getInlineEventFromLine(line, {}); // Updated call
+          if (!eventWithCategory) continue;
 
-          const event = getInlineEventFromLine(line, {}, removalSettings);
-
+          const event = enhanceEvent(eventWithCategory, removalSettings);
           if (!event?.category || !categoriesToRemove.has(event.category)) {
             continue;
           }
