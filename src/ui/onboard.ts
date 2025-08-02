@@ -10,10 +10,9 @@
  * @license See LICENSE.md
  */
 
-import { App } from 'obsidian';
+import { CalendarInfo } from '../types';
 import FullCalendarPlugin from '../main';
 import { addCalendarButton } from './settings/SettingsTab';
-import { CalendarInfo } from '../types';
 
 export function renderOnboarding(plugin: FullCalendarPlugin, el: HTMLElement) {
   const nocal = el.createDiv('full-calendar-onboarding-container');

@@ -5,7 +5,6 @@
  * @description
  * This service class orchestrates the process of adding or removing categories
  * from event titles across all configured editable calendars. It acts as a
-
  * single point of contact for the UI, abstracting away the specific
  * implementation details of how each calendar type (e.g., note-based vs.
  * daily-note-based) handles file modifications.
@@ -16,10 +15,9 @@
  */
 
 import { Notice } from 'obsidian';
-import { EditableCalendar, CategoryProvider } from '../calendars/EditableCalendar';
-import FullNoteCalendar from '../calendars/FullNoteCalendar';
 import FullCalendarPlugin from '../main';
 import { EventLocation, OFCEvent } from '../types';
+import { EditableCalendar, CategoryProvider } from '../calendars/EditableCalendar';
 
 export class CategorizationManager {
   private plugin: FullCalendarPlugin;

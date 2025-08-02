@@ -12,8 +12,9 @@
  * @license See LICENSE.md
  */
 
-import Color from 'color';
 import dav from 'dav';
+
+import Color from 'color';
 import * as transport from './transport';
 import { Authentication, CalDAVSource } from '../../../types';
 import { generateCalendarId } from '../../../types/calendar_settings';

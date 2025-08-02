@@ -1,6 +1,5 @@
 // src/ui/components/forms/ColorPicker.tsx
 
-import * as React from 'react';
 import { BasicProps } from './common';
 import { CalendarInfo } from '../../../types';
 

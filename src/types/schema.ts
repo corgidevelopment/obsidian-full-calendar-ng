@@ -12,8 +12,8 @@
  * @license See LICENSE.md
  */
 
+import { DateTime } from 'luxon';
 import { z, ZodError } from 'zod';
-import { DateTime, Duration } from 'luxon';
 
 const stripTime = (date: DateTime) => {
   // Strip time from luxon dateTime.

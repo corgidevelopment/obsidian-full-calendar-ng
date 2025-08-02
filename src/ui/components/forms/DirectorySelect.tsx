@@ -1,12 +1,9 @@
 // src/ui/components/forms/DirectorySelect.tsx
 
-import * as React from 'react';
 import { CalendarInfo } from '../../../types';
-import { ChangeListener, SourceWith } from './common';
+import { BasicProps, SourceWith } from './common';
 
-interface DirectorySelectProps<T extends Partial<CalendarInfo>> {
-  source: T;
-  changeListener: ChangeListener;
+interface DirectorySelectProps<T extends Partial<CalendarInfo>> extends BasicProps<T> {
   directories: string[];
 }
 

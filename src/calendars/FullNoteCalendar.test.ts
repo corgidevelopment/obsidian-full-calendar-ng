@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { TFile, normalizePath } from 'obsidian'; // Import normalizePath here
+import { TFile, normalizePath } from 'obsidian';
 
 jest.mock(
   'obsidian',

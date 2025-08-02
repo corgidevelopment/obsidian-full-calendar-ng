@@ -13,8 +13,8 @@
  */
 
 import { co } from 'co';
-import { Credentials, Request, transport } from 'dav';
 import { request as makeRequest } from 'obsidian';
+import { Credentials, Request, transport } from 'dav';
 
 export class RequestBridge {
   /**

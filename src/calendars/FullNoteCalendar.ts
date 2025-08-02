@@ -13,19 +13,21 @@
  * @license See LICENSE.md
  */
 
-import { TFile, TFolder, Notice, normalizePath } from 'obsidian';
 import { rrulestr } from 'rrule';
+import { DateTime } from 'luxon';
+
+import { TFile, TFolder, normalizePath } from 'obsidian';
+
+import { CalendarInfo } from '../types';
+import FullCalendarPlugin from '../main';
+import { convertEvent } from './utils/Timezone';
 import { EventPathLocation } from '../core/EventStore';
 import { ObsidianInterface } from '../ObsidianAdapter';
-import { OFCEvent, EventLocation, validateEvent } from '../types';
-import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
 import { FullCalendarSettings } from '../types/settings';
-import { CalendarInfo } from '../types';
-import { convertEvent } from '../core/Timezone';
+import { OFCEvent, EventLocation, validateEvent } from '../types';
+import { constructTitle, parseTitle } from './parsing/categoryParser';
+import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
 import { newFrontmatter, modifyFrontmatterString, replaceFrontmatter } from './frontmatter';
-import { constructTitle, parseTitle } from '../core/categoryParser';
-import FullCalendarPlugin from '../main';
-import { DateTime } from 'luxon';
 
 function sanitizeTitleForFilename(title: string): string {
   // Replace characters that are invalid in filenames on most OSes.

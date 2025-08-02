@@ -12,28 +12,28 @@
  * @license See LICENSE.md
  */
 
-import { Notice, Plugin, TFile, App } from 'obsidian';
-import { CalendarView, FULL_CALENDAR_SIDEBAR_VIEW_TYPE, FULL_CALENDAR_VIEW_TYPE } from './ui/view';
-import { renderCalendar } from './ui/calendar';
-import { toEventInput } from './core/interop';
 import {
   FullCalendarSettingTab,
   ensureCalendarIds,
   sanitizeInitialView
 } from './ui/settings/SettingsTab';
-import { FullCalendarSettings, DEFAULT_SETTINGS } from './types/settings';
 import { PLUGIN_SLUG } from './types';
 import EventCache from './core/EventCache';
+import { toEventInput } from './core/interop';
 import { ObsidianIO } from './ObsidianAdapter';
-import { launchCreateModal } from './ui/event_modal';
-import FullNoteCalendar from './calendars/FullNoteCalendar';
-import DailyNoteCalendar from './calendars/DailyNoteCalendar';
+import { renderCalendar } from './ui/calendar';
+import { manageTimezone } from './calendars/utils/Timezone';
 import ICSCalendar from './calendars/ICSCalendar';
+import { launchCreateModal } from './ui/event_modal';
+import { Notice, Plugin, TFile, App } from 'obsidian';
 import CalDAVCalendar from './calendars/CalDAVCalendar';
 import GoogleCalendar from './calendars/GoogleCalendar';
-import { manageTimezone } from './core/Timezone';
+import FullNoteCalendar from './calendars/FullNoteCalendar';
+import DailyNoteCalendar from './calendars/DailyNoteCalendar';
 import { CategorizationManager } from './core/CategorizationManager';
 import { exchangeCodeForToken } from './calendars/parsing/google/auth';
+import { FullCalendarSettings, DEFAULT_SETTINGS } from './types/settings';
+import { CalendarView, FULL_CALENDAR_SIDEBAR_VIEW_TYPE, FULL_CALENDAR_VIEW_TYPE } from './ui/view';
 
 export default class FullCalendarPlugin extends Plugin {
   settings: FullCalendarSettings = DEFAULT_SETTINGS;

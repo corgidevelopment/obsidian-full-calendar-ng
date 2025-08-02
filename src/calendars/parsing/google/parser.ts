@@ -13,7 +13,7 @@
 import { DateTime } from 'luxon';
 import { OFCEvent } from '../../../types';
 import { FullCalendarSettings } from '../../../types/settings';
-import { parseTitle, constructTitle } from '../../../core/categoryParser';
+import { parseTitle, constructTitle } from '../categoryParser';
 import { rrulestr } from 'rrule';
 
 /**

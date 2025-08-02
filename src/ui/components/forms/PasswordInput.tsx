@@ -1,6 +1,5 @@
 // src/ui/components/forms/PasswordInput.tsx
 
-import * as React from 'react';
 import { CalendarInfo } from '../../../types';
 import { BasicProps, SourceWith } from './common';
 

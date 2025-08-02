@@ -18,13 +18,18 @@ jest.mock(
 );
 // End of new code
 
-import { Calendar, EventResponse } from '../calendars/Calendar';
-import { EditableCalendar, EditableEventResponse } from '../calendars/EditableCalendar';
-import { DEFAULT_SETTINGS, FullCalendarSettings } from '../types/settings';
-import { CalendarInfo, EventLocation, OFCEvent } from '../types';
-import EventCache, { CacheEntry, CalendarInitializerMap, OFCEventSource } from './EventCache';
-import { EventPathLocation } from './EventStore';
 import FullCalendarPlugin from '../main';
+import { EventPathLocation } from './EventStore';
+import { Calendar, EventResponse } from '../calendars/Calendar';
+import { CalendarInfo, EventLocation, OFCEvent } from '../types';
+import { DEFAULT_SETTINGS, FullCalendarSettings } from '../types/settings';
+import { EditableCalendar, EditableEventResponse } from '../calendars/EditableCalendar';
+import EventCache, {
+  CacheEntry,
+  CalendarInitializerMap,
+  OFCEventSource,
+  CachedEvent // <-- ADD THIS
+} from './EventCache';
 
 jest.mock('../types/schema', () => ({
   validateEvent: (e: any) => e
@@ -84,7 +89,7 @@ const initializerMap = (
 });
 
 const extractEvents = (source: OFCEventSource): OFCEvent[] =>
-  source.events.map(({ event }) => event);
+  source.events.map(({ event }: CachedEvent) => event); // <-- ADD `: CachedEvent`
 
 async function assertFailed(func: () => Promise<any>, message: RegExp) {
   try {

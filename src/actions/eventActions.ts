@@ -14,8 +14,8 @@
  * @license See LICENSE.md
  */
 
-import { MarkdownView, TFile, Vault, Workspace, Notice } from 'obsidian';
 import EventCache from '../core/EventCache';
+import { MarkdownView, TFile, Vault, Workspace, Notice } from 'obsidian';
 
 /**
  * Open a file in a NEW PANE (new tab view) to a given event.

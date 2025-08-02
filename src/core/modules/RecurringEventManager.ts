@@ -13,12 +13,13 @@
  */
 
 import { Notice } from 'obsidian';
-import { toggleTask } from './tasks';
-import EventCache from './EventCache';
-import { StoredEvent } from './EventStore';
-import { OFCEvent } from '../types';
-import { DeleteRecurringModal } from '../ui/modals/DeleteRecurringModal';
-import GoogleCalendar from '../calendars/GoogleCalendar';
+
+import { OFCEvent } from '../../types';
+import EventCache from '../EventCache';
+import { StoredEvent } from '../EventStore';
+import { toggleTask } from '../../actions/tasks';
+import GoogleCalendar from '../../calendars/GoogleCalendar';
+import { DeleteRecurringModal } from '../../ui/modals/DeleteRecurringModal';
 
 /**
  * Manages all complex business logic related to recurring events.
@@ -107,6 +108,38 @@ export class RecurringEventManager {
   ): boolean {
     if (options?.force) {
       return false; // If forced, don't show the modal. Let the cache handle it.
+    }
+
+    // Check if we are "undoing" an override.
+    if (event.type === 'single' && event.recurringEventId) {
+      const { calendar } = this.cache.getInfoForEditableEvent(eventId);
+      const masterLocalIdentifier = event.recurringEventId;
+      const globalMasterIdentifier = `${calendar.id}::${masterLocalIdentifier}`;
+
+      // This doesn't need to be async because the session ID map should already be populated.
+      this.cache.getSessionId(globalMasterIdentifier).then(masterSessionId => {
+        if (masterSessionId) {
+          // Process the event silently and let the subsequent delete call flush the update queue.
+          this.cache.processEvent(
+            masterSessionId,
+            e => {
+              if (e.type !== 'recurring' && e.type !== 'rrule') return e;
+              const dateToUnskip = event.date;
+              return {
+                ...e,
+                skipDates: e.skipDates.filter((d: string) => d !== dateToUnskip)
+              };
+            },
+            { silent: true }
+          );
+        } else {
+          console.warn(
+            `Master recurring event with identifier "${globalMasterIdentifier}" not found. Deleting orphan override.`
+          );
+        }
+      });
+
+      return false; // Let the normal delete process continue for the override itself.
     }
 
     const isRecurringMaster = event.type === 'recurring' || event.type === 'rrule';
@@ -363,5 +396,39 @@ export class RecurringEventManager {
         event: updatedChildEvent
       });
     }
+  }
+
+  /**
+   * Intercepts an update request to see if a recurring master's identifier has changed.
+   * If so, it updates all child overrides to point to the new parent identifier.
+   * @returns `true` if the update was handled, `false` otherwise.
+   */
+  public async handleUpdate(
+    oldEvent: OFCEvent,
+    newEvent: OFCEvent,
+    calendarId: string
+  ): Promise<boolean> {
+    if (oldEvent.type !== 'recurring' && oldEvent.type !== 'rrule') {
+      return false; // Not a recurring master, do nothing.
+    }
+
+    const calendar = this.cache.calendars.get(calendarId);
+    if (!calendar) {
+      return false;
+    }
+
+    const oldLocalIdentifier = calendar.getLocalIdentifier(oldEvent);
+    const newLocalIdentifier = calendar.getLocalIdentifier(newEvent);
+
+    if (oldLocalIdentifier && newLocalIdentifier && oldLocalIdentifier !== newLocalIdentifier) {
+      await this.updateRecurringChildren(
+        calendarId,
+        oldLocalIdentifier,
+        newLocalIdentifier,
+        newEvent
+      );
+    }
+
+    return true; // Indicate that we've handled any necessary recurring logic.
   }
 }

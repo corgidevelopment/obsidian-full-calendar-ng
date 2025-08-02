@@ -15,13 +15,14 @@
  */
 
 import dav from 'dav';
-import * as transport from './parsing/caldav/transport';
-import { Authentication, CalendarInfo, OFCEvent } from '../types';
+
 import { EventResponse } from './Calendar';
 import RemoteCalendar from './RemoteCalendar';
-import { getEventsFromICS } from '../calendars/parsing/ics';
+import { convertEvent } from './utils/Timezone';
+import * as transport from './parsing/caldav/transport';
 import { FullCalendarSettings } from '../types/settings';
-import { convertEvent } from '../core/Timezone';
+import { getEventsFromICS } from '../calendars/parsing/ics';
+import { Authentication, CalendarInfo, OFCEvent } from '../types';
 
 export default class CalDAVCalendar extends RemoteCalendar {
   _name: string;

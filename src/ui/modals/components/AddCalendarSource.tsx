@@ -13,13 +13,14 @@
 
 import * as React from 'react';
 import { useState } from 'react';
-import { CalendarInfo } from '../../types';
-import { ColorPicker } from './forms/ColorPicker';
-import { DirectorySelect } from './forms/DirectorySelect';
-import { HeadingInput } from './forms/HeadingInput';
-import { PasswordInput } from './forms/PasswordInput';
-import { UrlInput } from './forms/UrlInput';
-import { UsernameInput } from './forms/UsernameInput';
+import { CalendarInfo } from '../../../types';
+import { UrlInput } from '../../components/forms/UrlInput';
+import { ChangeListener } from '../../components/forms/common';
+import { ColorPicker } from '../../components/forms/ColorPicker';
+import { HeadingInput } from '../../components/forms/HeadingInput';
+import { PasswordInput } from '../../components/forms/PasswordInput';
+import { UsernameInput } from '../../components/forms/UsernameInput';
+import { DirectorySelect } from '../../components/forms/DirectorySelect';
 
 interface AddCalendarProps {
   source: Partial<CalendarInfo>;
@@ -35,11 +36,8 @@ export const AddCalendarSource = ({ source, directories, headings, submit }: Add
   const [submitting, setSubmitingState] = useState(false);
   const [submitText, setSubmitText] = useState(isCalDAV ? 'Import Calendars' : 'Add Calendar');
 
-  function makeChangeListener<T extends Partial<CalendarInfo>>(
-    fromString: (val: string) => T
-  ): React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement> {
-    return e => setSettingState(fromString(e.target.value));
-  }
+  const makeChangeListener: ChangeListener = fromString => e =>
+    setSettingState({ ...setting, ...fromString(e.target.value) });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

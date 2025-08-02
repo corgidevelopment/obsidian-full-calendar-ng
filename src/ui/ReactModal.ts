@@ -13,6 +13,7 @@
 
 import * as React from 'react';
 import ReactDOM from 'react-dom/client';
+
 import { App, Modal } from 'obsidian';
 
 type RenderCallback = (close: () => void) => Promise<ReturnType<typeof React.createElement>>;

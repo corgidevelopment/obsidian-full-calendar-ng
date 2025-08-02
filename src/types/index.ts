@@ -15,7 +15,6 @@ import { CalendarInfo } from './calendar_settings';
 
 export type { OFCEvent } from './schema';
 export { validateEvent } from './schema';
-
 export type { CalendarInfo } from './calendar_settings';
 
 export const PLUGIN_SLUG = 'full-calendar-plugin';

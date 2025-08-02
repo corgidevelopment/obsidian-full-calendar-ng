@@ -16,19 +16,22 @@
  * @license See LICENSE.md
  */
 
-import './overrides.css';
-import { ItemView, Menu, Notice, WorkspaceLeaf } from 'obsidian';
 import { DateTime } from 'luxon';
+
+import { ItemView, Menu, Notice, WorkspaceLeaf } from 'obsidian';
+
 import { Calendar, EventSourceInput, EventInput } from '@fullcalendar/core';
-import { renderCalendar } from './calendar';
+
+import './overrides.css';
 import FullCalendarPlugin from '../main';
-import { PLUGIN_SLUG, CalendarInfo } from '../types';
-import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from '../core/interop';
+import { renderCalendar } from './calendar';
 import { renderOnboarding } from './onboard';
+import { PLUGIN_SLUG, CalendarInfo } from '../types';
+import { UpdateViewCallback, CachedEvent } from '../core/EventCache';
 import { openFileForEvent } from '../actions/eventActions';
+import { isTask, toggleTask, unmakeTask } from '../actions/tasks';
 import { launchCreateModal, launchEditModal } from './event_modal';
-import { isTask, toggleTask, unmakeTask } from '../core/tasks';
-import { UpdateViewCallback } from '../core/EventCache';
+import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from '../core/interop';
 
 export const FULL_CALENDAR_VIEW_TYPE = 'full-calendar-view';
 export const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = 'full-calendar-sidebar-view';
@@ -92,8 +95,8 @@ export class CalendarView extends ItemView {
       ({ events, editable, color, id }): EventSourceInput => ({
         id,
         events: events
-          .map(e => toEventInput(e.id, e.event, settings, id))
-          .filter((e): e is EventInput => !!e),
+          .map((e: CachedEvent) => toEventInput(e.id, e.event, settings, id)) // <-- FIX 1
+          .filter((e): e is EventInput => !!e), // <-- FIX 2
         editable,
         ...getCalendarColors(color)
       })
@@ -551,7 +554,8 @@ export class CalendarView extends ItemView {
           id,
           // Pass settings to toEventInput
           events: events.flatMap(
-            ({ id: eventId, event }) => toEventInput(eventId, event, settings, id) || []
+            ({ id: eventId, event }: CachedEvent) =>
+              toEventInput(eventId, event, settings, id) || []
           ),
           editable,
           ...getCalendarColors(color)

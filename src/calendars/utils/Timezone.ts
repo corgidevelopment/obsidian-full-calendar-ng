@@ -16,11 +16,9 @@
  */
 
 import { DateTime } from 'luxon';
-import { OFCEvent } from '../types';
 import { Notice } from 'obsidian';
-import FullCalendarPlugin from '../main';
-import { EventSchema } from '../types/schema';
-import { z } from 'zod';
+import { OFCEvent } from '../../types';
+import FullCalendarPlugin from '../../main';
 
 /**
  * Helper function to parse a time string (HH:mm or h:mm a) into a Luxon DateTime object.

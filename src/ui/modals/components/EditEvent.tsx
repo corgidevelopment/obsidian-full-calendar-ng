@@ -14,15 +14,8 @@
 import { DateTime } from 'luxon';
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { CalendarInfo, OFCEvent } from '../../types';
-import { AutocompleteInput } from './forms/AutocompleteInput';
-
-function makeChangeListener<T>(
-  setState: React.Dispatch<React.SetStateAction<T>>,
-  fromString: (val: string) => T
-): React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement> {
-  return e => setState(fromString(e.target.value));
-}
+import { CalendarInfo, OFCEvent } from '../../../types';
+import { AutocompleteInput } from '../../components/forms/AutocompleteInput';
 
 interface DayChoiceProps {
   code: string;

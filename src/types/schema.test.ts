@@ -8,9 +8,9 @@ import {
   parseEvent,
   serializeEvent
 } from './schema';
+import { z } from 'zod';
 import fc from 'fast-check';
 import { ZodFastCheck } from 'zod-fast-check';
-import { z } from 'zod';
 
 describe('schema parsing tests', () => {
   describe('single events', () => {

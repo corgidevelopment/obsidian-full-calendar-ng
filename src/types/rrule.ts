@@ -10,8 +10,8 @@
  * @license See LICENSE.md
  */
 
-import { DateTime } from 'luxon';
 import { RRule } from 'rrule';
+import { DateTime } from 'luxon';
 
 // Define a specific type for the data these functions operate on.
 // This avoids issues with the broader OFCEvent union type.

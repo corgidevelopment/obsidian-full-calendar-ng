@@ -16,8 +16,8 @@
  */
 
 import { Calendar } from './Calendar';
-import { FullCalendarSettings } from '../types/settings';
 import { CalendarInfo } from '../types';
+import { FullCalendarSettings } from '../types/settings';
 
 export default abstract class RemoteCalendar extends Calendar {
   constructor(info: CalendarInfo, settings: FullCalendarSettings) {

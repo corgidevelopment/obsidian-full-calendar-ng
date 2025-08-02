@@ -21,14 +21,15 @@ import {
   EventHoveringArg,
   EventSourceInput
 } from '@fullcalendar/core';
+import listPlugin from '@fullcalendar/list';
+import rrulePlugin from '@fullcalendar/rrule';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import rrulePlugin from '@fullcalendar/rrule';
-import listPlugin from '@fullcalendar/list';
+import iCalendarPlugin from '@fullcalendar/icalendar';
 import interactionPlugin from '@fullcalendar/interaction';
 import googleCalendarPlugin from '@fullcalendar/google-calendar';
-import iCalendarPlugin from '@fullcalendar/icalendar';
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
+
 import { Menu } from 'obsidian';
 
 // There is an issue with FullCalendar RRule support around Daylight Saving Time boundaries

@@ -11,8 +11,8 @@
  * @license See LICENSE.md
  */
 
-import { CalendarInfo, EventLocation, OFCEvent } from '../types';
 import { FullCalendarSettings } from '../types/settings';
+import { CalendarInfo, EventLocation, OFCEvent } from '../types';
 
 export const ID_SEPARATOR = '::';
 

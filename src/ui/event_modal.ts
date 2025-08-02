@@ -18,15 +18,16 @@
  * @license See LICENSE.md
  */
 
-import { Notice, Modal, App, Setting, ButtonComponent } from 'obsidian';
 import * as React from 'react';
-import { EditableCalendar } from '../calendars/EditableCalendar';
-import FullCalendarPlugin from '../main';
-import { OFCEvent } from '../types';
-import { openFileForEvent } from '../actions/eventActions';
-import { EditEvent } from './components/EditEvent';
 import ReactModal from './ReactModal';
+
+import { Notice } from 'obsidian';
+import { OFCEvent } from '../types';
+import FullCalendarPlugin from '../main';
 import { ConfirmModal } from './modals/ConfirmModal';
+import { EditEvent } from './modals/components/EditEvent';
+import { openFileForEvent } from '../actions/eventActions';
+import { EditableCalendar } from '../calendars/EditableCalendar';
 
 export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Partial<OFCEvent>) {
   const calendars = [...plugin.cache.calendars.entries()]

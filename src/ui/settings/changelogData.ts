@@ -18,25 +18,25 @@ export const changelogData: Version[] = [
     changes: [
       {
         type: 'new',
-        title: 'Advanced Categorization with Hierarchical Timeline View',
+        title: 'Advanced categorization with hierarchical timeline view',
         description:
-          'Events can now be organized by categories and sub-categories in a new Resource Timeline view. Expandable groups and aggregated parent rows make it easier to manage complex schedules.'
+          'Events can now be organized by categories and sub-categories in a new resource timeline view. Expandable groups and aggregated parent rows make it easier to manage complex schedules.'
       },
       {
         type: 'new',
-        title: 'License Update',
+        title: 'License update',
         description:
           'The plugin license has been updated to GPLv3 to comply with FullCalendar requirements.'
       },
       {
         type: 'improvement',
-        title: 'Cleaner UI and Initial View Options',
+        title: 'Cleaner UI and initial view options',
         description:
           'The event modal and settings UI have been polished with dropdown options and a new initial view setting that supports the timeline view.'
       },
       {
         type: 'improvement',
-        title: 'Smarter Event Titles and Filenames',
+        title: 'Smarter event titles and filenames',
         description:
           'Events now display clearer titles (e.g., "SubCategory - Event Name") while keeping filenames and internal data consistent.'
       }
@@ -48,31 +48,31 @@ export const changelogData: Version[] = [
     changes: [
       {
         type: 'new',
-        title: 'Monthly and Yearly Recurring Events',
+        title: 'Monthly and yearly recurring events',
         description:
           'You can now create events that repeat every month or every year — perfect for anniversaries, billing cycles, or annual planning.'
       },
       {
         type: 'new',
-        title: 'Repeats Dropdown in Event Modal',
+        title: 'Repeats dropdown in event modal',
         description:
-          'Replaced the old recurring checkbox with a dropdown menu for choosing None, Weekly, Monthly, or Yearly recurrence, with context-aware controls.'
+          'Replaced the old recurring checkbox with a dropdown menu for choosing none, weekly, monthly, or yearly recurrence, with context-aware controls.'
       },
       {
         type: 'improvement',
-        title: 'Descriptive Filenames for Recurring Notes',
+        title: 'Descriptive filenames for recurring notes',
         description:
           'Recurring events now generate clean, readable filenames like "(Every month on the 15th) My Event.md".'
       },
       {
         type: 'improvement',
-        title: 'Improved Timezone and All-Day Support',
+        title: 'Improved timezone and all-day support',
         description:
           'Timezone handling for recurring events has been refined, and all-day recurring events now display correctly.'
       },
       {
         type: 'fix',
-        title: 'Right-Click Toggle for Recurring Tasks',
+        title: 'Right-click toggle for recurring tasks',
         description:
           'Recurring tasks can now be marked complete via right-click, just like one-time tasks.'
       }
@@ -83,31 +83,31 @@ export const changelogData: Version[] = [
     changes: [
       {
         type: 'new',
-        title: 'Smarter Recurring Events and Tasks',
+        title: 'Smarter recurring events and tasks',
         description:
           'Recurring events can now be edited per-instance — drag, resize, or complete a task without affecting the whole series. Changes are reversible and tracked cleanly.'
       },
       {
         type: 'improvement',
-        title: 'Safe Deletion with Confirmation Options',
+        title: 'Safe deletion with confirmation options',
         description:
           'Deleting a recurring event now asks whether to remove just one instance, the entire series, or promote existing edits to standalone events.'
       },
       {
         type: 'improvement',
-        title: 'Better Task Behavior for Repeating Events',
+        title: 'Better task behavior for repeating events',
         description:
           'Recurring tasks now behave just like regular ones — you can check them off individually, and they show up correctly in the calendar.'
       },
       {
         type: 'fix',
-        title: 'Multiday Allday events fix by @yalikebaz',
+        title: 'Multiday allday events fix by @yalikebaz',
         description:
-          'Multiday Allday events made inclusive for local calenders. Thanks to @yalikebaz for the fix!'
+          'Multiday allday events made inclusive for local calenders. Thanks to @yalikebaz for the fix!'
       },
       {
         type: 'fix',
-        title: 'Performance and Architecture Improvements',
+        title: 'Performance and architecture improvements',
         description:
           'Refactored recurring event logic, improved performance on large calendars, and cleaned up the plugin architecture to prepare for future features.'
       }
@@ -118,14 +118,14 @@ export const changelogData: Version[] = [
     changes: [
       {
         type: 'new',
-        title: 'Insights Engine has smarter Dashboard with Personas',
+        title: 'Insights engine has smarter dashboard with personas',
         description:
-          'Adding persona (predefined rules like "Productivity", "Routine") to Categories in Insight Config Setting now cater to more powerful analysis.'
+          'Adding persona (predefined rules like "Productivity", "Routine") to categories in insight config setting now cater to more powerful analysis.'
       },
       {
         type: 'fix',
-        title: 'Insights Panel and Dashboard Bugfixes',
-        description: 'Multiple bugfixes and UI adjustments focused on the Insights panel.'
+        title: 'Insights panel and dashboard bugfixes',
+        description: 'Multiple bugfixes and UI adjustments focused on the insights panel.'
       }
     ]
   },
@@ -134,21 +134,21 @@ export const changelogData: Version[] = [
     changes: [
       {
         type: 'new',
-        title: 'Insights Engine in ChronoAnalyser',
+        title: 'Insights engine in ChronoAnalyser',
         description:
-          'New intelligent engine that an Analyse your calender for past events and give you cool insights.'
+          'New intelligent engine that can analyse your calender for past events and give you cool insights.'
       },
       {
         type: 'improvement',
         title: 'Redesigned ChronoAnalyser UI/UX',
         description:
-          'Chronoanalyser now much more elegant. Check it using the `Analysis` button in the Full-Calendar Window.'
+          'ChronoAnalyser now much more elegant. Check it using the `Analysis` button in the Full-Calendar window.'
       },
       {
         type: 'fix',
-        title: 'Multiple Bugfixes in ChronoAnalyser',
+        title: 'Multiple bugfixes in ChronoAnalyser',
         description:
-          'Make CHronoAnalyser more stable and reliable. Plotting and Insights now work more reliably.'
+          'Make ChronoAnalyser more stable and reliable. Plotting and insights now work more reliably.'
       }
     ]
   },
@@ -157,31 +157,31 @@ export const changelogData: Version[] = [
     changes: [
       {
         type: 'new',
-        title: 'Category Coloring Engine and Settings UI',
+        title: 'Category coloring engine and settings UI',
         description:
           "A new optional setting, 'Enable Category Coloring,' allows you to color events based on a category defined in the event's title (e.g., 'Work - Project Meeting'). This overrides the default calendar color for fine-grained visual organization."
       },
       {
         type: 'new',
-        title: 'Category-Aware Event Modal',
+        title: 'Category-aware event modal',
         description:
-          "The Edit/Create Event modal now features a dedicated 'Category' input field. It provides intelligent autocomplete suggestions based on all your previously used categories, making categorization fast and consistent."
+          "The edit/create event modal now features a dedicated 'Category' input field. It provides intelligent autocomplete suggestions based on all your previously used categories, making categorization fast and consistent."
       },
       {
         type: 'improvement',
-        title: 'Redesigned Event Modal UI/UX',
+        title: 'Redesigned event modal UI/UX',
         description:
-          'The Edit/Create Event modal has been completely redesigned with a polished two-column layout, logical grouping of fields, and a dedicated footer for actions, improving clarity and ergonomics.'
+          'The edit/create event modal has been completely redesigned with a polished two-column layout, logical grouping of fields, and a dedicated footer for actions, improving clarity and ergonomics.'
       },
       {
         type: 'improvement',
-        title: 'Color Palette Enhancements',
+        title: 'Color palette enhancements',
         description:
-          'Colors no longer defaults to black, but is now rotated from a carefully choosen Palette.'
+          'Colors no longer defaults to black, but is now rotated from a carefully choosen palette.'
       },
       {
         type: 'improvement',
-        title: '"Open Note" Workflow Enhancement',
+        title: '"Open note" workflow enhancement',
         description:
           "Clicking 'Open Note' in the modal now opens the note in a split view, improving calendar-note navigation."
       }
@@ -192,19 +192,19 @@ export const changelogData: Version[] = [
     changes: [
       {
         type: 'improvement',
-        title: 'Robust Timezone Support',
+        title: 'Robust timezone support',
         description:
           'Events from local and remote calendars are now fully timezone-aware, fixing bugs related to DST and travel.'
       },
       {
         type: 'new',
-        title: 'Strict Timezone Mode for Daily Notes',
+        title: 'Strict timezone mode for daily notes',
         description:
           'A new setting allows users to anchor daily note events to a specific timezone, just like regular notes.'
       },
       {
         type: 'fix',
-        title: 'Correctly Parse UTC Events from ICS Feeds',
+        title: 'Correctly parse UTC events from ICS feeds',
         description:
           'Fixed a critical bug where events specified in UTC from Google Calendar and other sources would appear at the wrong time.'
       }
@@ -215,9 +215,9 @@ export const changelogData: Version[] = [
     changes: [
       {
         type: 'new',
-        title: 'ChronoAnalyser Released',
+        title: 'ChronoAnalyser released',
         description:
-          'ChronoAnalyser can now analyse you time spending! Check the new `Analysis` button in the Full-Calender Window.'
+          'ChronoAnalyser can now analyse you time spending! Check the new `Analysis` button in the Full-Calendar window.'
       }
     ]
   },
@@ -226,7 +226,7 @@ export const changelogData: Version[] = [
     changes: [
       {
         type: 'new',
-        title: 'Initial Plugin Release',
+        title: 'Initial plugin release',
         description: 'Welcome to the first version of the enhanced Full Calendar!'
       }
     ]

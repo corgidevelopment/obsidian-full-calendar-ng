@@ -1,6 +1,7 @@
 import { TFile } from 'obsidian';
-import { Calendar } from '../calendars/Calendar';
+
 import EventStore from './EventStore';
+import { Calendar } from '../calendars/Calendar';
 import { EventLocation, OFCEvent } from '../types';
 
 const withCounter = <T>(f: (x: string) => T, label?: string) => {

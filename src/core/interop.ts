@@ -4,7 +4,7 @@
  *
  * @description
  * This module acts as a data-translation layer between the plugin's internal `OFCEvent` format and FullCalendar's `EventInput` format.
- * It ensures correct interoperability for displaying events and handling user interactions such as dragging and resizing.
+ * It ensures correct INTEROPerability for displaying events and handling user interactions such as dragging and resizing.
  * The conversion logic supports single, recurring, and rrule-based events, including timezone-aware processing and category coloring.
  *
  * @packageDocumentation
@@ -17,13 +17,14 @@
  * @license See LICENSE.md
  */
 
-import { EventApi, EventInput } from '@fullcalendar/core';
-import { OFCEvent } from '../types';
-
+import { rrulestr } from 'rrule';
 import { DateTime, Duration } from 'luxon';
-import { RRule, RRuleSet, rrulestr } from 'rrule';
-import { FullCalendarSettings } from '../types/settings';
+
+import { OFCEvent } from '../types';
 import { getCalendarColors } from '../ui/view';
+import { FullCalendarSettings } from '../types/settings';
+
+import { EventApi, EventInput } from '@fullcalendar/core';
 
 /**
  * Functions for converting between the types used by the FullCalendar view plugin and

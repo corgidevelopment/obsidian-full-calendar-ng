@@ -9,8 +9,6 @@
  * @license See LICENSE.md
  */
 
-import * as React from 'react';
-
 interface AutocompleteInputProps {
   value: string;
   onChange: (newValue: string) => void;

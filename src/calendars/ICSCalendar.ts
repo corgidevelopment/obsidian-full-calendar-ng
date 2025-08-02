@@ -15,12 +15,13 @@
  */
 
 import { request } from 'obsidian';
-import { CalendarInfo, OFCEvent } from '../types';
+
 import { EventResponse } from './Calendar';
-import { getEventsFromICS } from './parsing/ics';
 import RemoteCalendar from './RemoteCalendar';
+import { convertEvent } from './utils/Timezone';
+import { getEventsFromICS } from './parsing/ics';
+import { CalendarInfo, OFCEvent } from '../types';
 import { FullCalendarSettings } from '../types/settings';
-import { convertEvent } from '../core/Timezone';
 
 const WEBCAL = 'webcal';
 

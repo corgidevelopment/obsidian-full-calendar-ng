@@ -10,19 +10,19 @@
  * @license See LICENSE.md
  */
 
-import { CalendarInfo, OFCEvent } from '../types';
-import { EventResponse } from './Calendar';
-import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
-import { EventLocation } from '../types';
-import { EventPathLocation } from '../core/EventStore';
+import { DateTime } from 'luxon';
+
 import { TFile } from 'obsidian';
+
 import FullCalendarPlugin from '../main';
-import { convertEvent } from '../core/Timezone';
-import { validateEvent } from '../types';
+import { EventResponse } from './Calendar';
+import { convertEvent } from './utils/Timezone';
+import { EventPathLocation } from '../core/EventStore';
+import { FullCalendarSettings } from '../types/settings';
 import { makeAuthenticatedRequest } from './parsing/google/request';
 import { fromGoogleEvent, toGoogleEvent } from './parsing/google/parser';
-import { FullCalendarSettings } from '../types/settings';
-import { DateTime } from 'luxon';
+import { CalendarInfo, OFCEvent, EventLocation, validateEvent } from '../types';
+import { EditableCalendar, EditableEventResponse, CategoryProvider } from './EditableCalendar';
 
 export default class GoogleCalendar extends EditableCalendar {
   private plugin: FullCalendarPlugin;

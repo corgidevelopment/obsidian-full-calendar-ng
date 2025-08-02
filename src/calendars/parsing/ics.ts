@@ -12,12 +12,13 @@
  * @license See LICENSE.md
  */
 
-import ical from 'ical.js';
-import { OFCEvent, validateEvent } from '../../types';
 import { DateTime } from 'luxon';
 import { rrulestr } from 'rrule';
+
+import ical from 'ical.js';
+import { OFCEvent, validateEvent } from '../../types';
 import { FullCalendarSettings } from '../../types/settings';
-import { parseTitle } from '../../core/categoryParser';
+import { parseTitle } from './categoryParser';
 
 /**
  * Converts an ical.js Time object into a Luxon DateTime object.
