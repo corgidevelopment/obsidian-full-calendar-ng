@@ -20,7 +20,10 @@ import * as url from 'url';
 // =================================================================================================
 
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'; // Renamed for clarity
+const PROXY_TOKEN_URL = 'https://gcal-proxy-server.vercel.app/api/google/token';
+const PROXY_REFRESH_URL = 'https://gcal-proxy-server.vercel.app/api/google/refresh';
+
 const SCOPES =
   'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events';
 
@@ -28,7 +31,7 @@ const MOBILE_REDIRECT_URI =
   'https://youfoundjk.github.io/plugin-full-calendar/google-auth-callback.html';
 const DESKTOP_REDIRECT_URI = 'http://127.0.0.1:42813/callback';
 
-const PUBLIC_CLIENT_ID = '172209881910-8tos48v1dl2s79c2ft5pbbja1fu0l3i0.apps.googleusercontent.com';
+const PUBLIC_CLIENT_ID = '272284435724-ltjbog78np5lnbjhgecudaqhsfba9voi.apps.googleusercontent.com';
 
 // =================================================================================================
 // MODULE STATE
@@ -75,27 +78,10 @@ function startDesktopLogin(plugin: FullCalendarPlugin, authUrl: string): void {
   }
   server = http.createServer(async (req, res) => {
     try {
-      if (!req.url) {
-        // No URL, so we can't do anything. Just end the request.
-        res.end();
+      if (!req.url || !req.url.startsWith('/callback')) {
+        res.writeHead(204).end();
         return;
       }
-
-      // --- vvv ADD THIS LOG vvv ---
-      console.log('[Full Calendar Google Auth] Received callback. Full request URL:', req.url);
-      // --- ^^^ END OF LOG ^^^ ---
-
-      // Only process requests to the /callback path. Ignore others like /favicon.ico
-      if (!req.url.startsWith('/callback')) {
-        res.writeHead(204); // "No Content" response
-        res.end();
-        return;
-      }
-
-      // --- vvv ADD THIS LOG vvv ---
-      const queryParams = url.parse(req.url, true).query;
-      console.log('[Full Calendar Google Auth] Parsed Query Parameters:', queryParams);
-      // --- ^^^ END OF LOG ^^^ ---
 
       const { code, state } = url.parse(req.url, true).query;
 
@@ -187,48 +173,49 @@ export async function exchangeCodeForToken(
   const { settings } = plugin;
   const isMobile = Platform.isMobile;
   const redirectUri = isMobile ? MOBILE_REDIRECT_URI : DESKTOP_REDIRECT_URI;
+  const clientId = settings.useCustomGoogleClient ? settings.googleClientId : PUBLIC_CLIENT_ID;
 
-  const body = new URLSearchParams({
-    grant_type: 'authorization_code',
-    client_id: settings.useCustomGoogleClient ? settings.googleClientId : PUBLIC_CLIENT_ID,
-    code: code,
-    code_verifier: pkce.verifier,
-    redirect_uri: redirectUri
-  });
+  let tokenUrl: string;
+  let requestBody: string;
+  let requestHeaders: Record<string, string>;
 
   if (settings.useCustomGoogleClient) {
-    body.append('client_secret', settings.googleClientSecret);
+    // Legacy path: User provides their own credentials, talk to Google directly.
+    tokenUrl = GOOGLE_TOKEN_URL;
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: clientId,
+      code: code,
+      code_verifier: pkce.verifier,
+      redirect_uri: redirectUri,
+      client_secret: settings.googleClientSecret
+    });
+    requestBody = body.toString();
+    requestHeaders = { 'Content-Type': 'application/x-www-form-urlencoded' };
+  } else {
+    // New default path: Use the public client ID and the proxy server.
+    tokenUrl = PROXY_TOKEN_URL;
+    const body = {
+      client_id: clientId,
+      code: code,
+      code_verifier: pkce.verifier,
+      state: state
+    };
+    requestBody = JSON.stringify(body);
+    requestHeaders = { 'Content-Type': 'application/json' };
   }
 
-  // --- vvv ADD THIS LOGGING BLOCK vvv ---
-  const requestOptions = {
-    method: 'POST' as const,
-    url: TOKEN_URL,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-    throw: false // Keep this
-  };
-  console.log(
-    '[Full Calendar Google Auth] Making token exchange request with options:',
-    requestOptions
-  );
-  // --- ^^^ END OF LOGGING BLOCK ^^^ ---
-
-  console.log('[Full Calendar Google Auth] Preparing to exchange code for token.');
-  console.log('[Full Calendar Google Auth] Request URL:', TOKEN_URL);
-  console.log('[Full Calendar Google Auth] Request Body:', body.toString());
-
   try {
-    const response = await requestUrl(requestOptions); // MODIFIED: Use the logged options object
-
-    console.log('[Full Calendar Google Auth] Raw Token Exchange Response:', {
-      status: response.status,
-      headers: response.headers,
-      text: response.text,
-      json: response.json
+    const response = await requestUrl({
+      method: 'POST',
+      url: tokenUrl,
+      headers: requestHeaders,
+      body: requestBody,
+      throw: false
     });
 
     if (response.status >= 400) {
+      console.error('Token exchange failed:', response.text);
       throw new Error(`Google API returned status ${response.status}: ${response.text}`);
     }
     const data = response.json;
@@ -265,22 +252,40 @@ async function refreshAccessToken(plugin: FullCalendarPlugin): Promise<string | 
     return null;
   }
 
-  const body = new URLSearchParams({
-    grant_type: 'refresh_token',
-    client_id: settings.useCustomGoogleClient ? settings.googleClientId : PUBLIC_CLIENT_ID,
-    refresh_token: settings.googleAuth.refreshToken
-  });
+  const clientId = settings.useCustomGoogleClient ? settings.googleClientId : PUBLIC_CLIENT_ID;
+
+  let tokenUrl: string;
+  let requestBody: string;
+  let requestHeaders: Record<string, string>;
 
   if (settings.useCustomGoogleClient) {
-    body.append('client_secret', settings.googleClientSecret);
+    // Legacy path: User provides their own credentials, talk to Google directly.
+    tokenUrl = GOOGLE_TOKEN_URL;
+    const body = new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: clientId,
+      refresh_token: settings.googleAuth.refreshToken,
+      client_secret: settings.googleClientSecret
+    });
+    requestBody = body.toString();
+    requestHeaders = { 'Content-Type': 'application/x-www-form-urlencoded' };
+  } else {
+    // New default path: Use the public client ID and the proxy server.
+    tokenUrl = PROXY_REFRESH_URL;
+    const body = {
+      client_id: clientId,
+      refresh_token: settings.googleAuth.refreshToken
+    };
+    requestBody = JSON.stringify(body);
+    requestHeaders = { 'Content-Type': 'application/json' };
   }
 
   try {
     const response = await requestUrl({
       method: 'POST',
-      url: TOKEN_URL,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString()
+      url: tokenUrl,
+      headers: requestHeaders,
+      body: requestBody
     });
 
     const data = response.json;

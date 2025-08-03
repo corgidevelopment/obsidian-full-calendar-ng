@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS } from '../types/settings';
-import { getInlineEventFromLine } from './parsing/dailynote/parser';
+import { getInlineEventFromLine } from './parsing/dailynote/parser_dailyN';
 import { enhanceEvent } from './parsing/categoryParser';
 import { OFCEvent } from '../types';
 
@@ -22,7 +22,7 @@ describe('DailyNoteCalendar', () => {
       const line = '  - [ ]   Work   -   Deploy to production  [startTime:: 10:00]';
       const result = getInlineEventFromLine(line, MOCK_GLOBALS);
       expect(result).not.toBeNull();
-      expect(result?.title).toBe('Work   -   Deploy to production');
+      expect(result?.title).toBe('Work - Deploy to production');
     });
   });
 

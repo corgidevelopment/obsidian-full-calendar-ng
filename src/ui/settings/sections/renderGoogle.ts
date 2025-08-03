@@ -18,7 +18,20 @@ export function renderGoogleSettings(
   new Setting(containerEl)
     .setName('Use custom Google Cloud credentials')
     .setDesc(
-      'Use your own Google Cloud project for authentication. Recommended for privacy and avoiding rate limits. Requires a plugin restart after changing.'
+      (() => {
+        const fragment = document.createDocumentFragment();
+        fragment.appendText(
+          'Use your own Google Cloud project for authentication for privacy and avoiding rate limits. '
+        );
+        fragment.createEl('a', {
+          text: 'Check here ',
+          href: 'https://youfoundjk.github.io/plugin-full-calendar/calendars/gcal.html'
+        });
+        fragment.appendText(
+          "on how to set it up. NOTE: Enable it as it won't work otherwise (Google has to verify the app before they allow it)."
+        );
+        return fragment;
+      })()
     )
     .addToggle(toggle => {
       toggle.setValue(plugin.settings.useCustomGoogleClient).onChange(async value => {

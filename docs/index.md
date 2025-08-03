@@ -11,7 +11,9 @@ This documentation site will guide you through setup and advanced features. If s
 ---
 
 **See what's new:** [What's New](whats_new.md)  
+
 **Full version history:** [Changelog](changelog.md)
+
 **For advanced users:** [Data Integrity Notes](advanced/data_integrity.md)
 
 [![Support me on Ko-Fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/youfoundjk)

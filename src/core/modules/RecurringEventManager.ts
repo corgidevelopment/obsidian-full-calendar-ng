@@ -101,45 +101,47 @@ export class RecurringEventManager {
    * If so, it opens a modal to ask the user how to proceed.
    * @returns `true` if the deletion was handled (modal opened), `false` otherwise.
    */
-  public handleDelete(
+  public async handleDelete(
     eventId: string,
     event: OFCEvent,
     options?: { force?: boolean; instanceDate?: string }
-  ): boolean {
-    if (options?.force) {
-      return false; // If forced, don't show the modal. Let the cache handle it.
-    }
-
-    // Check if we are "undoing" an override.
+  ): Promise<boolean> {
+    // Check if we are "undoing" an override. This is now the full operation.
     if (event.type === 'single' && event.recurringEventId) {
       const { calendar } = this.cache.getInfoForEditableEvent(eventId);
       const masterLocalIdentifier = event.recurringEventId;
       const globalMasterIdentifier = `${calendar.id}::${masterLocalIdentifier}`;
+      const masterSessionId = await this.cache.getSessionId(globalMasterIdentifier);
 
-      // This doesn't need to be async because the session ID map should already be populated.
-      this.cache.getSessionId(globalMasterIdentifier).then(masterSessionId => {
-        if (masterSessionId) {
-          // Process the event silently and let the subsequent delete call flush the update queue.
-          this.cache.processEvent(
-            masterSessionId,
-            e => {
-              if (e.type !== 'recurring' && e.type !== 'rrule') return e;
-              const dateToUnskip = event.date;
-              return {
-                ...e,
-                skipDates: e.skipDates.filter((d: string) => d !== dateToUnskip)
-              };
-            },
-            { silent: true }
-          );
-        } else {
-          console.warn(
-            `Master recurring event with identifier "${globalMasterIdentifier}" not found. Deleting orphan override.`
-          );
-        }
-      });
+      if (masterSessionId) {
+        // Queue an update to the parent event to remove the skipDate.
+        await this.cache.processEvent(
+          masterSessionId,
+          e => {
+            if (e.type !== 'recurring' && e.type !== 'rrule') return e;
+            const dateToUnskip = event.date;
+            return {
+              ...e,
+              skipDates: e.skipDates.filter((d: string) => d !== dateToUnskip)
+            };
+          },
+          { silent: true }
+        );
+      } else {
+        console.warn(
+          `Master recurring event with identifier "${globalMasterIdentifier}" not found. Deleting orphan override.`
+        );
+      }
 
-      return false; // Let the normal delete process continue for the override itself.
+      // Queue the deletion of the override event itself.
+      // `force: true` is critical to prevent an infinite loop.
+      await this.cache.deleteEvent(eventId, { silent: true, force: true });
+
+      // Flush both updates to the UI atomically.
+      this.cache.flushUpdateQueue([], []);
+
+      // Return true to signify that the deletion has been fully handled.
+      return true;
     }
 
     const isRecurringMaster = event.type === 'recurring' || event.type === 'rrule';
@@ -159,16 +161,29 @@ export class RecurringEventManager {
         () => this.deleteAllRecurring(eventId),
         options?.instanceDate
           ? async () => {
-              // This GENERIC logic now correctly triggers the "modifyEvent" flow for ALL calendar types.
-              // The calendar-specific implementation (in GoogleCalendar.ts) will handle the rest.
-              await this.cache.processEvent(eventId, e => {
+              // This GENERIC logic now correctly triggers the "modifyEvent" flow.
+              const updated = await this.cache.processEvent(eventId, e => {
                 if (e.type !== 'recurring' && e.type !== 'rrule') return e;
                 const skipDates = e.skipDates?.includes(options.instanceDate!)
                   ? e.skipDates
                   : [...(e.skipDates || []), options.instanceDate!];
                 return { ...e, skipDates };
               });
-              this.cache.flushUpdateQueue([], []);
+
+              if (updated) {
+                // Forcing a full calendar source re-render is necessary for recurring
+                // events on "dirty" calendars, as a simple event replacement in the
+                // view won't trigger a re-computation of the recurrence.
+                const details = this.cache.store.getEventDetails(eventId);
+                if (details) {
+                  const calendarSource = this.cache
+                    .getAllEvents()
+                    .find(s => s.id === details.calendarId);
+                  if (calendarSource) {
+                    this.cache.updateCalendar(calendarSource);
+                  }
+                }
+              }
             }
           : undefined,
         options?.instanceDate,
@@ -233,17 +248,26 @@ export class RecurringEventManager {
 
     // Perform all data operations silently. The caller is responsible for flushing the queue.
     await this.cache.addEvent(calendar.id, finalOverrideEvent, { silent: true });
-    await this.cache.processEvent(
-      masterEventId,
-      e => {
-        if (e.type !== 'recurring' && e.type !== 'rrule') return e;
-        const skipDates = e.skipDates.includes(instanceDateToSkip)
-          ? e.skipDates
-          : [...e.skipDates, instanceDateToSkip];
-        return { ...e, skipDates };
-      },
-      { silent: true }
-    );
+
+    // We are now calling updateEventWithId directly with the silent option.
+    // This bypasses the isDirty check inside processEvent/updateEventWithId and ensures
+    // the change to the master event is added to the queue.
+    const masterEventToUpdate = this.cache.getEventById(masterEventId);
+    if (!masterEventToUpdate) {
+      throw new Error('Could not find master event to update.');
+    }
+    if (masterEventToUpdate.type !== 'recurring' && masterEventToUpdate.type !== 'rrule') {
+      return; // Should not happen, but good to be safe.
+    }
+
+    const newMasterEvent: OFCEvent = {
+      ...masterEventToUpdate,
+      skipDates: masterEventToUpdate.skipDates.includes(instanceDateToSkip)
+        ? masterEventToUpdate.skipDates
+        : [...masterEventToUpdate.skipDates, instanceDateToSkip]
+    };
+
+    await this.cache.updateEventWithId(masterEventId, newMasterEvent, { silent: true });
   }
 
   /**
@@ -262,11 +286,6 @@ export class RecurringEventManager {
     if (newEventData.type !== 'single') {
       throw new Error('Cannot create a recurring override from a non-single event.');
     }
-    const { event: masterEventForDebug } = this.cache.getInfoForEditableEvent(masterEventId);
-    console.log('[DEBUG] modifyRecurringInstance:', {
-      masterEventUID: masterEventForDebug.uid,
-      newEventData: JSON.stringify(newEventData, null, 2)
-    });
 
     // Check calendar type and delegate
     const { calendar, event: masterEvent } = this.cache.getInfoForEditableEvent(masterEventId);
@@ -296,6 +315,8 @@ export class RecurringEventManager {
     }
 
     await this._createRecurringOverride(masterEventId, instanceDate, newEventData);
+
+    this.cache.flushUpdateQueue([], []);
   }
 
   /**

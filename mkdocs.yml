@@ -42,6 +42,7 @@ nav:
           - Daily Note Calendar: calendars/dailynote.md
           - Remote (ICS): calendars/ics.md
           - Remote (CalDAV): calendars/caldav.md
+          - Remote (Google Calender): calendars/gcal.md
     - Events & Features:
           - Event Management: events/manage.md
           - Recurring Events: events/recurring.md

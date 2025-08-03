@@ -241,7 +241,7 @@ export default class FullNoteCalendar extends EditableCalendar {
     newEvent: OFCEvent,
     location: EventPathLocation | null,
     updateCacheWithLocation: (loc: EventLocation) => void
-  ): Promise<void> {
+  ): Promise<{ isDirty: boolean }> {
     if (!location) {
       throw new Error('FullNoteCalendar.modifyEvent requires a file location.');
     }
@@ -285,7 +285,7 @@ export default class FullNoteCalendar extends EditableCalendar {
     }
     await this.app.rewrite(file, page => modifyFrontmatterString(page, eventWithFullTitle));
 
-    return;
+    return { isDirty: true };
   }
 
   async move(

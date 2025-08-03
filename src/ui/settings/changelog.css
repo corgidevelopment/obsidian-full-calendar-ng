@@ -121,7 +121,7 @@
 .full-calendar-whats-new-version {
     font-size: var(--font-ui-small);
     color: var(--text-muted);
-    margin-top: -1.2em;
+    margin-top: -1.0em;
     margin-bottom: var(--size-4-4);
 }
 

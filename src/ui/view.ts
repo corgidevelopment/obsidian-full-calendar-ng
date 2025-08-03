@@ -316,6 +316,7 @@ export class CalendarView extends ItemView {
             }
 
             const modifiedEvent = fromEventApi(newEvent, newResource);
+
             await this.plugin.cache.modifyRecurringInstance(
               oldEvent.id,
               instanceDate,

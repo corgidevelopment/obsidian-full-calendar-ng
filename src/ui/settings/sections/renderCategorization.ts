@@ -17,6 +17,17 @@ export function renderCategorizationSettings(
   rerender: () => void
 ): void {
   new Setting(containerEl).setName('Advanced categorization and Timeline').setHeading();
+  const fragment = document.createDocumentFragment();
+  fragment.appendText('Learn more ');
+  fragment.createEl('a', {
+    text: 'here',
+    href: 'https://youfoundjk.github.io/plugin-full-calendar/events/categories.html'
+  });
+  fragment.appendText('.');
+  containerEl.createEl('p', {
+    text: fragment,
+    cls: 'full-calendar-whats-new-version'
+  });
 
   new Setting(containerEl)
     .setName('Enable advanced categorization (Title-based)')

@@ -83,13 +83,14 @@ export abstract class EditableCalendar extends Calendar {
    * @param location - The current location of the event. Can be null for remote events.
    * @param updateCacheWithLocation - A critical callback that MUST be called by the
    *        implementation to update the in-memory cache.
+   * @returns A promise that resolves with an object indicating if a file-based update (`isDirty: true`) is expected to follow.
    */
   abstract modifyEvent(
     oldEvent: OFCEvent,
     newEvent: OFCEvent,
     location: EventPathLocation | null,
     updateCacheWithLocation: (loc: EventLocation | null) => void
-  ): Promise<void>;
+  ): Promise<{ isDirty: boolean }>;
 
   /**
    * Optional: Returns a list of category names that are derived from this

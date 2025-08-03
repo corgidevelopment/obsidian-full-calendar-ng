@@ -33,7 +33,7 @@ import {
   addToHeading,
   listRegex,
   fieldRegex
-} from './parsing/dailynote/parser';
+} from './parsing/dailynote/parser_dailyN';
 import FullCalendarPlugin from '../main';
 import { EventResponse } from './Calendar';
 import { convertEvent } from './utils/Timezone';
@@ -112,7 +112,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
     newEvent: OFCEvent,
     location: EventPathLocation | null,
     updateCacheWithLocation: (loc: EventLocation) => void
-  ): Promise<void> {
+  ): Promise<{ isDirty: boolean }> {
     if (!location) {
       throw new Error('DailyNoteCalendar.modifyEvent requires a file location.');
     }
@@ -143,7 +143,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
     const oldDate = getDateFromFile(file as any, 'day')?.format('YYYY-MM-DD');
     if (!oldDate) throw new Error(`Could not get date from file at path ${file.path}`);
 
-    if (eventToWrite.date !== oldDate) {
+    if (newEvent.date !== oldDate) {
       // ... Logic to move event to a new file
       const m = moment(eventToWrite.date);
       let newFile = getDailyNote(m, getAllDailyNotes()) as TFile;
@@ -178,6 +178,8 @@ export default class DailyNoteCalendar extends EditableCalendar {
         return lines.join('\n');
       });
     }
+
+    return { isDirty: true };
   }
 
   // RESTORED getEvents

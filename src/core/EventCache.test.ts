@@ -323,7 +323,7 @@ describe('editable calendars', () => {
 
       const event = mockEvent();
       const loc = mockLocation();
-      calendar.createEvent.mockReturnValueOnce(new Promise(resolve => resolve(loc)));
+      calendar.createEvent.mockReturnValueOnce(new Promise(resolve => resolve([event, loc])));
       expect(await cache.addEvent(getId('test'), event)).toBeTruthy();
       expect(calendar.createEvent.mock.calls.length).toBe(1);
       expect(calendar.createEvent.mock.calls[0]).toEqual([event]);
@@ -345,7 +345,7 @@ describe('editable calendars', () => {
 
       const event2 = mockEvent();
       const loc = { file: event[1].file, lineNumber: 102 };
-      calendar.createEvent.mockReturnValueOnce(new Promise(resolve => resolve(loc)));
+      calendar.createEvent.mockReturnValueOnce(new Promise(resolve => resolve([event2, loc])));
       expect(await cache.addEvent(getId('test'), event2)).toBeTruthy();
       expect(calendar.createEvent.mock.calls.length).toBe(1);
       expect(calendar.createEvent.mock.calls[0]).toEqual([event2]);
@@ -367,7 +367,7 @@ describe('editable calendars', () => {
       const loc = mockLocation();
 
       const calendar = getCalendar(cache, 'test');
-      calendar.createEvent.mockReturnValueOnce(new Promise(resolve => resolve(loc)));
+      calendar.createEvent.mockReturnValueOnce(new Promise(resolve => resolve([event2, loc])));
       expect(await cache.addEvent(getId('test'), event2)).toBeTruthy();
       expect(calendar.createEvent.mock.calls.length).toBe(1);
       expect(calendar.createEvent.mock.calls[0]).toEqual([event2]);
@@ -387,10 +387,11 @@ describe('editable calendars', () => {
 
       const calendar = getCalendar(cache, 'test');
 
+      const mockAndResolve = () => new Promise(resolve => resolve([mockEvent(), mockLocation()]));
       calendar.createEvent
-        .mockReturnValueOnce(new Promise(resolve => resolve(mockLocation())))
-        .mockReturnValueOnce(new Promise(resolve => resolve(mockLocation())))
-        .mockReturnValueOnce(new Promise(resolve => resolve(mockLocation())));
+        .mockReturnValueOnce(mockAndResolve())
+        .mockReturnValueOnce(mockAndResolve())
+        .mockReturnValueOnce(mockAndResolve());
 
       expect(await cache.addEvent(getId('test'), mockEvent())).toBeTruthy();
       expect(await cache.addEvent(getId('test'), mockEvent())).toBeTruthy();
@@ -430,7 +431,7 @@ describe('editable calendars', () => {
 
       const calendar = getCalendar(cache, 'test');
       expect(calendar.deleteEvent.mock.calls.length).toBe(1);
-      expect(calendar.deleteEvent.mock.calls[0]).toEqual([pathResult(event[1])]);
+      expect(calendar.deleteEvent.mock.calls[0]).toEqual([event[0], pathResult(event[1])]);
 
       assertCacheContentCounts(cache, {
         calendars: 0,
@@ -479,60 +480,55 @@ describe('editable calendars', () => {
         [
           { file: oldEvent[1].file, numEvents: 0 },
           { file: newLoc.file, numEvents: 1 }
-        ]
+        ],
+        1 // The old file is gone, so the total count is now 1.
       ],
       [
         'calendar keeps event in the same file, but moves it around',
         { file: oldEvent[1].file, lineNumber: newLoc.lineNumber },
-        [
-          { file: oldEvent[1].file, numEvents: 1 },
-          { file: newLoc.file, numEvents: 0 }
-        ]
+        [{ file: oldEvent[1].file, numEvents: 1 }],
+        1 // The file count never changes.
       ]
-    ])('%p', async (_, newLocation, fileDetails) => {
+    ])('%p', async (_, newLocation, fileDetails, expectedFileCount) => {
       const cache = makeCache([oldEvent]);
-
       await cache.populate();
 
-      assertCacheContentCounts(cache, {
-        calendars: 1,
-        files: 1,
-        events: 1
-      });
+      assertCacheContentCounts(cache, { calendars: 1, files: 1, events: 1 });
 
       const sources = cache.getAllEvents();
-      expect(sources.length).toBe(1);
       const id = sources[0].events[0].id;
 
       const calendar = getCalendar(cache, 'test');
-      calendar.modifyEvent.mockReturnValueOnce(new Promise(resolve => resolve(newLocation)));
-
-      expect(cache._storeForTest.getEventsInFile(oldEvent[1].file).length).toBe(1);
+      calendar.modifyEvent.mockImplementation(async (old, n, loc, updateCallback) => {
+        updateCallback(newLocation);
+        return { isDirty: false }; // isDirty: false ensures immediate UI update for testing
+      });
 
       await cache.updateEventWithId(id, newEvent);
 
       expect(calendar.modifyEvent.mock.calls.length).toBe(1);
-      const [loc, evt, _callback] = calendar.modifyEvent.mock.calls[0];
-      _callback(newLocation);
-      expect([loc, evt]).toEqual([pathResult(oldEvent[1]), newEvent]);
+      const [oldEventArg, newEventArg, oldLocationArg] = calendar.modifyEvent.mock.calls[0];
+      expect(oldEventArg).toEqual(oldEvent[0]);
+      expect(newEventArg).toEqual(newEvent);
+      expect(oldLocationArg).toEqual(pathResult(oldEvent[1]));
 
       assertCacheContentCounts(cache, {
         calendars: 1,
-        files: 1,
+        files: expectedFileCount,
         events: 1
       });
 
       expect(cache._storeForTest.getEventById(id)).toEqual(newEvent);
 
       for (const { file, numEvents } of fileDetails) {
-        expect(cache._storeForTest.getEventsInFile(file).length).toBe(numEvents);
+        const eventsInFile = cache._storeForTest.getEventsInFile({ path: file.path });
+        expect(eventsInFile).toHaveLength(numEvents);
       }
     });
 
     it('modify non-existing event', async () => {
       const event = mockEventResponse();
       const cache = makeCache([event]);
-
       await cache.populate();
 
       assertCacheContentCounts(cache, {

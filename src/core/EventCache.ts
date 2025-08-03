@@ -65,7 +65,7 @@ export type UpdateViewCallback = (
         toRemove: string[];
         toAdd: CacheEntry[];
       }
-    | { type: 'calendar'; calendar: OFCEventSource }
+    | { type: 'calendar'; calendar: OFCEventSource } //  <-- ADD THIS LINE
     | { type: 'resync' }
 ) => void;
 
@@ -313,17 +313,28 @@ export default class EventCache {
     this.identifierManager.addMapping(finalEvent, calendar.id, id);
 
     const cacheEntry = { event: finalEvent, id, calendarId: calendar.id };
-    this.flushUpdateQueue([], [cacheEntry]);
+    // --- vvv THIS IS THE FIX vvv ---
+    if (options?.silent) {
+      this.isBulkUpdating = true;
+      this.updateQueue.toAdd.set(id, cacheEntry);
+    } else {
+      this.flushUpdateQueue([], [cacheEntry]);
+    }
+    // --- ^^^ END OF FIX ^^^ ---
     return true;
   }
 
   async deleteEvent(
     eventId: string,
-    options?: { silent?: boolean; force?: boolean; instanceDate?: string }
+    options?: { silent?: boolean; instanceDate?: string; force?: boolean }
   ): Promise<void> {
     const { calendar, location, event } = this.getInfoForEditableEvent(eventId);
 
-    if (this.recurringEventManager.handleDelete(eventId, event, options)) {
+    // DELEGATE ALL COMPLEXITY. If the manager handles it, our job is done.
+    if (
+      !options?.force &&
+      (await this.recurringEventManager.handleDelete(eventId, event, options))
+    ) {
       return; // The recurring manager opened a modal and will handle the rest.
     }
 
@@ -398,7 +409,7 @@ export default class EventCache {
     // Remove old identifier
     this.identifierManager.removeMapping(oldEvent, calendar.id);
 
-    await calendar.modifyEvent(oldEvent, newEvent, oldLocation, newLocation => {
+    const { isDirty } = await calendar.modifyEvent(oldEvent, newEvent, oldLocation, newLocation => {
       this.store.delete(eventId);
       this.store.add({
         calendar,
@@ -411,12 +422,14 @@ export default class EventCache {
     // Add new identifier
     this.identifierManager.addMapping(newEvent, calendar.id, eventId);
 
+    // If the calendar is not "dirty", it means no file watcher event is coming.
     const cacheEntry = { id: eventId, calendarId: calendar.id, event: newEvent };
+
     if (options?.silent) {
       this.isBulkUpdating = true;
       this.updateQueue.toRemove.add(eventId);
       this.updateQueue.toAdd.set(eventId, cacheEntry);
-    } else {
+    } else if (!isDirty) {
       this.flushUpdateQueue([eventId], [cacheEntry]);
     }
     return true;
@@ -587,6 +600,7 @@ export default class EventCache {
     this.updateQueue = { toRemove: new Set(), toAdd: new Map() };
   }
 
+  // VIEW SYNCHRONIZATION
   public updateCalendar(calendar: OFCEventSource) {
     for (const callback of this.updateViewCallbacks) {
       callback({ type: 'calendar', calendar });
