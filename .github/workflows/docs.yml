@@ -27,8 +27,11 @@ jobs:
       - name: Build MkDocs site
         run: mkdocs build
 
-      - name: Copy static files
+      - name: Copy static files 1
         run: cp docs/google-auth-callback.html site/
+      
+      - name: Copy static files 2
+        run: cp docs/google5612e1450dc0c1ac.html site/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

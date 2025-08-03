@@ -4,6 +4,31 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
+## Version 0.11.7
+
+* **New:** Full Google Calendar Integration with Two‑Way Sync
+  *Connect your Google account to create, modify, and delete events (including recurring events) directly in Obsidian. Includes OAuth 2.0 authentication, calendar selection, and proper token refresh handling.*
+
+* **Improvement:** Centralized and Reusable Form Components
+  *Inputs like URL, Username, Password, Directory Select, and Heading have been refactored into dual‑mode primitives with a `readOnly` mode for consistent display. A generic `TextInput` replaces one‑off components.*
+
+* **Improvement:** Modularized Settings Tab and Changelog Component
+  *Settings sections are now organized into dedicated renderers with improved type safety. A new `Changelog.tsx` component has been added for clearer update visibility.*
+
+* **Improvement:** Unified Event Parsing Pipeline
+  *Calendar parsers now output raw events without settings dependencies and pass them through a single `enhanceEvent` function for category logic. Tests have been updated to separately verify raw parsing and enhancement.*
+
+* **Improvement:** Modular Event Cache Management
+  *The `EventCache` logic is split into dedicated modules (`RemoteCacheUpdater`, `LocalCacheUpdater`, `IdentifierManager`, `RecurringEventManager`), making synchronization and recurring event handling more reliable.*
+
+* **Fix:** Daily Note Calendar Parsing and Cache Update Logic
+  *Parsing bugs in `DailyNoteCalendar` have been fixed, and `modifyEvent` now correctly flags dirty events to ensure the UI updates when frontmatter changes (e.g., `skipDate`).*
+
+* **Other:** Codebase Refactor for Type Safety and Maintainability
+  *Shared types and utilities have been centralized, internal names clarified, and redundant code removed—all without changing user‑facing behavior.*
+
+---
+
 ## Version 0.11.6
 
 -   **New:** Advanced Categorization with Hierarchical Timeline View  

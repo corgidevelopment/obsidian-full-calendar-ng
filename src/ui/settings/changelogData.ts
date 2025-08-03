@@ -14,6 +14,41 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.11.7',
+    changes: [
+      {
+        type: 'new',
+        title: 'Google Calendar integration with two-way sync',
+        description:
+          'Connect your Google account to create, modify, and delete single or recurring events directly in Obsidian, with full OAuth 2.0 authentication and calendar selection.'
+      },
+      {
+        type: 'improvement',
+        title: 'Unified and reusable form components',
+        description:
+          'Inputs like URL, Username, Password, and Directory Select are now standardized with a read-only mode for consistent display, and a generic TextInput replaces one-off components.'
+      },
+      {
+        type: 'improvement',
+        title: 'Refined settings UI and changelog view',
+        description:
+          'Settings are modularized into clearer sections with improved type safety, and a new changelog component has been added for update visibility.'
+      },
+      {
+        type: 'improvement',
+        title: 'Better event parsing and caching pipeline',
+        description:
+          'Calendar parsers now use a unified enhancement pipeline, and event caching is more reliable with modularized update managers.'
+      },
+      {
+        type: 'fix',
+        title: 'Daily Note Calendar parsing and cache updates',
+        description:
+          'Fixed issues with daily note parsing and improved cache updates to correctly reflect changes when frontmatter is updated.'
+      }
+    ]
+  },
+  {
     version: '0.11.6',
     changes: [
       {

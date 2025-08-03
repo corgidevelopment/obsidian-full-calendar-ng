@@ -1,44 +1,53 @@
-# Two-way Sync Google Calender
+# Google Calendar Two-Way Sync
 
-You can add, edit and modify any private Google Calender over OAuth2.0 authentication. 
+Easily add, edit, and delete events from your private Google Calendar directly in Obsidian using **OAuth 2.0 authentication**.
 
-> Please use `Custom Google Cloud Credentials` option! Other option wont work until until google verifies the plugin. The setup is slightly involved, check below on how to set it up.
+!!! info You must use the **Custom Google Cloud Credentials** option. The default option will not work until Google officially verifies the plugin.
 
-Calendars are automatically re-fetched from their source at most every five minutes. If you would like to revalidate remote calendars directly, you can run the command `Full Calendar: Revalidate remote calendars`.
-
-## Using with Advanced Categories
-
-CalDAV calendars are fully compatible with the **[Advanced Categories feature](../events/categories.md)**.
-
-If an event from your CalDAV source has a title like `Personal - Doctor's Appointment`, the plugin will automatically parse "Personal" as the category and apply any custom color you have configured in the settings. This helps you visually organize events from all your devices.
+Calendars automatically refresh every **5 minutes**.
+To manually refresh calendars, run the command:
+`Full Calendar: Revalidate remote calendars`
 
 ---
 
-## Setup OAuth2.0 Authentication ID and Secret
+## Using with Advanced Categories
 
-We will now setup Client ID and Secret Key for a Desktop Client for your personal use. You can google the setup or here is a quick guide on how to set it up:
+Google Calendar events fully support the **[Advanced Categories feature](../events/categories.md)**.
 
-1. Setup project in Google Console on some google account as follows:
+If an event title is formatted like `Personal - Doctor's Appointment`, the plugin will automatically detect **Personal** as the category and apply any custom color configured in your settings.
+This helps you keep events organized across all your devices.
 
-![Google Console Project setup](../assets/google-cal-setup/1.google-console-project.gif)
+---
 
-2. Setup the project:
+## Setting Up OAuth 2.0 Authentication
 
-![Setup Project config](../assets/google-cal-setup/2.setup-config-for-oauth.gif)
+You’ll need to create your own **Google OAuth Client ID and Secret** for personal use.
+Here’s how to set it up step by step:
 
-3. Enable calender API:
+### 1️⃣ Create a Project in Google Cloud Console
 
-![Enable calender API](../assets/google-cal-setup/3.calender-api-enable.gif)
+![Google Console Project Setup](../assets/google-cal-setup/1.google-console-project.gif)
 
-4. Add the account for which you wish to use sync the calender as `Test User`:
+### 2️⃣ Configure OAuth Consent Screen
 
-![Enable calender API](../assets/google-cal-setup/4.%20add-test-user.gif)
+![Setup Project Config](../assets/google-cal-setup/2.setup-config-for-oauth.gif)
 
-5. Create the Key for `Desktop Client`:
+### 3️⃣ Enable the Google Calendar API
 
-![Setup Key](../assets/google-cal-setup/5.OuAuth-ID.gif)
+![Enable Calendar API](../assets/google-cal-setup/3.calender-api-enable.gif)
 
-6. Add the Key to Obsidian Plugin:
+### 4️⃣ Add Your Google Account as a Test User
 
-![Add Key to Plugin](../assets/google-cal-setup/6.Add-ID-to-Obsidian.gif)
+![Add Test User](../assets/google-cal-setup/4.%20add-test-user.gif)
 
+### 5️⃣ Create OAuth Credentials for a Desktop Client
+
+![Create OAuth ID](../assets/google-cal-setup/5.OuAuth-ID.gif)
+
+### 6️⃣ Add Your Client ID and Secret to the Plugin
+
+![Add ID to Plugin](../assets/google-cal-setup/6.Add-ID-to-Obsidian.gif)
+
+---
+
+Once completed, you’ll be able to **sync your Google Calendar both ways**—any changes made in Obsidian will be reflected in Google Calendar, and vice versa.
