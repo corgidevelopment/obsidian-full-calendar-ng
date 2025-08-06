@@ -4,6 +4,40 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
+## Version 0.11.8
+
+* **New:** Business Hours and Background Events Support
+  *Highlight working hours in calendar views and display events as background highlights (e.g., vacations or focus blocks). Configurable via settings and event frontmatter.*
+
+* **New:** Timeline View Category Shadow Events (#76)
+  *Adds optional display of category shadow events in Timeline View for better visual context and planning.*
+
+* **New:** Real-Time Duplicate Event Validation (#67)
+  *Prevents creation of duplicate events in the calendar interface, improving scheduling accuracy.*
+
+* **Improvement:** Edit Modal Now Supports Subcategory Editing
+  *The "Edit Event" modal now parses and displays sub-categories directly in the event title. Users can edit them inline and changes are preserved.*
+
+* **Improvement:** Settings Modal Reorganization and Footer
+  *UI updates include reorganized settings for better clarity, hover hints for display options, and a new footer for versioning and help links.*
+
+* **Improvement:** Configuration Migration for Legacy Support
+  *Legacy settings like `subprojectKeywords_exclude` are migrated automatically, and missing fields (e.g., `persona`) are filled safely.*
+
+* **Improvement:** Type Safety and Safer DOM Manipulations (#69, #71)
+  *Removed unsafe type assertions across key modules (`DailyNoteCalendar`, `GoogleCalendar`, `interop`) and introduced robust DOM update utilities (`safeCreateEl`, `safeEmpty`).*
+
+* **Fix:** Recurring Task Completion Preserves Child Timing (#75)
+  *Undoing completed recurring tasks now correctly retains the timing of override events. Adds full test coverage for various edge cases.*
+
+* **Fix:** All-Day Events Treated as Floating in RRULE
+  *All-day recurring events now behave correctly as floating events, fixing unintended start time offsets.*
+
+* **Test:** Coverage for Business Hours, Background Events, and Override Logic
+  *New test suites validate schema correctness, UI rendering, and recurring timing behavior.*
+
+---
+
 ## Version 0.11.7
 
 * **New:** Full Google Calendar Integration with Two‑Way Sync

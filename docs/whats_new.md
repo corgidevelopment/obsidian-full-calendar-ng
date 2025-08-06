@@ -5,6 +5,33 @@ For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
 ---
 
+## 🗓️ Google Calendar Integration
+
+Full Calendar now supports **two-way sync with Google Calendar**! Connect your Google account to create, modify, and delete events (including recurring events) directly in Obsidian. OAuth 2.0 authentication, calendar selection, and automatic token refresh are all built-in.
+
+- **Seamless Sync:** Events created in Obsidian appear instantly in Google Calendar, and vice versa.
+- **Recurring Events:** Full support for recurring events and per-instance overrides.
+- **Advanced Categories:** Google Calendar events can use category coloring and sub-category organization for powerful visual management.
+- **Setup Guide:** See [Google Calendar Setup](calendars/gcal.md) for step-by-step instructions.
+
+➡️ **[Learn how to set up Google Calendar Sync](calendars/gcal.md)**
+
+---
+
+## 🏷️ Timeline View for Categories & Projects
+
+Visualize your schedule by category and sub-category with the new **Timeline View**! This advanced view organizes events into horizontal lanes, making it perfect for project management, resource planning, and complex schedules.
+
+- **Hierarchical Lanes:** Events are grouped by category and sub-category, with expandable/collapsible groups.
+- **Drag-and-Drop:** Move events between lanes to change their category or sub-category instantly.
+- **Shadow Events:** Parent categories can show aggregate shadow events for a quick overview.
+- **Custom Colors:** Color-code categories and sub-categories for instant recognition.
+- **Works with All Sources:** Timeline View supports local, remote, and Google Calendar events.
+
+➡️ **[See Timeline View Usage](views/timeline_view.md)**
+
+---
+
 ## 🎨 Powerful Advanced Categories & Coloring
 
 Supercharge your calendar's organization with Advanced Categories! This new system allows you to override a calendar's default color for specific events based on a category prefix in the event's title. It's the foundation for many powerful features to come.

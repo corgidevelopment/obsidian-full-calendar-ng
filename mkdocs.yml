@@ -48,6 +48,7 @@ nav:
           - Recurring Events: events/recurring.md
           - Tasks: events/tasks.md
           - Category Coloring: events/categories.md
+          - Timeline View Usage: views/timeline_view.md
           - Timezone Support: events/timezones.md
           - Hover & Context Menu: events/hover_context.md
     - ChronoAnalyser: 

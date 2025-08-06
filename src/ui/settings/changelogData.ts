@@ -14,6 +14,47 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.11.8',
+    changes: [
+      {
+        type: 'new',
+        title: 'Business Hours and Background Events',
+        description:
+          'Highlight working hours in calendar views and display background events like vacations or focus blocks. Fully configurable in settings and event frontmatter.'
+      },
+      {
+        type: 'new',
+        title: 'Timeline View: Shadow Events',
+        description:
+          'Optional display of category shadow events in Timeline View for better context and planning.'
+      },
+      {
+        type: 'improvement',
+        title: 'Sub-category editing in event modal',
+        description:
+          'Event modal now shows and allows editing of sub-categories directly in the title field.'
+      },
+      {
+        type: 'improvement',
+        title: 'Settings UI reorganization',
+        description:
+          'Settings modal has been reorganized for clarity, with added tooltips and a footer for version/help links.'
+      },
+      {
+        type: 'fix',
+        title: 'Recurring task timing preserved on undo',
+        description:
+          'Fixes a bug where child events lost their timing when undoing completed recurring tasks.'
+      },
+      {
+        type: 'fix',
+        title: 'All-day recurring events behave correctly',
+        description:
+          'All-day events are now treated as floating in recurrence rules, avoiding unwanted time shifts.'
+      }
+    ]
+  },
+  {
     version: '0.11.7',
     changes: [
       {
