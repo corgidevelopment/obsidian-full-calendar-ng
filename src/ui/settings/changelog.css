@@ -161,7 +161,7 @@
 }
 
 .settings-footer {
-    margin-top: var(--size-8-4);
+    margin-top: 1em;
     padding: var(--size-4-4);
     text-align: center;
     background-color: var(--background-secondary);
@@ -172,6 +172,7 @@
 .settings-footer-text {
     font-size: var(--font-ui-medium);
     color: var(--text-normal);
+    margin-top: var(--size-8-4);
     margin-bottom: var(--size-4-2);
 }
 

@@ -56,6 +56,34 @@ export function parseTitle(fullTitle: string): {
 }
 
 /**
+ * Parses a title that contains only subcategory and title in "SubCategory - Title" format.
+ * This is used when the category is managed separately (e.g., in the edit modal).
+ *
+ * @param titleWithSubcategory The title string containing subcategory and title.
+ * @returns An object containing the parsed `subCategory` and `title`.
+ */
+export function parseSubcategoryTitle(titleWithSubcategory: string): {
+  subCategory: string | undefined;
+  title: string;
+} {
+  const parts = titleWithSubcategory.split(' - ');
+
+  if (parts.length >= 2) {
+    // Case: "SubCategory - Title" (robust to extra dashes)
+    const subCategory = parts[0].trim();
+    const title = parts.slice(1).join(' - ').trim();
+
+    // Ensure parts are not empty strings
+    if (subCategory && title) {
+      return { subCategory, title };
+    }
+  }
+
+  // Case: "Title only" or invalid format
+  return { subCategory: undefined, title: titleWithSubcategory };
+}
+
+/**
  * Constructs the full title string from a category, sub-category, and a clean title.
  *
  * @param category The category string.

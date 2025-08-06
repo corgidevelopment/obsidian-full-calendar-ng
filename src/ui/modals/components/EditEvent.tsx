@@ -16,7 +16,11 @@ import * as React from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { CalendarInfo, OFCEvent } from '../../../types';
 import { AutocompleteInput } from '../../components/forms/AutocompleteInput';
-import { constructTitle, parseTitle } from '../../../calendars/parsing/categoryParser';
+import {
+  constructTitle,
+  parseTitle,
+  parseSubcategoryTitle
+} from '../../../calendars/parsing/categoryParser';
 
 interface DayChoiceProps {
   code: string;
@@ -142,7 +146,9 @@ export const EditEvent = ({
     initialEvent?.allDay === false ? initialEvent.endTime || '' : ''
   );
   const [title, setTitle] = useState(
-    constructTitle(undefined, initialEvent?.subCategory, initialEvent?.title || '')
+    enableCategory
+      ? constructTitle(undefined, initialEvent?.subCategory, initialEvent?.title || '')
+      : initialEvent?.title || ''
   );
   const [category, setCategory] = useState(initialEvent?.category || '');
   // const [isRecurring, setIsRecurring] = useState(initialEvent?.type === 'recurring' || false);
@@ -316,7 +322,21 @@ export const EditEvent = ({
       eventData = recurringData;
     }
 
-    const { subCategory: parsedSubCategory, title: parsedTitle } = parseTitle(title);
+    let parsedSubCategory: string | undefined;
+    let parsedTitle: string;
+
+    if (enableCategory) {
+      // When advanced categorization is enabled, the title input contains "SubCategory - Title"
+      // and the category is managed separately in the category input field
+      const parsed = parseSubcategoryTitle(title);
+      parsedSubCategory = parsed.subCategory;
+      parsedTitle = parsed.title;
+    } else {
+      // When advanced categorization is disabled, parse the full title format
+      const parsed = parseTitle(title);
+      parsedSubCategory = parsed.subCategory;
+      parsedTitle = parsed.title;
+    }
 
     const finalEvent = {
       title: parsedTitle,
