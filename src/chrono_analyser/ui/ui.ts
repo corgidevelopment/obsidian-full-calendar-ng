@@ -9,17 +9,40 @@ interface InsightRule {
   subprojectKeywords: string[];
   mutedSubprojectKeywords: string[];
   mutedProjects: string[];
+  // Legacy field for migration
+  subprojectKeywords_exclude?: string[];
 }
+
+interface InsightGroup {
+  rules: InsightRule;
+  persona: 'productivity' | 'wellness' | 'none';
+}
+
+// Legacy interface for migration - allows partial persona
+interface LegacyInsightGroup {
+  rules: InsightRule;
+  persona?: 'productivity' | 'wellness' | 'none';
+}
+
 interface InsightGroups {
-  [groupName: string]: {
-    rules: InsightRule;
-    persona: 'productivity' | 'wellness' | 'none';
-  };
+  [groupName: string]: InsightGroup;
 }
+
+interface LegacyInsightGroups {
+  [groupName: string]: LegacyInsightGroup;
+}
+
 export interface InsightsConfig {
   version: number;
   lastUpdated: string;
   insightGroups: InsightGroups;
+}
+
+// Legacy config interface for migration
+interface LegacyInsightsConfig {
+  version: number;
+  lastUpdated: string;
+  insightGroups: LegacyInsightGroups;
 }
 
 // --- Autocomplete Component Class ---
@@ -179,7 +202,7 @@ export class InsightConfigModal extends Modal {
       lastUpdated: new Date().toISOString(),
       insightGroups: {
         Work: {
-          persona: 'productivity', // <-- ADD DEFAULT PERSONA
+          persona: 'productivity',
           rules: {
             hierarchies: ['Work'],
             projects: [],
@@ -189,7 +212,7 @@ export class InsightConfigModal extends Modal {
           }
         },
         Personal: {
-          persona: 'wellness', // <-- ADD DEFAULT PERSONA
+          persona: 'wellness',
           rules: {
             hierarchies: ['Personal'],
             projects: [],
@@ -201,30 +224,42 @@ export class InsightConfigModal extends Modal {
       }
     };
 
-    // --- MIGRATION LOGIC: add persona if missing ---
-    let loadedConfig = existingConfig || defaultConfig;
-    if (loadedConfig && loadedConfig.insightGroups) {
-      Object.values(loadedConfig.insightGroups).forEach(group => {
+    // --- MIGRATION LOGIC: safely migrate legacy config ---
+    let migratedConfig = existingConfig || defaultConfig;
+    if (migratedConfig && migratedConfig.insightGroups) {
+      // Cast to legacy config for safe migration
+      const legacyConfig = migratedConfig as unknown as LegacyInsightsConfig;
+
+      Object.entries(legacyConfig.insightGroups).forEach(([groupName, group]) => {
         if (group) {
-          if ((group as any).persona === undefined) {
-            (group as any).persona = 'productivity';
+          // Safely add persona if missing
+          if (group.persona === undefined) {
+            group.persona = 'productivity';
           }
+
           // Existing migration for muted fields
           if (group.rules.mutedProjects === undefined) {
             group.rules.mutedProjects = [];
           }
+
           if (group.rules.mutedSubprojectKeywords === undefined) {
-            if ((group.rules as any).subprojectKeywords_exclude) {
-              group.rules.mutedSubprojectKeywords = (group.rules as any).subprojectKeywords_exclude;
+            if (group.rules.subprojectKeywords_exclude) {
+              group.rules.mutedSubprojectKeywords = group.rules.subprojectKeywords_exclude;
             } else {
               group.rules.mutedSubprojectKeywords = [];
             }
           }
-          delete (group.rules as any).subprojectKeywords_exclude;
+
+          // Clean up legacy field
+          if (group.rules.subprojectKeywords_exclude !== undefined) {
+            delete group.rules.subprojectKeywords_exclude;
+          }
         }
       });
     }
-    this.config = loadedConfig;
+
+    // Now we can safely assign the migrated config
+    this.config = migratedConfig as InsightsConfig;
     // --- END MIGRATION LOGIC ---
   }
 
@@ -307,11 +342,7 @@ export class InsightConfigModal extends Modal {
   }
 
   // --- REPLACE THE ENTIRE renderGroupSetting METHOD ---
-  private renderGroupSetting(
-    container: HTMLElement,
-    groupName: string,
-    groupData: { rules: InsightRule; persona: 'productivity' | 'wellness' | 'none' }
-  ) {
+  private renderGroupSetting(container: HTMLElement, groupName: string, groupData: InsightGroup) {
     let currentGroupName = groupName;
     const { rules, persona } = groupData;
     const isExpanded = this.expandedGroupName === currentGroupName;
@@ -410,8 +441,11 @@ export class InsightConfigModal extends Modal {
           .addOption('none', '⚪ (Ignore in Dashboard)')
           .setValue(persona || 'productivity')
           .onChange(value => {
-            groupData.persona = value as any;
-            this.checkForUnsavedChanges();
+            // Type-safe assignment using proper type guard
+            if (value === 'productivity' || value === 'wellness' || value === 'none') {
+              groupData.persona = value;
+              this.checkForUnsavedChanges();
+            }
           });
       });
 

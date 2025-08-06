@@ -45,9 +45,11 @@ import { renderGoogleSettings } from './sections/renderGoogle';
 import { renderGeneralSettings } from './sections/renderGeneral';
 import { renderCalendarManagement } from './sections/renderCalendars';
 import { renderCategorizationSettings } from './sections/renderCategorization';
+import { renderAppearanceSettings } from './sections/renderAppearance';
 
 // Import the new React components
 import './changelog.css';
+import { renderFooter } from './components/renderFooter';
 import { Changelog } from './components/Changelog';
 import { renderWhatsNew } from './sections/renderWhatsNew';
 
@@ -198,7 +200,8 @@ export class FullCalendarSettingTab extends PluginSettingTab {
   }
 
   private _renderMainSettings(): void {
-    renderGeneralSettings(this.containerEl, this.plugin);
+    renderGeneralSettings(this.containerEl, this.plugin, () => this.display());
+    renderAppearanceSettings(this.containerEl, this.plugin, () => this.display());
     renderCategorizationSettings(this.containerEl, this.plugin, () => this.display());
     renderWhatsNew(this.containerEl, () => {
       this.showFullChangelog = true;
@@ -211,6 +214,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
     );
     renderGoogleSettings(this.containerEl, this.plugin, () => this.display());
     this._renderInitialSetupNotice();
+    renderFooter(this.containerEl);
   }
 
   private _renderInitialSetupNotice(): void {

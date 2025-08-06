@@ -69,6 +69,13 @@ export abstract class EditableCalendar extends Calendar {
   abstract createEvent(event: OFCEvent): Promise<[OFCEvent, EventLocation | null]>;
 
   /**
+   * Check if creating an event would result in a duplicate.
+   * @param event Event to check for duplicates.
+   * @returns True if the event would be a duplicate, false otherwise.
+   */
+  abstract checkForDuplicate(event: OFCEvent): Promise<boolean>;
+
+  /**
    * Delete an event from the calendar.
    * @param event The event object being deleted.
    * @param location Location of event to delete. Can be null for remote events.

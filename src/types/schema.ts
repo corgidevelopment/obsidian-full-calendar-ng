@@ -80,7 +80,10 @@ export const CommonSchema = z.object({
   timezone: z.string().optional(),
   category: z.string().optional(), // This will store the parsed category.
   subCategory: z.string().optional(), // <-- ADD THIS LINE
-  recurringEventId: z.string().optional() // The ID of the parent recurring event.
+  recurringEventId: z.string().optional(), // The ID of the parent recurring event.
+  display: z
+    .enum(['auto', 'block', 'list-item', 'background', 'inverse-background', 'none'])
+    .optional() // Support for background events
 });
 
 export const EventSchema = z
@@ -151,7 +154,7 @@ export function parseEvent(obj: unknown): OFCEvent {
   if (typeof obj !== 'object' || obj === null) {
     throw new Error('value for parsing was not an object.');
   }
-  const hasTime = 'startTime' in obj && !!(obj as any).startTime;
+  const hasTime = 'startTime' in obj && !!(obj as Record<string, unknown>).startTime;
   const objectWithDefaults = { type: 'single', allDay: !hasTime, ...obj };
   const result = {
     ...CommonSchema.parse(objectWithDefaults),

@@ -1,5 +1,12 @@
 import { CalendarInfo } from './calendar_settings';
 
+export interface BusinessHoursSettings {
+  enabled: boolean;
+  daysOfWeek: number[]; // 0=Sunday, 1=Monday, etc.
+  startTime: string; // Format: 'HH:mm'
+  endTime: string; // Format: 'HH:mm'
+}
+
 export interface FullCalendarSettings {
   calendarSources: CalendarInfo[];
   defaultCalendar: number;
@@ -24,6 +31,8 @@ export interface FullCalendarSettings {
   useCustomGoogleClient: boolean;
   googleClientId: string;
   googleClientSecret: string;
+  businessHours: BusinessHoursSettings;
+  enableBackgroundEvents: boolean;
 }
 
 export const DEFAULT_SETTINGS: FullCalendarSettings = {
@@ -45,5 +54,12 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   googleAuth: null,
   useCustomGoogleClient: false,
   googleClientId: '',
-  googleClientSecret: ''
+  googleClientSecret: '',
+  businessHours: {
+    enabled: false,
+    daysOfWeek: [1, 2, 3, 4, 5], // Monday to Friday
+    startTime: '09:00',
+    endTime: '17:00'
+  },
+  enableBackgroundEvents: true
 };

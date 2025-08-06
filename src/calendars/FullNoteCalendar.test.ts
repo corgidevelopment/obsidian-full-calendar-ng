@@ -265,7 +265,13 @@ describe('FullNoteCalendar Tests', () => {
     });
 
     const path = normalizePath(`events/${filename}`); // Use forward slash instead of join
-    const firstFile = obsidian.getAbstractFileByPath(path) as TFile;
+    const abstractFile = obsidian.getAbstractFileByPath(path);
+    if (!(abstractFile instanceof TFile)) {
+      throw new Error(
+        `Expected ${path} to be a file, but got ${abstractFile?.constructor.name || 'null'}`
+      );
+    }
+    const firstFile = abstractFile;
 
     const contents = await obsidian.read(firstFile);
 

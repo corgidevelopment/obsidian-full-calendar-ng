@@ -7,8 +7,6 @@
 import { Setting } from 'obsidian';
 import FullCalendarPlugin from '../../../main';
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 const INITIAL_VIEW_OPTIONS = {
   DESKTOP: {
     timeGridDay: 'Day',
@@ -23,7 +21,11 @@ const INITIAL_VIEW_OPTIONS = {
   }
 };
 
-export function renderGeneralSettings(containerEl: HTMLElement, plugin: FullCalendarPlugin): void {
+export function renderGeneralSettings(
+  containerEl: HTMLElement,
+  plugin: FullCalendarPlugin,
+  rerender: () => void
+): void {
   const desktopViewOptions: { [key: string]: string } = { ...INITIAL_VIEW_OPTIONS.DESKTOP };
   if (plugin.settings.enableAdvancedCategorization) {
     desktopViewOptions['resourceTimelineWeek'] = 'Timeline Week';
@@ -59,20 +61,6 @@ export function renderGeneralSettings(containerEl: HTMLElement, plugin: FullCale
     });
 
   new Setting(containerEl)
-    .setName('Starting day of the week')
-    .setDesc('Choose what day of the week to start.')
-    .addDropdown(dropdown => {
-      WEEKDAYS.forEach((day, code) => {
-        dropdown.addOption(code.toString(), day);
-      });
-      dropdown.setValue(plugin.settings.firstDay.toString());
-      dropdown.onChange(async codeAsString => {
-        plugin.settings.firstDay = Number(codeAsString);
-        await plugin.saveSettings();
-      });
-    });
-
-  new Setting(containerEl)
     .setName('Daily note timezone')
     .setDesc(
       'Choose how times in daily notes are handled. "Local" means times are relative to your computer\'s current timezone. "Strict" will anchor events to the display timezone, writing it to the note.'
@@ -103,17 +91,6 @@ export function renderGeneralSettings(containerEl: HTMLElement, plugin: FullCale
       );
       dropdown.onChange(async newTimezone => {
         plugin.settings.displayTimezone = newTimezone;
-        await plugin.saveSettings();
-      });
-    });
-
-  new Setting(containerEl)
-    .setName('24-hour format')
-    .setDesc('Display the time in a 24-hour format.')
-    .addToggle(toggle => {
-      toggle.setValue(plugin.settings.timeFormat24h);
-      toggle.onChange(async val => {
-        plugin.settings.timeFormat24h = val;
         await plugin.saveSettings();
       });
     });

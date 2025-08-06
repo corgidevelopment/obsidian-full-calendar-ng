@@ -231,6 +231,8 @@ class TestEditable extends EditableCalendar {
 
   createEvent = jest.fn();
 
+  checkForDuplicate = jest.fn(async () => false);
+
   deleteEvent = jest.fn();
   move = jest.fn();
   modifyEvent = jest.fn();

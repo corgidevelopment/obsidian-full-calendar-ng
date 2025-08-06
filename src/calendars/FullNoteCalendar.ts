@@ -220,6 +220,11 @@ export default class FullNoteCalendar extends EditableCalendar {
     return [event, location];
   }
 
+  async checkForDuplicate(event: OFCEvent): Promise<boolean> {
+    const path = normalizePath(`${this.directory}/${filenameForEvent(event, this.settings)}`);
+    return !!this.app.getAbstractFileByPath(path);
+  }
+
   getNewLocation(location: EventPathLocation, event: OFCEvent): EventLocation {
     // ... (This logic needs to pass settings to filenameForEvent)
     const { path, lineNumber } = location;

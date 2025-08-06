@@ -17,6 +17,66 @@ import * as Utils from '../data/utils';
 
 type ShowDetailPopupFn = (categoryName: string, recordsList: TimeRecord[], context?: any) => void;
 
+// Type guard for Obsidian HTMLElement extensions
+interface ObsidianHTMLElement extends HTMLElement {
+  empty(): void;
+  createEl<K extends keyof HTMLElementTagNameMap>(
+    tag: K,
+    o?: { cls?: string; text?: string; attr?: Record<string, string> } | string,
+    callback?: (el: HTMLElementTagNameMap[K]) => void
+  ): HTMLElementTagNameMap[K];
+  createDiv(
+    o?: { cls?: string; text?: string; attr?: Record<string, string> } | string
+  ): HTMLDivElement;
+}
+
+// Helper functions to safely interact with DOM elements
+function safeEmpty(element: HTMLElement): void {
+  if ('empty' in element && typeof (element as any).empty === 'function') {
+    (element as any).empty();
+    element.innerHTML = '';
+  }
+}
+
+function safeCreateEl(
+  element: HTMLElement,
+  tag: string,
+  options?: { cls?: string; text?: string; attr?: Record<string, string> }
+): HTMLElement {
+  if ('createEl' in element && typeof (element as any).createEl === 'function') {
+    return (element as any).createEl(tag, options);
+  }
+
+  const newEl = document.createElement(tag);
+  if (options) {
+    if (options.cls) newEl.className = options.cls;
+    if (options.text) newEl.textContent = options.text;
+    if (options.attr) {
+      Object.entries(options.attr).forEach(([key, value]) => newEl.setAttribute(key, value));
+    }
+  }
+  element.appendChild(newEl);
+  return newEl;
+}
+
+function safeCreateDiv(
+  element: HTMLElement,
+  options?: { cls?: string; text?: string; attr?: Record<string, string> }
+): HTMLDivElement {
+  return safeCreateEl(element, 'div', options) as HTMLDivElement;
+}
+
+function setupPlotlyEvents(
+  element: HTMLElement,
+  eventType: string,
+  handler: (eventData: any) => void
+): void {
+  if ('removeAllListeners' in element && 'on' in element) {
+    (element as any).removeAllListeners(eventType);
+    (element as any).on(eventType, handler);
+  }
+}
+
 function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
   let timeout: number | null = null;
   return (...args: Parameters<T>): void => {
@@ -60,8 +120,8 @@ export function renderChartMessage(rootEl: HTMLElement, message: string) {
   }
   Plotly.purge(mainChartEl);
 
-  (mainChartEl as any).empty(); // Safely clear content
-  (mainChartEl as any).createEl('p', { cls: 'chart-message', text: message });
+  safeEmpty(mainChartEl);
+  safeCreateEl(mainChartEl, 'p', { cls: 'chart-message', text: message });
 }
 
 function getThemedLayout(chartLayout: Partial<Plotly.Layout>): Partial<Plotly.Layout> {
@@ -97,7 +157,7 @@ export function renderPieChartDisplay(
 
   if (isNewChartType) {
     Plotly.purge(mainChartEl);
-    (mainChartEl as any).empty();
+    safeEmpty(mainChartEl);
   }
 
   const levelSelect = rootEl.querySelector<HTMLSelectElement>('#levelSelect_pie');
@@ -124,9 +184,8 @@ export function renderPieChartDisplay(
 
   plotChart(mainChartEl, data, layout, useReact);
 
-  const plotlyChart = mainChartEl as any;
-  plotlyChart.removeAllListeners('plotly_click');
-  plotlyChart.on('plotly_click', (eventData: any) => {
+  // Set up event handling with proper typing
+  setupPlotlyEvents(mainChartEl, 'plotly_click', (eventData: any) => {
     if (eventData.points && eventData.points.length > 0) {
       const point = eventData.points[0];
       const categoryName = point.label;
@@ -152,11 +211,10 @@ export function renderSunburstChartDisplay(
 
   if (isNewChartType) {
     Plotly.purge(mainContainerEl);
-    const container = mainContainerEl as any;
-    container.empty();
-    const wrapper = container.createDiv({ cls: 'sunburst-wrapper' });
-    wrapper.createDiv({ cls: 'sunburst-chart-div' });
-    wrapper.createDiv({
+    safeEmpty(mainContainerEl);
+    const wrapper = safeCreateDiv(mainContainerEl, { cls: 'sunburst-wrapper' });
+    safeCreateDiv(wrapper, { cls: 'sunburst-chart-div' });
+    safeCreateDiv(wrapper, {
       cls: 'custom-legend',
       attr: { id: 'customLegend' } // Keep ID for now, style with class
     });
@@ -174,9 +232,9 @@ export function renderSunburstChartDisplay(
       parents: sunburstData.parents,
       values: sunburstData.values,
       branchvalues: 'total',
-      hoverinfo: 'label+value+percent root',
-      insidetextorientation: 'radial'
-    } as any
+      hoverinfo: 'text'
+      // Note: insidetextorientation property exists in Plotly but not in TypeScript types
+    } as Plotly.PlotData
   ];
 
   const layout: Partial<Plotly.Layout> = {
@@ -187,12 +245,10 @@ export function renderSunburstChartDisplay(
 
   plotChart(chartEl, data, layout, useReact);
   if (legendEl) {
-    (legendEl as any).empty();
+    safeEmpty(legendEl);
   }
 
-  const plotlyChart = chartEl as any;
-  plotlyChart.removeAllListeners('plotly_sunburstclick');
-  plotlyChart.on('plotly_sunburstclick', (eventData: any) => {
+  setupPlotlyEvents(chartEl, 'plotly_sunburstclick', (eventData: any) => {
     if (eventData.points && eventData.points.length > 0) {
       const point = eventData.points[0];
       if (point.id && sunburstData.recordsByLabel.has(point.id)) {
@@ -215,7 +271,7 @@ export function renderTimeSeriesChart(
   if (!mainChartEl) return;
   if (isNewChartType) {
     Plotly.purge(mainChartEl);
-    (mainChartEl as any).empty();
+    safeEmpty(mainChartEl);
   }
 
   if (!filteredRecords || filteredRecords.length === 0) {
@@ -321,7 +377,7 @@ export function renderActivityPatternChart(
   if (!mainChartEl) return;
   if (isNewChartType) {
     Plotly.purge(mainChartEl);
-    (mainChartEl as any).empty();
+    safeEmpty(mainChartEl);
   }
 
   if (!filteredRecords || filteredRecords.length === 0) {
@@ -413,20 +469,33 @@ export function renderActivityPatternChart(
     };
   }
 
-  if (
-    !data.length ||
-    (plotType === 'bar' && (data[0] as any).y.every((val: string) => parseFloat(val) === 0)) ||
-    (plotType === 'heatmap' &&
-      (data[0] as any).z.flat().every((val: string | null) => val === null))
-  ) {
+  // Type-safe data validation
+  function hasEmptyBarData(plotData: Partial<Plotly.PlotData>[]): boolean {
+    if (!plotData.length) return true;
+    const firstData = plotData[0];
+    if (plotType === 'bar' && firstData && 'y' in firstData && Array.isArray(firstData.y)) {
+      return firstData.y.every((val: any) => parseFloat(String(val)) === 0);
+    }
+    return false;
+  }
+
+  function hasEmptyHeatmapData(plotData: Partial<Plotly.PlotData>[]): boolean {
+    if (!plotData.length) return true;
+    const firstData = plotData[0];
+    if (plotType === 'heatmap' && firstData && 'z' in firstData && Array.isArray(firstData.z)) {
+      const zData = firstData.z as any[][];
+      return zData.flat().every((val: string | null) => val === null);
+    }
+    return false;
+  }
+
+  if (!data.length || hasEmptyBarData(data) || hasEmptyHeatmapData(data)) {
     renderChartMessage(rootEl, `No data to plot for ${analysisTypeName}.`);
     return;
   }
   plotChart(mainChartEl, data as Plotly.Data[], layout, useReact);
 
-  const plotlyChart = mainChartEl as any;
-  plotlyChart.removeAllListeners('plotly_click');
-  plotlyChart.on('plotly_click', (eventData: any) => {
+  setupPlotlyEvents(mainChartEl, 'plotly_click', (eventData: any) => {
     if (!eventData.points || eventData.points.length === 0) return;
     const point = eventData.points[0];
     let recordsForPopup: TimeRecord[] = [];
@@ -489,8 +558,8 @@ export function renderErrorLog(
   const errorLogEntries = rootEl.querySelector<HTMLElement>('#errorLogEntries');
   if (!errorLogContainer || !errorLogSummary || !errorLogEntries) return;
 
-  const entriesContainer = errorLogEntries as any;
-  entriesContainer.empty();
+  // Clear entries safely
+  safeEmpty(errorLogEntries);
 
   if (processingErrors.length === 0) {
     errorLogSummary.textContent =
@@ -502,21 +571,20 @@ export function renderErrorLog(
   errorLogSummary.textContent = `Found ${processingErrors.length} issue(s) during data translation:`;
 
   processingErrors.forEach(err => {
-    const details = entriesContainer.createEl('details', { cls: 'log-entry' });
+    const details = safeCreateEl(errorLogEntries, 'details', {
+      cls: 'log-entry'
+    }) as HTMLDetailsElement;
+    const summary = safeCreateEl(details, 'summary');
+    const content = safeCreateDiv(details, { cls: 'log-entry-content' });
 
-    const summary = details.createEl('summary');
     summary.textContent = `⚠️ ${err.file || 'Unknown File'}`;
 
-    const content = details.createDiv({ cls: 'log-entry-content' });
+    const pathLabel = safeCreateEl(content, 'strong', { text: 'Path: ' });
+    content.appendChild(document.createTextNode(err.path || 'N/A'));
+    safeCreateEl(content, 'br');
 
-    content.createEl('strong', { text: 'Path: ' });
-    content.appendText(err.path || 'N/A');
-    content.createEl('br');
-    content.createEl('strong', { text: 'Reason: ' });
-    content.appendText(err.reason || 'No specific reason provided.');
-    details.appendChild(summary);
-    details.appendChild(content);
-    errorLogEntries.appendChild(details);
+    const reasonLabel = safeCreateEl(content, 'strong', { text: 'Reason: ' });
+    content.appendChild(document.createTextNode(err.reason || 'No specific reason provided.'));
   });
   errorLogContainer.style.display = 'block';
 }

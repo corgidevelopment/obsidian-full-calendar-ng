@@ -13,9 +13,10 @@
 
 import { DateTime } from 'luxon';
 import * as React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { CalendarInfo, OFCEvent } from '../../../types';
 import { AutocompleteInput } from '../../components/forms/AutocompleteInput';
+import { constructTitle, parseTitle } from '../../../calendars/parsing/categoryParser';
 
 interface DayChoiceProps {
   code: string;
@@ -80,9 +81,11 @@ interface EditEventProps {
   initialEvent?: Partial<OFCEvent>;
   availableCategories?: string[];
   enableCategory: boolean; // <-- ADD NEW PROP
+  enableBackgroundEvents?: boolean; // <-- ADD NEW PROP
   open?: () => Promise<void>;
   deleteEvent?: () => Promise<void>;
   onAttemptEditInherited?: () => void; // Add this new prop
+  checkForDuplicate?: (event: OFCEvent, calendarIndex: number) => Promise<boolean>; // Add duplicate check function
 }
 
 function getInitialRecurrenceType(event?: Partial<OFCEvent>): RecurrenceType {
@@ -109,8 +112,10 @@ export const EditEvent = ({
   calendars,
   defaultCalendarIndex,
   availableCategories = [],
-  enableCategory, // <-- GET NEW PROP
-  onAttemptEditInherited // <-- GET NEW PROP
+  enableCategory,
+  enableBackgroundEvents = false, // <-- GET NEW PROP
+  onAttemptEditInherited,
+  checkForDuplicate
 }: EditEventProps) => {
   const isChildOverride = !!initialEvent?.recurringEventId;
 
@@ -136,7 +141,9 @@ export const EditEvent = ({
   const [endTime, setEndTime] = useState(
     initialEvent?.allDay === false ? initialEvent.endTime || '' : ''
   );
-  const [title, setTitle] = useState(initialEvent?.title || '');
+  const [title, setTitle] = useState(
+    constructTitle(undefined, initialEvent?.subCategory, initialEvent?.title || '')
+  );
   const [category, setCategory] = useState(initialEvent?.category || '');
   // const [isRecurring, setIsRecurring] = useState(initialEvent?.type === 'recurring' || false);
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(
@@ -162,6 +169,13 @@ export const EditEvent = ({
   const [endRecur, setEndRecur] = useState(
     initialEvent?.type === 'recurring' ? initialEvent.endRecur : undefined
   );
+  const [display, setDisplay] = useState<
+    'auto' | 'block' | 'list-item' | 'background' | 'inverse-background' | 'none'
+  >(initialEvent?.display || 'auto');
+
+  // Add validation state
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   const titleRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -169,6 +183,78 @@ export const EditEvent = ({
       titleRef.current.focus();
     }
   }, [titleRef]);
+
+  // Debounced validation function
+  const validateForDuplicates = useCallback(async () => {
+    if (!checkForDuplicate || !title || !date || isChildOverride) {
+      setValidationError(null);
+      setIsValidating(false);
+      return;
+    }
+
+    setIsValidating(true);
+
+    try {
+      // Build a partial event for validation
+      const eventForValidation: OFCEvent = {
+        title,
+        date,
+        allDay,
+        type: recurrenceType === 'none' ? 'single' : 'recurring',
+        ...(allDay ? {} : { startTime: startTime || '', endTime: endTime || null }),
+        ...(category && { category }),
+        ...(recurrenceType === 'weekly' && {
+          daysOfWeek: daysOfWeek as ('U' | 'M' | 'T' | 'W' | 'R' | 'F' | 'S')[]
+        }),
+        ...(recurrenceType === 'monthly' && date && { dayOfMonth: DateTime.fromISO(date).day }),
+        ...(recurrenceType === 'yearly' &&
+          date && {
+            month: DateTime.fromISO(date).month,
+            dayOfMonth: DateTime.fromISO(date).day
+          }),
+        ...(recurrenceType !== 'none' && {
+          startRecur: date,
+          endRecur: endRecur,
+          isTask: isTask
+        })
+      } as OFCEvent;
+
+      const isDuplicate = await checkForDuplicate(eventForValidation, calendarIndex);
+
+      if (isDuplicate) {
+        setValidationError(
+          'An event with this name already exists on this date. Please choose a different name.'
+        );
+      } else {
+        setValidationError(null);
+      }
+    } catch (error) {
+      console.error('Error validating for duplicates:', error);
+      setValidationError(null); // Don't block submission if validation fails
+    }
+
+    setIsValidating(false);
+  }, [
+    checkForDuplicate,
+    title,
+    date,
+    calendarIndex,
+    allDay,
+    recurrenceType,
+    startTime,
+    endTime,
+    category,
+    daysOfWeek,
+    endRecur,
+    isTask,
+    isChildOverride
+  ]);
+
+  // Debounce the validation
+  useEffect(() => {
+    const timeoutId = setTimeout(validateForDuplicates, 500);
+    return () => clearTimeout(timeoutId);
+  }, [validateForDuplicates]);
 
   const selectedCalendar = calendars[calendarIndex];
   const isDailyNoteCalendar = selectedCalendar.type === 'dailynote';
@@ -185,6 +271,11 @@ export const EditEvent = ({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Prevent submission if there are validation errors
+    if (validationError) {
+      return;
+    }
 
     let completedValue: string | false | null = null;
     if (isTask) {
@@ -225,9 +316,13 @@ export const EditEvent = ({
       eventData = recurringData;
     }
 
+    const { subCategory: parsedSubCategory, title: parsedTitle } = parseTitle(title);
+
     const finalEvent = {
-      title,
+      title: parsedTitle,
       category: category || undefined,
+      display: display !== 'auto' ? display : undefined,
+      subCategory: parsedSubCategory,
       ...timeInfo,
       ...eventData
     } as OFCEvent;
@@ -265,6 +360,16 @@ export const EditEvent = ({
               onChange={e => setTitle(e.target.value)}
               readOnly={isChildOverride} // Change `disabled` to `readOnly`
             />
+            {validationError && (
+              <div className="mod-warning" style={{ marginTop: '4px', fontSize: '0.875em' }}>
+                {validationError}
+              </div>
+            )}
+            {isValidating && (
+              <div style={{ marginTop: '4px', fontSize: '0.875em', opacity: 0.7 }}>
+                Checking for duplicates...
+              </div>
+            )}
           </div>
         </div>
 
@@ -286,6 +391,33 @@ export const EditEvent = ({
                 placeholder="Category (optional)"
                 readOnly={isChildOverride} // Change `disabled` to `readOnly`
               />
+            </div>
+          </div>
+        )}
+
+        {enableBackgroundEvents && (
+          <div className="setting-item">
+            <div
+              className="setting-item-info"
+              title="Choose how this event appears on the calendar"
+            >
+              <div className="setting-item-name">Display</div>
+            </div>
+            <div
+              className={`setting-item-control ${isChildOverride ? 'is-override-disabled' : ''}`}
+              onClick={isChildOverride ? onAttemptEditInherited : undefined}
+              title={isChildOverride ? disabledTooltip : ''}
+            >
+              <select
+                value={display}
+                onChange={e => setDisplay(e.target.value as typeof display)}
+                disabled={isChildOverride}
+              >
+                <option value="auto">Normal event</option>
+                <option value="background">Background event</option>
+                <option value="inverse-background">Inverse background</option>
+                <option value="none">Hidden</option>
+              </select>
             </div>
           </div>
         )}
@@ -459,7 +591,7 @@ export const EditEvent = ({
             )}
           </div>
           <div className="footer-actions-right">
-            <button type="submit" className="mod-cta">
+            <button type="submit" className="mod-cta" disabled={!!validationError || isValidating}>
               Save Event
             </button>
           </div>

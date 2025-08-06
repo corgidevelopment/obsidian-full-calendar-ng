@@ -324,6 +324,24 @@ export default class EventCache {
     return true;
   }
 
+  /**
+   * Check if adding an event to a given calendar would result in a duplicate.
+   * @param calendarId ID of calendar to check.
+   * @param event Event details to check for duplicates.
+   * @returns Returns true if the event would be a duplicate, false otherwise.
+   */
+  async checkForDuplicate(calendarId: string, event: OFCEvent): Promise<boolean> {
+    const calendar = this.calendars.get(calendarId);
+    if (!calendar) {
+      throw new Error(`Calendar ID ${calendarId} is not registered.`);
+    }
+    if (!(calendar instanceof EditableCalendar)) {
+      return false; // Read-only calendars can't have user-created duplicates
+    }
+
+    return await calendar.checkForDuplicate(event);
+  }
+
   async deleteEvent(
     eventId: string,
     options?: { silent?: boolean; instanceDate?: string; force?: boolean }

@@ -78,7 +78,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
   }
 
   async getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {
-    const date = getDateFromFile(file as any, 'day')?.format('YYYY-MM-DD');
+    const date = getDateFromFile(file, 'day')?.format('YYYY-MM-DD');
     const cache = this.app.getMetadata(file);
     if (!cache) return [];
     const listItems = getListsUnderHeading(this.heading, cache);
@@ -140,14 +140,14 @@ export default class DailyNoteCalendar extends EditableCalendar {
 
     // The rest of the file modification logic remains the same...
     const { file, lineNumber } = this.getConcreteLocation(location);
-    const oldDate = getDateFromFile(file as any, 'day')?.format('YYYY-MM-DD');
+    const oldDate = getDateFromFile(file, 'day')?.format('YYYY-MM-DD');
     if (!oldDate) throw new Error(`Could not get date from file at path ${file.path}`);
 
     if (newEvent.date !== oldDate) {
       // ... Logic to move event to a new file
       const m = moment(eventToWrite.date);
-      let newFile = getDailyNote(m, getAllDailyNotes()) as TFile;
-      if (!newFile) newFile = (await createDailyNote(m)) as TFile;
+      let newFile = getDailyNote(m, getAllDailyNotes());
+      if (!newFile) newFile = await createDailyNote(m);
       await this.app.read(newFile);
       const metadata = this.app.getMetadata(newFile);
       if (!metadata) throw new Error('No metadata for file ' + newFile.path);
@@ -185,7 +185,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
   // RESTORED getEvents
   async getEvents(): Promise<EventResponse[]> {
     const notes = getAllDailyNotes();
-    const files = Object.values(notes) as TFile[];
+    const files = Object.values(notes);
     return (await Promise.all(files.map(f => this.getEventsInFile(f)))).flat();
   }
 
@@ -212,8 +212,8 @@ export default class DailyNoteCalendar extends EditableCalendar {
     }
 
     const m = moment(eventToCreate.date);
-    let file = getDailyNote(m, getAllDailyNotes()) as TFile;
-    if (!file) file = (await createDailyNote(m)) as TFile;
+    let file = getDailyNote(m, getAllDailyNotes());
+    if (!file) file = await createDailyNote(m);
     const metadata = await this.app.waitForMetadata(file);
     const headingInfo = metadata.headings?.find(h => h.heading == this.heading);
     if (!headingInfo)
@@ -228,6 +228,28 @@ export default class DailyNoteCalendar extends EditableCalendar {
     });
     const location = { file, lineNumber };
     return [event, location];
+  }
+
+  async checkForDuplicate(event: OFCEvent): Promise<boolean> {
+    if (event.type !== 'single' && event.type !== undefined) {
+      return false; // Can't create recurring events anyway
+    }
+
+    const m = moment(event.date);
+    const file = getDailyNote(m, getAllDailyNotes()) as TFile;
+    if (!file) return false; // No daily note exists for this date
+
+    try {
+      const events = await this.getEventsInFile(file);
+      // Check if any existing event has the same title
+      const duplicateExists = events.some(([existingEvent]) => {
+        return existingEvent.title === event.title;
+      });
+      return duplicateExists;
+    } catch (error) {
+      // If we can't read the file, assume no duplicate
+      return false;
+    }
   }
 
   private getConcreteLocation({ path, lineNumber }: EventPathLocation): {
@@ -266,7 +288,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
   }
 
   async bulkAddCategories(getCategory: CategoryProvider, force: boolean): Promise<void> {
-    const allNotes = Object.values(getAllDailyNotes()) as TFile[];
+    const allNotes = Object.values(getAllDailyNotes());
 
     const processor = async (file: TFile) => {
       await this.app.rewrite(file, content => {
@@ -346,7 +368,7 @@ export default class DailyNoteCalendar extends EditableCalendar {
       categoriesToRemove.add(name);
     }
 
-    const allNotes = Object.values(getAllDailyNotes()) as TFile[];
+    const allNotes = Object.values(getAllDailyNotes());
 
     const removalSettings: FullCalendarSettings = {
       ...this.settings,

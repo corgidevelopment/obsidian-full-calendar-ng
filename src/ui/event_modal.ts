@@ -50,6 +50,11 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
       defaultCalendarIndex: 0,
       availableCategories,
       enableCategory: plugin.settings.enableAdvancedCategorization,
+      enableBackgroundEvents: plugin.settings.enableBackgroundEvents,
+      checkForDuplicate: async (event: OFCEvent, calendarIndex: number) => {
+        const calendarId = calendars[calendarIndex].id;
+        return await plugin.cache.checkForDuplicate(calendarId, event);
+      },
       submit: async (data, calendarIndex) => {
         const calendarId = calendars[calendarIndex].id;
         try {
@@ -123,6 +128,35 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
       defaultCalendarIndex: calIdx, // <-- RESTORED THIS PROP
       availableCategories,
       enableCategory: plugin.settings.enableAdvancedCategorization,
+      enableBackgroundEvents: plugin.settings.enableBackgroundEvents,
+      checkForDuplicate: async (event: OFCEvent, calendarIndex: number) => {
+        const calendarId = calendars[calendarIndex].id;
+        // When editing, exclude the current event from duplicate check
+        // by comparing with the original event data
+        if (eventToEdit) {
+          const eventDate =
+            event.type === 'single'
+              ? event.date
+              : event.type === 'recurring'
+                ? event.startRecur
+                : event.type === 'rrule'
+                  ? event.startDate
+                  : '';
+          const originalDate =
+            eventToEdit.type === 'single'
+              ? eventToEdit.date
+              : eventToEdit.type === 'recurring'
+                ? eventToEdit.startRecur
+                : eventToEdit.type === 'rrule'
+                  ? eventToEdit.startDate
+                  : '';
+
+          if (event.title === eventToEdit.title && eventDate === originalDate) {
+            return false; // Same event, not a duplicate
+          }
+        }
+        return await plugin.cache.checkForDuplicate(calendarId, event);
+      },
       submit: async (data, calendarIndex) => {
         try {
           if (calendarIndex !== calIdx) {

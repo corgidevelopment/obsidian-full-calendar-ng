@@ -159,3 +159,36 @@
     margin-block-end: var(--size-4-4);    /* Reduce space below */
     border-color: var(--background-modifier-border);
 }
+
+.settings-footer {
+    margin-top: var(--size-8-4);
+    padding: var(--size-4-4);
+    text-align: center;
+    background-color: var(--background-secondary);
+    border-radius: var(--radius-m);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.settings-footer-text {
+    font-size: var(--font-ui-medium);
+    color: var(--text-normal);
+    margin-bottom: var(--size-4-2);
+}
+
+.settings-footer-links {
+    display: flex;
+    justify-content: center;
+    gap: var(--size-4-4);
+}
+
+.settings-footer-link {
+    font-size: var(--font-ui-medium);
+    font-weight: 600;
+    color: var(--interactive-accent);
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+}
+
+.settings-footer-link:hover {
+    color: var(--interactive-accent-hover);
+}

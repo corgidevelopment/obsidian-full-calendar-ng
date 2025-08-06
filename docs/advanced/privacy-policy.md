@@ -1,25 +1,42 @@
 # Privacy Policy
 
-_Last updated: August 2, 2025_
+_Last updated: August 6, 2025_
 
-Thank you for using our Obsidian Full Calendar plugin. Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your information.
+**Full Calendar (Remastered) Plugin** is a plugin for Obsidian that allows you to synchronize your Google Calendar and use it within Obsidian. It uses the Google Calendar API for synchronization of calendar events.
 
-## Information We Collect
-- **Local Data Only**: This plugin stores all calendar data locally in your Obsidian vault.  
-- **No External Servers**: We do not collect or transmit any personal data to external servers.
+## Information We Access
 
-## How We Use Your Data
-- All data is used **solely within your vault** for calendar display and event management.
-- We do not analyze, share, or sell your data.
+With your permission, the plugin accesses the following Google Calendar data via the Google Calendar API:
 
-## Third-Party Services
-- This plugin does not integrate with third-party analytics or tracking services.
+- Your calendar list (metadata about your calendars)
+- Calendar events (including event titles, descriptions, start/end times, and attendees)
 
-## Your Data Rights
-Because all data is local, **you have full control over your information**. You can delete calendar files or uninstall the plugin at any time.
+We do **not** access any other Google account data beyond what is required to display and manage your calendar events in Obsidian.
 
-## Updates to This Policy
-We may update this Privacy Policy as needed. Changes will be reflected in the plugin documentation.
+## How Data Is Used
+
+The accessed calendar data is used **solely for displaying and managing events** within Obsidian. The plugin caches calendar data during the session and it is discarded when the session ends. **No Data** is stored in any remote servers. All data is fetched in real-time from Google and displayed only within your Obsidian environment.
+
+## Data Protection and Security
+
+- Calendar data is transmitted **directly between Obsidian and Google servers** using secure HTTPS connections.
+- No calendar data is stored on our intermediary server.
+- During the authentication process, our intermediary server **temporarily receives an OAuth authorization code**, which is used only to complete the authentication flow and is **immediately discarded** after use.
+- We do **not store**, share, or process any user data beyond what is necessary to facilitate authentication and access to Google Calendar through the plugin.
+
+## OAuth Scopes
+
+The plugin requests the following OAuth scopes:
+
+- `https://www.googleapis.com/auth/calendar.events` — View and edit events on all your calendars (core functionality of the plugin).
+- `https://www.googleapis.com/auth/calendar.readonly` — See and download any calendar you can access using your Google Calendar (required 1) for cached rendering during the session; 2) Selecting the relevant calender among other calender associated with the account ).
+
+These scopes are required to enable synchronization between Google Calendar and Obsidian and are used strictly for their intended purpose.
+
+## Opt out Policy
+
+- You are free to opt out at anytime - simply disconnect your Google Account and all your Google Calender data will be immediately removed from the system permanently.
 
 ## Contact
-If you have questions, please contact the plugin author through the Obsidian community page.
+
+If you have any questions or concerns about this Privacy Policy or data handling practices, please contact us at [here](https://github.com/YouFoundJK/plugin-full-calendar).

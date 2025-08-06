@@ -15,6 +15,8 @@ import { changelogData } from '../changelogData';
 import { Setting } from 'obsidian';
 import '../changelog.css';
 
+import { renderFooter } from './renderFooter';
+
 interface ChangelogProps {
   onBack: () => void;
 }
@@ -58,11 +60,16 @@ const VersionSection = ({ version, isInitiallyOpen }: VersionSectionProps) => {
 
 export const Changelog = ({ onBack }: ChangelogProps) => {
   const settingRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (settingRef.current) {
       settingRef.current.empty(); // Clear on re-render
       new Setting(settingRef.current).setName('Changelog').setHeading();
+    }
+    if (footerRef.current) {
+      footerRef.current.empty();
+      renderFooter(footerRef.current);
     }
   }, []); // Run only once on mount
 
@@ -76,6 +83,7 @@ export const Changelog = ({ onBack }: ChangelogProps) => {
       {changelogData.map((version, index) => (
         <VersionSection key={version.version} version={version} isInitiallyOpen={index === 0} />
       ))}
+      <div ref={footerRef}></div>
     </div>
   );
 };

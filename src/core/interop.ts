@@ -166,7 +166,9 @@ export function toEventInput(
       subCategory: frontmatter.subCategory,
       cleanTitle: frontmatter.title,
       isShadow: false // Flag to identify the real event
-    }
+    },
+    // Support for background events and other display types
+    ...(frontmatter.display && { display: frontmatter.display })
   };
 
   // Assign category-level coloring
@@ -296,7 +298,7 @@ export function toEventInput(
   } else if (frontmatter.type === 'rrule') {
     const dtstart = (() => {
       if (frontmatter.allDay) {
-        return DateTime.fromISO(frontmatter.startDate);
+        return DateTime.fromISO(frontmatter.startDate, { zone: 'utc' }); // Updated to use UTC timezone
       } else {
         const dtstartStr = combineDateTimeStrings(frontmatter.startDate, frontmatter.startTime);
 
@@ -410,7 +412,13 @@ export function fromEventApi(event: EventApi, newResource?: string): OFCEvent {
   let category: string | undefined = event.extendedProps.category;
   let subCategory: string | undefined = event.extendedProps.subCategory;
 
-  const resourceId = newResource || (event as any).resource?.id;
+  // Check for resource ID safely - resource property may be added by FullCalendar resource plugin
+  const resourceId =
+    newResource ||
+    (() => {
+      const eventWithResource = event as EventApi & { resource?: { id: string } };
+      return eventWithResource.resource?.id;
+    })();
 
   if (resourceId) {
     const parts = resourceId.split('::');

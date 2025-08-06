@@ -73,6 +73,8 @@ interface ExtraRenderProps {
   toggleTask?: (event: EventApi, isComplete: boolean) => Promise<boolean>;
   forceNarrow?: boolean;
   resources?: { id: string; title: string; eventColor?: string }[];
+  onViewChange?: () => void; // Add view change callback
+  businessHours?: boolean | object; // Support for business hours
   // timeZone?: string;
 }
 
@@ -92,8 +94,21 @@ export function renderCalendar(
     toggleTask,
     customButtons,
     resources,
-    enableAdvancedCategorization
+    enableAdvancedCategorization,
+    onViewChange,
+    businessHours
   } = settings || {};
+
+  // Wrap eventClick to ignore shadow events
+  const wrappedEventClick =
+    eventClick &&
+    ((info: any) => {
+      // Ignore clicks on shadow events
+      if (info.event.extendedProps.isShadow) {
+        return;
+      }
+      return eventClick(info);
+    });
   const modifyEventCallback =
     modifyEvent &&
     (async ({
@@ -255,6 +270,9 @@ export function renderCalendar(
     resources,
     resourcesInitiallyExpanded: false,
 
+    // Business hours configuration
+    ...(businessHours && { businessHours }),
+
     // Prevent dropping events onto parent category rows
     eventAllow: (dropInfo, draggedEvent) => {
       // <-- ADD THIS BLOCK
@@ -279,7 +297,7 @@ export function renderCalendar(
       }
     }),
     eventSources,
-    eventClick,
+    eventClick: wrappedEventClick,
 
     selectable: select && true,
     selectMirror: select && true,
@@ -297,6 +315,13 @@ export function renderCalendar(
     eventMouseEnter,
 
     eventDidMount: ({ event, el, textColor }) => {
+      // Don't add context menu or checkboxes to shadow events
+      if (event.extendedProps.isShadow) {
+        el.style.pointerEvents = 'none';
+        el.style.cursor = 'default';
+        return;
+      }
+
       el.addEventListener('contextmenu', e => {
         e.preventDefault();
         openContextMenuForEvent && openContextMenuForEvent(event, e);
@@ -337,6 +362,8 @@ export function renderCalendar(
         }
       }
     },
+
+    viewDidMount: onViewChange,
 
     longPressDelay: 250
   });

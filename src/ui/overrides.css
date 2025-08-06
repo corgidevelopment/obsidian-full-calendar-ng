@@ -287,3 +287,39 @@
     max-width: 25%;
     min-width: 3rem;
 }
+
+/* Shadow events styling for resourceTimeline view */
+.fc-event-shadow {
+    opacity: 0.4 !important;
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+.fc-event-shadow .fc-event-main {
+    opacity: 0.6 !important;
+}
+
+.fc-event-shadow .fc-event-title {
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Ensure shadow events don't interfere with interactions */
+.fc-event-shadow:hover {
+    opacity: 0.4 !important;
+}
+
+.fc-resource-timeline .fc-datagrid-cell.fc-resource.fc-resource-group {
+    cursor: pointer;
+}
+
+.fc-resource-timeline .fc-datagrid-cell.fc-resource.fc-resource-group:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+/* Indent dependent settings for better visual grouping */
+.fc-indented-setting {
+    padding-left: 2.5em;
+    border-left: 2px solid var(--background-modifier-border);
+    margin-left: 0.5em;
+}

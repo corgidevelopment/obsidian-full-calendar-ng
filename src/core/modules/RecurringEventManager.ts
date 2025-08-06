@@ -33,6 +33,49 @@ export class RecurringEventManager {
   }
 
   /**
+   * Checks if an override event's timing differs from what the original recurring instance would have been.
+   * @param overrideEvent The override event to check
+   * @param masterEvent The master recurring event
+   * @param instanceDate The date of the instance
+   * @returns true if the timing has been modified, false if it matches the original
+   */
+  private hasModifiedTiming(
+    overrideEvent: OFCEvent,
+    masterEvent: OFCEvent,
+    instanceDate: string
+  ): boolean {
+    if (overrideEvent.type !== 'single') return false;
+    if (masterEvent.type !== 'recurring' && masterEvent.type !== 'rrule') return false;
+
+    // Check allDay status
+    if (overrideEvent.allDay !== masterEvent.allDay) {
+      return true;
+    }
+
+    // Check endDate - if override has an endDate but it's not the same as the instance date, it's modified
+    if (overrideEvent.endDate && overrideEvent.endDate !== overrideEvent.date) {
+      return true;
+    }
+
+    // For non-all-day events, check start and end times
+    if (!masterEvent.allDay && 'startTime' in masterEvent && 'endTime' in masterEvent) {
+      const masterStartTime = masterEvent.startTime;
+      const masterEndTime = masterEvent.endTime;
+
+      if (!overrideEvent.allDay && 'startTime' in overrideEvent && 'endTime' in overrideEvent) {
+        const overrideStartTime = overrideEvent.startTime;
+        const overrideEndTime = overrideEvent.endTime;
+
+        if (overrideStartTime !== masterStartTime || overrideEndTime !== masterEndTime) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Finds all override events that are children of a given master recurring event.
    * @param masterEventId The session ID of the master recurring event.
    * @returns An array of StoredEvent objects representing the child overrides.
@@ -217,19 +260,28 @@ export class RecurringEventManager {
 
     // Destructure the master event to inherit common properties (like title, category, etc.)
     // while explicitly excluding properties that ONLY apply to recurring definitions.
-    const {
-      // recurring type props
-      daysOfWeek,
-      startRecur,
-      endRecur,
-      // rrule type props
-      rrule,
-      startDate,
-      // props for both recurring types
-      skipDates,
-      // The rest of the properties will be inherited.
-      ...parentPropsToInherit
-    } = masterEvent as any; // Cast to `any` to easily destructure props from a union type.
+    let parentPropsToInherit: Partial<OFCEvent>;
+
+    if (masterEvent.type === 'recurring') {
+      const { daysOfWeek, startRecur, endRecur, skipDates, ...otherProps } = masterEvent;
+      parentPropsToInherit = otherProps;
+    } else if (masterEvent.type === 'rrule') {
+      const { rrule, startDate, skipDates, ...otherProps } = masterEvent;
+      parentPropsToInherit = otherProps;
+    } else {
+      // For single events, just exclude the specific recurring properties
+      const {
+        // These properties won't exist but TypeScript will be happy
+        daysOfWeek: _daysOfWeek,
+        startRecur: _startRecur,
+        endRecur: _endRecur,
+        rrule: _rrule,
+        startDate: _startDate,
+        skipDates: _skipDates,
+        ...otherProps
+      } = masterEvent as any;
+      parentPropsToInherit = otherProps;
+    }
 
     const finalOverrideEvent: OFCEvent = {
       ...parentPropsToInherit,
@@ -355,9 +407,28 @@ export class RecurringEventManager {
     } else {
       // === USE CASE: UN-COMPLETING A TASK ===
       // This action is only possible on an existing override.
-      // The logic is to simply delete that override. Our improved `deleteEvent`
-      // method will handle removing the date from the parent's skipDates array
-      // and updating the view.
+      // Check if the override has modified timing compared to the original recurring instance.
+      // If timing is modified, preserve the override but change completion status.
+      // If timing is unchanged, delete the override to clean up.
+
+      if (clickedEvent.type === 'single' && clickedEvent.recurringEventId) {
+        const { calendar } = this.cache.getInfoForEditableEvent(eventId);
+        const masterLocalIdentifier = clickedEvent.recurringEventId;
+        const globalMasterIdentifier = `${calendar.id}::${masterLocalIdentifier}`;
+        const masterSessionId = await this.cache.getSessionId(globalMasterIdentifier);
+
+        if (masterSessionId) {
+          const masterEvent = this.cache.getEventById(masterSessionId);
+          if (masterEvent && this.hasModifiedTiming(clickedEvent, masterEvent, instanceDate)) {
+            // Timing has been modified, preserve the override but change completion status
+            new Notice('Preserving modified event timing and uncompleting task.');
+            await this.cache.updateEventWithId(eventId, toggleTask(clickedEvent, false));
+            return;
+          }
+        }
+      }
+
+      // Original logic: delete the override to revert to main recurring sequence
       new Notice('Reverting control to Main Recurring event sequence.');
       await this.cache.deleteEvent(eventId);
     }

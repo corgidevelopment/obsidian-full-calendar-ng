@@ -74,6 +74,9 @@ export function constructTitle(
   if (category) {
     return `${category} - ${title}`;
   }
+  if (subCategory) {
+    return `${subCategory} - ${title}`;
+  }
   return title;
 }
 
