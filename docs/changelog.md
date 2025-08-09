@@ -4,6 +4,25 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
+## Version 0.11.9
+
+-   **New:** Calendar Workspaces (#90)  
+    _Save and switch between customized calendar setups (sources, filters, and view preferences). Workspaces include a header switcher, a command palette action ("Full Calendar: Switch Workspace"), and an optional default workspace on startup. Saved state covers selected sources (Local, Daily Notes, ICS, CalDAV, Google), category/sub‑category filters, tasks visibility, all‑day toggle, initial view (month/week/day/timeline), week start, and time‑grid display options._
+
+-   **Improvement:** Faster Switching and Rendering  
+    _Workspace application is incremental (sources → filters → view) to avoid full calendar rebuilds. Switching preserves context where possible (e.g., scroll/selection) and significantly improves responsiveness on large vaults._
+
+-   **Improvement:** Workspace Management UX  
+    _Add Save as Workspace, Rename, Delete in the calendar header menu; set a Default Workspace in Settings; and assign hotkeys through Obsidian’s Hotkeys for one‑press switching._
+
+-   **Fix:** Edit Modal Sub‑category Parsing  
+    _Fixes a regression where sub‑categories could disappear when editing the title in the modal. The title parser now consistently preserves the `Category - SubCategory - Title` format on save._
+
+-   **Fix:** Workspace Persistence Edge Cases  
+    _Improved robustness when loading a workspace that references a removed or renamed source. Adds safe fallbacks to an "All Events" view and clearer status messaging._
+
+---
+
 ## Version 0.11.8
 
 -   **New:** Business Hours and Background Events Support

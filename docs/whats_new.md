@@ -5,6 +5,18 @@ For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
 ---
 
+## 🧩 Calendar Workspaces
+
+Create and switch between tailored calendar setups with Workspaces. Save your selected sources, filters (categories, tasks, all‑day), and view preferences (month/week/day/timeline) into named workspaces like "Planning" or "Deep Work" and swap in a click. Optimized to apply changes incrementally for fast transitions.
+
+- Save sources, filters, and display preferences per workspace
+- Quick switcher in the calendar header and command palette support
+- Optional default workspace on startup
+
+➡️ See how to use it: [Workspaces](views/workspaces.md)
+
+---
+
 ## 🗓️ Google Calendar Integration
 
 Full Calendar now supports **two-way sync with Google Calendar**! Connect your Google account to create, modify, and delete events (including recurring events) directly in Obsidian. OAuth 2.0 authentication, calendar selection, and automatic token refresh are all built-in.

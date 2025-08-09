@@ -14,6 +14,29 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.11.9',
+    changes: [
+      {
+        type: 'new',
+        title: 'Calendar Workspaces',
+        description:
+          'Save and switch between customized calendar setups (sources, filters, and view). Includes a header switcher, command palette action, and optional default workspace.'
+      },
+      {
+        type: 'improvement',
+        title: 'Faster switching and rendering',
+        description:
+          'Workspace changes apply incrementally to sources, filters, and current view, reducing re-renders and improving performance in large calendars.'
+      },
+      {
+        type: 'fix',
+        title: 'Edit modal subcategory parsing',
+        description:
+          'Fixes an issue where sub-categories could disappear when editing from the modal for certain titles.'
+      }
+    ]
+  },
+  {
     version: '0.11.8',
     changes: [
       {
