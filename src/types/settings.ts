@@ -7,6 +7,29 @@ export interface BusinessHoursSettings {
   endTime: string; // Format: 'HH:mm'
 }
 
+export interface WorkspaceSettings {
+  id: string;
+  name: string;
+
+  // View Configuration
+  defaultView?: {
+    desktop?: string;
+    mobile?: string;
+  };
+  defaultDate?: string; // 'today' | 'start-of-month' | 'next-week' | ISO date string
+
+  // Source & Content Filtering
+  visibleCalendars?: string[]; // Calendar IDs to show (if empty, show all)
+  categoryFilter?: {
+    mode: 'show-only' | 'hide'; // Filter mode
+    categories: string[]; // List of categories to show/hide
+  };
+
+  // Appearance Overrides
+  businessHours?: BusinessHoursSettings; // Override global business hours setting
+  timelineExpanded?: boolean; // Timeline categories expanded by default
+}
+
 export interface FullCalendarSettings {
   calendarSources: CalendarInfo[];
   defaultCalendar: number;
@@ -33,6 +56,8 @@ export interface FullCalendarSettings {
   googleClientSecret: string;
   businessHours: BusinessHoursSettings;
   enableBackgroundEvents: boolean;
+  workspaces: WorkspaceSettings[];
+  activeWorkspace: string | null; // Workspace ID, null means default view
 }
 
 export const DEFAULT_SETTINGS: FullCalendarSettings = {
@@ -61,5 +86,30 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
     startTime: '09:00',
     endTime: '17:00'
   },
-  enableBackgroundEvents: true
+  enableBackgroundEvents: true,
+  workspaces: [],
+  activeWorkspace: null
 };
+
+// Utility functions for workspace management
+export function generateWorkspaceId(): string {
+  return 'workspace_' + Math.random().toString(36).substr(2, 9);
+}
+
+export function createDefaultWorkspace(name: string): WorkspaceSettings {
+  return {
+    id: generateWorkspaceId(),
+    name: name,
+    defaultView: undefined,
+    defaultDate: undefined,
+    visibleCalendars: undefined,
+    categoryFilter: undefined,
+    businessHours: undefined,
+    timelineExpanded: undefined
+  };
+}
+
+export function getActiveWorkspace(settings: FullCalendarSettings): WorkspaceSettings | null {
+  if (!settings.activeWorkspace) return null;
+  return settings.workspaces.find(w => w.id === settings.activeWorkspace) || null;
+}

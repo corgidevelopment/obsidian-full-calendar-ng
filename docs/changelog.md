@@ -6,60 +6,60 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ## Version 0.11.8
 
-* **New:** Business Hours and Background Events Support
-  *Highlight working hours in calendar views and display events as background highlights (e.g., vacations or focus blocks). Configurable via settings and event frontmatter.*
+-   **New:** Business Hours and Background Events Support
+    _Highlight working hours in calendar views and display events as background highlights (e.g., vacations or focus blocks). Configurable via settings and event frontmatter._
 
-* **New:** Timeline View Category Shadow Events (#76)
-  *Adds optional display of category shadow events in Timeline View for better visual context and planning.*
+-   **New:** Timeline View Category Shadow Events (#76)
+    _Adds optional display of category shadow events in Timeline View for better visual context and planning._
 
-* **New:** Real-Time Duplicate Event Validation (#67)
-  *Prevents creation of duplicate events in the calendar interface, improving scheduling accuracy.*
+-   **New:** Real-Time Duplicate Event Validation (#67)
+    _Prevents creation of duplicate events in the calendar interface, improving scheduling accuracy._
 
-* **Improvement:** Edit Modal Now Supports Subcategory Editing
-  *The "Edit Event" modal now parses and displays sub-categories directly in the event title. Users can edit them inline and changes are preserved.*
+-   **Improvement:** Edit Modal Now Supports Subcategory Editing
+    _The "Edit Event" modal now parses and displays sub-categories directly in the event title. Users can edit them inline and changes are preserved._
 
-* **Improvement:** Settings Modal Reorganization and Footer
-  *UI updates include reorganized settings for better clarity, hover hints for display options, and a new footer for versioning and help links.*
+-   **Improvement:** Settings Modal Reorganization and Footer
+    _UI updates include reorganized settings for better clarity, hover hints for display options, and a new footer for versioning and help links._
 
-* **Improvement:** Configuration Migration for Legacy Support
-  *Legacy settings like `subprojectKeywords_exclude` are migrated automatically, and missing fields (e.g., `persona`) are filled safely.*
+-   **Improvement:** Configuration Migration for Legacy Support
+    _Legacy settings like `subprojectKeywords_exclude` are migrated automatically, and missing fields (e.g., `persona`) are filled safely._
 
-* **Improvement:** Type Safety and Safer DOM Manipulations (#69, #71)
-  *Removed unsafe type assertions across key modules (`DailyNoteCalendar`, `GoogleCalendar`, `interop`) and introduced robust DOM update utilities (`safeCreateEl`, `safeEmpty`).*
+-   **Improvement:** Type Safety and Safer DOM Manipulations (#69, #71)
+    _Removed unsafe type assertions across key modules (`DailyNoteCalendar`, `GoogleCalendar`, `interop`) and introduced robust DOM update utilities (`safeCreateEl`, `safeEmpty`)._
 
-* **Fix:** Recurring Task Completion Preserves Child Timing (#75)
-  *Undoing completed recurring tasks now correctly retains the timing of override events. Adds full test coverage for various edge cases.*
+-   **Fix:** Recurring Task Completion Preserves Child Timing (#75)
+    _Undoing completed recurring tasks now correctly retains the timing of override events. Adds full test coverage for various edge cases._
 
-* **Fix:** All-Day Events Treated as Floating in RRULE
-  *All-day recurring events now behave correctly as floating events, fixing unintended start time offsets.*
+-   **Fix:** All-Day Events Treated as Floating in RRULE
+    _All-day recurring events now behave correctly as floating events, fixing unintended start time offsets._
 
-* **Test:** Coverage for Business Hours, Background Events, and Override Logic
-  *New test suites validate schema correctness, UI rendering, and recurring timing behavior.*
+-   **Test:** Coverage for Business Hours, Background Events, and Override Logic
+    _New test suites validate schema correctness, UI rendering, and recurring timing behavior._
 
 ---
 
 ## Version 0.11.7
 
-* **New:** Full Google Calendar Integration with Two‑Way Sync
-  *Connect your Google account to create, modify, and delete events (including recurring events) directly in Obsidian. Includes OAuth 2.0 authentication, calendar selection, and proper token refresh handling.*
+-   **New:** Full Google Calendar Integration with Two‑Way Sync
+    _Connect your Google account to create, modify, and delete events (including recurring events) directly in Obsidian. Includes OAuth 2.0 authentication, calendar selection, and proper token refresh handling._
 
-* **Improvement:** Centralized and Reusable Form Components
-  *Inputs like URL, Username, Password, Directory Select, and Heading have been refactored into dual‑mode primitives with a `readOnly` mode for consistent display. A generic `TextInput` replaces one‑off components.*
+-   **Improvement:** Centralized and Reusable Form Components
+    _Inputs like URL, Username, Password, Directory Select, and Heading have been refactored into dual‑mode primitives with a `readOnly` mode for consistent display. A generic `TextInput` replaces one‑off components._
 
-* **Improvement:** Modularized Settings Tab and Changelog Component
-  *Settings sections are now organized into dedicated renderers with improved type safety. A new `Changelog.tsx` component has been added for clearer update visibility.*
+-   **Improvement:** Modularized Settings Tab and Changelog Component
+    _Settings sections are now organized into dedicated renderers with improved type safety. A new `Changelog.tsx` component has been added for clearer update visibility._
 
-* **Improvement:** Unified Event Parsing Pipeline
-  *Calendar parsers now output raw events without settings dependencies and pass them through a single `enhanceEvent` function for category logic. Tests have been updated to separately verify raw parsing and enhancement.*
+-   **Improvement:** Unified Event Parsing Pipeline
+    _Calendar parsers now output raw events without settings dependencies and pass them through a single `enhanceEvent` function for category logic. Tests have been updated to separately verify raw parsing and enhancement._
 
-* **Improvement:** Modular Event Cache Management
-  *The `EventCache` logic is split into dedicated modules (`RemoteCacheUpdater`, `LocalCacheUpdater`, `IdentifierManager`, `RecurringEventManager`), making synchronization and recurring event handling more reliable.*
+-   **Improvement:** Modular Event Cache Management
+    _The `EventCache` logic is split into dedicated modules (`RemoteCacheUpdater`, `LocalCacheUpdater`, `IdentifierManager`, `RecurringEventManager`), making synchronization and recurring event handling more reliable._
 
-* **Fix:** Daily Note Calendar Parsing and Cache Update Logic
-  *Parsing bugs in `DailyNoteCalendar` have been fixed, and `modifyEvent` now correctly flags dirty events to ensure the UI updates when frontmatter changes (e.g., `skipDate`).*
+-   **Fix:** Daily Note Calendar Parsing and Cache Update Logic
+    _Parsing bugs in `DailyNoteCalendar` have been fixed, and `modifyEvent` now correctly flags dirty events to ensure the UI updates when frontmatter changes (e.g., `skipDate`)._
 
-* **Other:** Codebase Refactor for Type Safety and Maintainability
-  *Shared types and utilities have been centralized, internal names clarified, and redundant code removed—all without changing user‑facing behavior.*
+-   **Other:** Codebase Refactor for Type Safety and Maintainability
+    _Shared types and utilities have been centralized, internal names clarified, and redundant code removed—all without changing user‑facing behavior._
 
 ---
 
@@ -118,8 +118,8 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 -   **Improvement:** Better Task Behavior for Repeating Events  
     _Recurring tasks now behave just like regular ones — you can check them off individually, and they show up correctly in the calendar._
 
--   **Fix:** Multiday Allday events fix by @yalikebaz 
-    _Multiday Allday events made inclusive for local calenders. Thanks to @yalikebaz for the fix!_
+-   **Fix:** Multi-day all-day events fix by @yalikebaz 
+  _Multi-day all-day events made inclusive for local calendars. Thanks to @yalikebaz for the fix!_
 
 -   **Fix:** Performance and Architecture Improvements 
     _Refactored recurring event logic, improved performance on large calendars, and cleaned up the plugin architecture to prepare for future features._

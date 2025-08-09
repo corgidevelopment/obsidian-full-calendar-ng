@@ -98,7 +98,7 @@ function startDesktopLogin(plugin: FullCalendarPlugin, authUrl: string): void {
 
       await exchangeCodeForToken(code, state, plugin);
       // Refresh the settings tab if it's open
-      plugin.settingsTab?.display();
+      await plugin.settingsTab?.display();
     } catch (e) {
       console.error('Error handling Google Auth callback:', e);
       res.end('Authentication failed. Please check the console in Obsidian and try again.');

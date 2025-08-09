@@ -12,50 +12,63 @@
  * @license See LICENSE.md
  */
 
-import {
-  FullCalendarSettingTab,
-  ensureCalendarIds,
-  sanitizeInitialView
-} from './ui/settings/SettingsTab';
+import { LazySettingsTab } from './ui/settings/LazySettingsTab';
+import type { FullCalendarSettingTab } from './ui/settings/SettingsTab';
+import { ensureCalendarIds, sanitizeInitialView } from './ui/settings/utilsSettings';
 import { PLUGIN_SLUG } from './types';
 import EventCache from './core/EventCache';
 import { toEventInput } from './core/interop';
 import { ObsidianIO } from './ObsidianAdapter';
 import { renderCalendar } from './ui/calendar';
 import { manageTimezone } from './calendars/utils/Timezone';
-import ICSCalendar from './calendars/ICSCalendar';
-import { launchCreateModal } from './ui/event_modal';
 import { Notice, Plugin, TFile, App } from 'obsidian';
-import CalDAVCalendar from './calendars/CalDAVCalendar';
-import GoogleCalendar from './calendars/GoogleCalendar';
-import FullNoteCalendar from './calendars/FullNoteCalendar';
-import DailyNoteCalendar from './calendars/DailyNoteCalendar';
+// Heavy calendar classes are loaded lazily in the initializer map below
 import { CategorizationManager } from './core/CategorizationManager';
-import { exchangeCodeForToken } from './calendars/parsing/google/auth';
+import type { CalendarView } from './ui/view';
 import { FullCalendarSettings, DEFAULT_SETTINGS } from './types/settings';
-import { CalendarView, FULL_CALENDAR_SIDEBAR_VIEW_TYPE, FULL_CALENDAR_VIEW_TYPE } from './ui/view';
+
+// Inline the view type constants to avoid loading the heavy view module at startup
+const FULL_CALENDAR_VIEW_TYPE = 'full-calendar-view';
+const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = 'full-calendar-sidebar-view';
 
 export default class FullCalendarPlugin extends Plugin {
   settings: FullCalendarSettings = DEFAULT_SETTINGS;
   categorizationManager!: CategorizationManager;
   isMobile: boolean = false;
-  settingsTab?: FullCalendarSettingTab;
+  settingsTab?: LazySettingsTab;
 
   // To parse `data.json` file.`
   cache: EventCache = new EventCache(this, {
     local: (info, settings) =>
       info.type === 'local'
-        ? new FullNoteCalendar(new ObsidianIO(this.app), this, info, settings)
+        ? new (require('./calendars/FullNoteCalendar').default)(
+            new ObsidianIO(this.app),
+            this,
+            info,
+            settings
+          )
         : null,
     dailynote: (info, settings) =>
       info.type === 'dailynote'
-        ? new DailyNoteCalendar(new ObsidianIO(this.app), this, info, settings)
+        ? new (require('./calendars/DailyNoteCalendar').default)(
+            new ObsidianIO(this.app),
+            this,
+            info,
+            settings
+          )
         : null,
-    ical: (info, settings) => (info.type === 'ical' ? new ICSCalendar(info, settings) : null),
+    ical: (info, settings) =>
+      info.type === 'ical'
+        ? new (require('./calendars/ICSCalendar').default)(info, settings)
+        : null,
     caldav: (info, settings) =>
-      info.type === 'caldav' ? new CalDAVCalendar(info, settings) : null,
+      info.type === 'caldav'
+        ? new (require('./calendars/CalDAVCalendar').default)(info, settings)
+        : null,
     google: (info, settings) =>
-      info.type === 'google' ? new GoogleCalendar(this, info, settings) : null,
+      info.type === 'google'
+        ? new (require('./calendars/GoogleCalendar').default)(this, info, settings)
+        : null,
     FOR_TEST_ONLY: () => null
   });
 
@@ -126,9 +139,15 @@ export default class FullCalendarPlugin extends Plugin {
     // @ts-ignore
     window.cache = this.cache;
 
-    this.registerView(FULL_CALENDAR_VIEW_TYPE, leaf => new CalendarView(leaf, this, false));
+    this.registerView(
+      FULL_CALENDAR_VIEW_TYPE,
+      leaf => new (require('./ui/view').CalendarView)(leaf, this, false)
+    );
 
-    this.registerView(FULL_CALENDAR_SIDEBAR_VIEW_TYPE, leaf => new CalendarView(leaf, this, true));
+    this.registerView(
+      FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
+      leaf => new (require('./ui/view').CalendarView)(leaf, this, true)
+    );
 
     if (!this.isMobile) {
       // Lazily import the view to avoid loading plotly on mobile.
@@ -147,14 +166,15 @@ export default class FullCalendarPlugin extends Plugin {
       await this.activateView();
     });
 
-    this.settingsTab = new FullCalendarSettingTab(this.app, this);
+    this.settingsTab = new LazySettingsTab(this.app, this);
     this.addSettingTab(this.settingsTab);
 
     // Commands visible in the command palette
     this.addCommand({
       id: 'full-calendar-new-event',
       name: 'New Event',
-      callback: () => {
+      callback: async () => {
+        const { launchCreateModal } = await import('./ui/event_modal');
         launchCreateModal(this, {});
       }
     });
@@ -222,9 +242,10 @@ export default class FullCalendarPlugin extends Plugin {
 
     this.registerObsidianProtocolHandler('full-calendar-google-auth', async params => {
       if (params.code && params.state) {
+        const { exchangeCodeForToken } = await import('./calendars/parsing/google/auth');
         await exchangeCodeForToken(params.code, params.state, this);
         if (this.settingsTab) {
-          this.settingsTab.display();
+          await this.settingsTab.display();
         }
       } else {
         new Notice('Google authentication failed. Please try again.');
@@ -268,9 +289,15 @@ export default class FullCalendarPlugin extends Plugin {
    */
   async saveSettings() {
     await this.saveData(this.settings);
-    this.cache.reset(this.settings.calendarSources);
-    await this.cache.populate();
-    this.cache.resync();
+    // If calendarSources changed, rebuild cache; otherwise use lightweight resync
+    // This is a heuristic: callers that mutate calendarSources will trigger reset via Settings UI.
+    if (this.cache && this.cache.initialized) {
+      this.cache.resync();
+    } else {
+      this.cache.reset(this.settings.calendarSources);
+      await this.cache.populate();
+      this.cache.resync();
+    }
   }
 
   /**

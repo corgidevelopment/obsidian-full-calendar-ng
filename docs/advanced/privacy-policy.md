@@ -29,13 +29,13 @@ The accessed calendar data is used **solely for displaying and managing events**
 The plugin requests the following OAuth scopes:
 
 - `https://www.googleapis.com/auth/calendar.events` — View and edit events on all your calendars (core functionality of the plugin).
-- `https://www.googleapis.com/auth/calendar.readonly` — See and download any calendar you can access using your Google Calendar (required 1) for cached rendering during the session; 2) Selecting the relevant calender among other calender associated with the account ).
+- `https://www.googleapis.com/auth/calendar.readonly` — See and download any calendar you can access using your Google Calendar (required 1) for cached rendering during the session; 2) Selecting the relevant calendar among other calendars associated with the account).
 
 These scopes are required to enable synchronization between Google Calendar and Obsidian and are used strictly for their intended purpose.
 
 ## Opt out Policy
 
-- You are free to opt out at anytime - simply disconnect your Google Account and all your Google Calender data will be immediately removed from the system permanently.
+- You are free to opt out at any time — simply disconnect your Google Account and all your Google Calendar data will be immediately removed from the system permanently.
 
 ## Contact
 

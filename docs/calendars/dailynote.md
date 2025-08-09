@@ -25,3 +25,23 @@ If a heading does not exist in a daily note, it will be appended to the end of t
 Note that only one daily note calendar can be active at a time.
 
 ![](../assets/dailynote.gif)
+
+---
+
+## Limitations and behavior nuances
+
+- Recurring events cannot be created or edited in Daily Notes. Use a Full Note calendar for recurring series.
+- Multi-day single events (with an `endDate`) are not supported in Daily Notes.
+- Duplicate titles on the same day are not allowed. The editor will warn if another item under the heading already has the same visible title for that date.
+- Only one Daily Note calendar source is supported at a time in settings.
+
+---
+
+## Timezone handling (Daily Notes)
+
+Daily Note calendars support two modes, configurable in Settings → General → Daily note timezone:
+
+- Local (default): Event times are interpreted relative to your computer's current timezone and are not stamped into the line.
+- Strict: Event times are stamped with the current Display Timezone and are treated as anchored timestamps when written back.
+
+In both modes, events are rendered in the Display Timezone you choose for the calendar view.

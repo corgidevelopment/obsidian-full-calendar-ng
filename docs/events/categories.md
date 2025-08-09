@@ -25,6 +25,11 @@ The delimiter is a **dash surrounded by spaces (` - `)**.
 
 When displayed on the calendar, the `Category` is stripped from the title to keep the view clean (e.g., you'll see `Project Sync - Daily Standup`). The full title is always preserved in the note.
 
+Storage details:
+
+- Daily Note calendars: The category and sub-category are part of the list item text (the title). Inline fields do not include a separate category key.
+- Full Note calendars: The category and sub-category are encoded in the `title` field of frontmatter; separate `category`/`subCategory` keys are not persisted in frontmatter.
+
 !!! tip "Why this format?"
     This title-based approach was chosen for maximum compatibility. Most remote calendar systems (like Google Calendar) don't have a dedicated "category" field that syncs externally. By embedding the category in the title, you can organize events from *any* source, and the plugin will recognize them.
 

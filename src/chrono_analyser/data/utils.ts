@@ -3,6 +3,7 @@
  * These helpers are used for date manipulation, duration calculation, and other reusable logic.
  */
 
+import { rrulestr } from 'rrule';
 import { OFCEvent } from '../../types';
 import { TimeRecord } from './types';
 
@@ -154,6 +155,7 @@ function getRecurrenceDateRange(
 
 /**
  * NEW FUNCTION: Returns an array of dates for each occurrence of a recurring event within a range.
+ * Filters out any dates that exist in the event's skipDates array.
  */
 export function getRecurringInstances(
   record: TimeRecord,
@@ -167,9 +169,17 @@ export function getRecurringInstances(
   const { effectiveStart, effectiveEnd, targetDays } = rangeInfo;
   const instances: Date[] = [];
   const currentDate = new Date(effectiveStart.getTime());
+
+  // Get skipDates as a Set of ISO date strings for fast lookup
+  const skipDatesSet = new Set(record.metadata.skipDates || []);
+
   while (currentDate.getTime() <= effectiveEnd.getTime()) {
     if (targetDays.includes(currentDate.getUTCDay())) {
-      instances.push(new Date(currentDate.getTime()));
+      const dateStr = getISODate(currentDate);
+      // Only include the date if it's not in the skipDates list
+      if (dateStr && !skipDatesSet.has(dateStr)) {
+        instances.push(new Date(currentDate.getTime()));
+      }
     }
     currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
@@ -178,6 +188,7 @@ export function getRecurringInstances(
 
 /**
  * Calculates how many times a recurring event occurs within a given date range.
+ * Excludes any dates that exist in the event's skipDates array.
  */
 export function calculateRecurringInstancesInDateRange(
   metadata: OFCEvent,
@@ -191,11 +202,103 @@ export function calculateRecurringInstancesInDateRange(
   const { effectiveStart, effectiveEnd, targetDays } = rangeInfo;
   let count = 0;
   const currentDate = new Date(effectiveStart.getTime());
+
+  // Get skipDates as a Set of ISO date strings for fast lookup
+  const skipDatesSet = new Set(metadata.skipDates || []);
+
   while (currentDate.getTime() <= effectiveEnd.getTime()) {
     if (targetDays.includes(currentDate.getUTCDay())) {
-      count++;
+      const dateStr = getISODate(currentDate);
+      // Only count the date if it's not in the skipDates list
+      if (dateStr && !skipDatesSet.has(dateStr)) {
+        count++;
+      }
     }
     currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
   return count;
+}
+
+/**
+ * Returns an array of dates for each occurrence of an rrule event within a range.
+ * Filters out any dates that exist in the event's skipDates array.
+ */
+export function getRruleInstances(
+  record: TimeRecord,
+  filterStartDate: Date | null,
+  filterEndDate: Date | null
+): Date[] {
+  if (record.metadata.type !== 'rrule') return [];
+
+  const { rrule: rruleString, startDate, skipDates = [] } = record.metadata;
+  if (!rruleString || !startDate) return [];
+
+  try {
+    // Parse the start date
+    const dtstart = new Date(startDate);
+    if (isNaN(dtstart.getTime())) return [];
+
+    // Create rrule object
+    const rule = rrulestr(rruleString, { dtstart });
+
+    // Set up date range for expansion
+    const rangeStart = filterStartDate || new Date('1900-01-01');
+    const rangeEnd = filterEndDate || new Date('2100-12-31');
+
+    // Get all instances in the range
+    const instances = rule.between(rangeStart, rangeEnd, true);
+
+    // Filter out skipDates
+    const skipDatesSet = new Set(skipDates);
+
+    return instances.filter(date => {
+      const dateStr = getISODate(date);
+      return dateStr && !skipDatesSet.has(dateStr);
+    });
+  } catch (error) {
+    console.warn('Failed to expand rrule:', rruleString, error);
+    return [];
+  }
+}
+
+/**
+ * Calculates how many times an rrule event occurs within a given date range.
+ * Excludes any dates that exist in the event's skipDates array.
+ */
+export function calculateRruleInstancesInDateRange(
+  metadata: OFCEvent,
+  filterStartDate: Date | null,
+  filterEndDate: Date | null
+): number {
+  if (metadata.type !== 'rrule') return 0;
+
+  const { rrule: rruleString, startDate, skipDates = [] } = metadata;
+  if (!rruleString || !startDate) return 0;
+
+  try {
+    // Parse the start date
+    const dtstart = new Date(startDate);
+    if (isNaN(dtstart.getTime())) return 0;
+
+    // Create rrule object
+    const rule = rrulestr(rruleString, { dtstart });
+
+    // Set up date range for expansion
+    const rangeStart = filterStartDate || new Date('1900-01-01');
+    const rangeEnd = filterEndDate || new Date('2100-12-31');
+
+    // Get all instances in the range
+    const instances = rule.between(rangeStart, rangeEnd, true);
+
+    // Filter out skipDates and count
+    const skipDatesSet = new Set(skipDates);
+
+    return instances.filter(date => {
+      const dateStr = getISODate(date);
+      return dateStr && !skipDatesSet.has(dateStr);
+    }).length;
+  } catch (error) {
+    console.warn('Failed to count rrule instances:', rruleString, error);
+    return 0;
+  }
 }

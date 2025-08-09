@@ -302,12 +302,59 @@ export class DataManager {
             this.processRecord(finalRecord, effectiveDuration, breakdownBy, result, uniqueFiles);
           }
         }
+      } else if (record.metadata.type === 'rrule' && hasDateFilter) {
+        if (expandRecurring) {
+          const instances = Utils.getRruleInstances(record, startDate, endDate);
+          for (const instanceDate of instances) {
+            let newMetadata: OFCEvent;
+            const commonProperties = {
+              title: record.metadata.title,
+              id: record.metadata.id,
+              category: record.metadata.category,
+              timezone: record.metadata.timezone,
+              type: 'single' as const,
+              date: Utils.getISODate(instanceDate)!,
+              endDate: Utils.getISODate(instanceDate)!
+            };
+            if (record.metadata.allDay) {
+              newMetadata = { ...commonProperties, allDay: true };
+            } else {
+              newMetadata = {
+                ...commonProperties,
+                allDay: false,
+                startTime: 'startTime' in record.metadata ? record.metadata.startTime : '00:00',
+                endTime: 'endTime' in record.metadata ? record.metadata.endTime : '00:00'
+              };
+            }
+            const instanceRecord: TimeRecord = {
+              ...record,
+              date: instanceDate,
+              metadata: newMetadata,
+              _effectiveDurationInPeriod: record.duration
+            };
+            this.processRecord(instanceRecord, record.duration, breakdownBy, result, uniqueFiles);
+          }
+        } else {
+          const numInstances = Utils.calculateRruleInstancesInDateRange(
+            record.metadata,
+            startDate,
+            endDate
+          );
+          if (numInstances > 0) {
+            const effectiveDuration = record.duration * numInstances;
+            const finalRecord = { ...record, _effectiveDurationInPeriod: effectiveDuration };
+            this.processRecord(finalRecord, effectiveDuration, breakdownBy, result, uniqueFiles);
+          }
+        }
       } else {
         const effectiveDuration = record.duration;
         let includeRecord = false;
-        if (record.metadata.type === 'recurring' && !hasDateFilter) {
+        if (
+          (record.metadata.type === 'recurring' || record.metadata.type === 'rrule') &&
+          !hasDateFilter
+        ) {
           includeRecord = true;
-        } else if (record.metadata.type !== 'recurring') {
+        } else if (record.metadata.type !== 'recurring' && record.metadata.type !== 'rrule') {
           if (hasDateFilter) {
             if (this.isWithinDateRange(record.date, startDate, endDate)) {
               includeRecord = true;

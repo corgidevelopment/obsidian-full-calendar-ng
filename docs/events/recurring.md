@@ -58,6 +58,8 @@ If you try to edit an override's title or category in the modal, you'll see that
 
 This prevents accidental changes and helps you edit the entire series when you need to.
 
+Note: Some fields on an override intentionally inherit from the parent rule and can't be changed directly on the child.
+
 ### Deleting a Recurring Event
 
 When you delete an event that is part of a recurring series, the plugin will ask you what you want to do.
@@ -66,5 +68,7 @@ When you delete an event that is part of a recurring series, the plugin will ask
 -   **Deleting a Master Event:** If you delete the main recurring event (the one that defines the series), you will be presented with a modal with two options:
     1.  **Promote Children:** This deletes the master recurring rule but **converts all of its overrides into standalone events**. They will no longer be linked to the series.
     2.  **Delete Everything:** This deletes the master recurring rule **and all of its child overrides**. This cannot be undone.
+
+Remote calendars (Google/ICS/CalDAV) respect cancellations and exceptions from the source and propagate them into the view.
 
 <!-- TODO: Add Screenshot of DeleteRecurringModal -->

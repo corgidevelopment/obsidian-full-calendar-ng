@@ -157,24 +157,38 @@ export default class EventCache {
    * Populate the cache with events.
    */
   async populate() {
-    if (!this.initialized || this.calendars.size === 0) {
+    // Avoid duplicate init; reset() already calls init()
+    if (this.calendars.size === 0) {
       this.init();
     }
-    for (const calendar of this.calendars.values()) {
-      const results = await calendar.getEvents();
-      results.forEach(([event, location]) =>
-        this._store.add({
-          calendar,
-          location,
-          id: event.id || this.generateId(),
-          event
-        })
-      );
+
+    const calendars = Array.from(this.calendars.values());
+
+    const settled = await Promise.allSettled(
+      calendars.map(async calendar => {
+        const results = await calendar.getEvents();
+        return { calendar, results };
+      })
+    );
+
+    for (const s of settled) {
+      if (s.status === 'fulfilled') {
+        const { calendar, results } = s.value;
+        results.forEach(([event, location]) =>
+          this._store.add({
+            calendar,
+            location,
+            id: event.id || this.generateId(),
+            event
+          })
+        );
+      } else {
+        console.warn('Full Calendar: Failed to load a calendar source', s.reason);
+      }
     }
+
     this.initialized = true;
-
     this.identifierManager.buildMap(this._store);
-
     this.revalidateRemoteCalendars();
   }
 

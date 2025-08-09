@@ -14,52 +14,24 @@
  * @license See LICENSE.md
  */
 
-import {
+import type {
   Calendar,
   EventApi,
   EventClickArg,
   EventHoveringArg,
   EventSourceInput
 } from '@fullcalendar/core';
-import listPlugin from '@fullcalendar/list';
-import rrulePlugin from '@fullcalendar/rrule';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import iCalendarPlugin from '@fullcalendar/icalendar';
-import interactionPlugin from '@fullcalendar/interaction';
-import googleCalendarPlugin from '@fullcalendar/google-calendar';
-import resourceTimelinePlugin from '@fullcalendar/resource-timeline';
 
 import { Menu } from 'obsidian';
 
-// There is an issue with FullCalendar RRule support around Daylight Saving Time boundaries
-// which is fixed by this monkeypatch:
-// https://github.com/fullcalendar/fullcalendar/issues/5273#issuecomment-1360459342
-const originalExpand = rrulePlugin.recurringTypes[0].expand;
-rrulePlugin.recurringTypes[0].expand = function (errd, fr, de) {
-  // If the rruleSet is timezone-aware, the rrule.js library can handle it correctly.
-  // Our old monkeypatch logic interferes with this.
-  // We only need to apply the patch for timezone-naive rules (likely from remote ICS feeds).
-  if (errd.rruleSet.tzid()) {
-    return originalExpand.call(this, errd, fr, de);
-  }
-
-  // Fallback to the monkeypatch for timezone-naive rules.
-  const hours = errd.rruleSet._dtstart
-    ? errd.rruleSet._dtstart.getHours()
-    : de.toDate(fr.start).getUTCHours();
-
-  return errd.rruleSet.between(de.toDate(fr.start), de.toDate(fr.end), true).map((d: Date) => {
-    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), hours, d.getMinutes()));
-  });
-};
+let didPatchRRule = false;
 
 interface ExtraRenderProps {
   eventClick?: (info: EventClickArg) => void;
   customButtons?: {
     [key: string]: {
       text: string;
-      click: () => void | Promise<void>;
+      click: (ev?: MouseEvent) => void | Promise<void>;
     };
   };
 
@@ -78,11 +50,48 @@ interface ExtraRenderProps {
   // timeZone?: string;
 }
 
-export function renderCalendar(
+export async function renderCalendar(
   containerEl: HTMLElement,
   eventSources: EventSourceInput[],
   settings?: ExtraRenderProps & { enableAdvancedCategorization?: boolean }
-): Calendar {
+): Promise<Calendar> {
+  // Lazy-load FullCalendar core and plugins only when rendering
+  const [core, list, rrule, daygrid, timegrid, interaction] = await Promise.all([
+    import('@fullcalendar/core'),
+    import('@fullcalendar/list'),
+    import('@fullcalendar/rrule'),
+    import('@fullcalendar/daygrid'),
+    import('@fullcalendar/timegrid'),
+    import('@fullcalendar/interaction')
+  ]);
+
+  // Optionally load scheduler plugin only when needed
+  const showResourceViews = !!settings?.enableAdvancedCategorization;
+  const resourceTimeline = showResourceViews
+    ? await import('@fullcalendar/resource-timeline')
+    : null;
+
+  // Apply RRULE monkeypatch once after plugin loads
+  if (!didPatchRRule) {
+    const rrulePlugin: any = (rrule as any).default || rrule;
+    const originalExpand = rrulePlugin.recurringTypes[0].expand;
+    rrulePlugin.recurringTypes[0].expand = function (errd: any, fr: any, de: any) {
+      if (errd.rruleSet.tzid()) {
+        return originalExpand.call(this, errd, fr, de);
+      }
+      const hours = errd.rruleSet._dtstart
+        ? errd.rruleSet._dtstart.getHours()
+        : de.toDate(fr.start).getUTCHours();
+      return errd.rruleSet
+        .between(de.toDate(fr.start), de.toDate(fr.end), true)
+        .map(
+          (d: Date) =>
+            new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), hours, d.getMinutes()))
+        );
+    };
+    didPatchRRule = true;
+  }
+
   const isMobile = window.innerWidth < 500;
   const isNarrow = settings?.forceNarrow || isMobile;
   const {
@@ -94,7 +103,6 @@ export function renderCalendar(
     toggleTask,
     customButtons,
     resources,
-    enableAdvancedCategorization,
     onViewChange,
     businessHours
   } = settings || {};
@@ -130,13 +138,17 @@ export function renderCalendar(
     });
 
   // Only show resource timeline views if category coloring is enabled
-  const showResourceViews = !!enableAdvancedCategorization;
+  const enableAdvancedCategorization = settings?.enableAdvancedCategorization;
+  // already computed showResourceViews above
 
   // Group the standard and timeline views together with a space.
   // This tells FullCalendar to render them as a single, connected button group.
   const viewButtonGroup = ['views', showResourceViews ? 'timeline' : null]
     .filter(Boolean)
     .join(',');
+
+  // Add workspace button to the left side of toolbar when not narrow
+  const leftToolbarGroup = !isNarrow ? 'workspace prev,next today' : 'prev,next today';
 
   // The comma between 'analysis' and the view group creates the visual separation.
   const rightToolbarGroup = [!isNarrow ? 'analysis' : null, viewButtonGroup]
@@ -145,7 +157,7 @@ export function renderCalendar(
 
   const headerToolbar = !isNarrow
     ? {
-        left: 'prev,next today',
+        left: leftToolbarGroup,
         center: 'title',
         right: rightToolbarGroup
       }
@@ -239,7 +251,15 @@ export function renderCalendar(
 
   // FullCalendar Premium open-source license key (GPLv3 projects)
   // See: https://fullcalendar.io/license for details
-  const cal = new Calendar(containerEl, {
+  const CalendarCtor = (core as any).Calendar as typeof Calendar;
+  const dayGridPlugin = (daygrid as any).default;
+  const timeGridPlugin = (timegrid as any).default;
+  const listPlugin = (list as any).default;
+  const rrulePlugin = (rrule as any).default;
+  const interactionPlugin = (interaction as any).default;
+  const resourceTimelinePlugin = resourceTimeline ? (resourceTimeline as any).default : null;
+
+  const cal = new CalendarCtor(containerEl, {
     schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
     customButtons: customButtonConfig,
     // timeZone: settings?.timeZone,
@@ -248,15 +268,14 @@ export function renderCalendar(
       dayGridPlugin,
       timeGridPlugin,
       listPlugin,
-      resourceTimelinePlugin,
+      // Only include the heavy scheduler plugin when needed
+      ...(showResourceViews && resourceTimelinePlugin
+        ? ([resourceTimelinePlugin] as const)
+        : ([] as const)),
       // Drag + drop and editing
       interactionPlugin,
-      // Remote sources
-      googleCalendarPlugin,
-      iCalendarPlugin,
       rrulePlugin
     ],
-    googleCalendarApiKey: 'AIzaSyDIiklFwJXaLWuT_4y6I9ZRVVsPuf4xGrk',
     initialView:
       settings?.initialView?.[isNarrow ? 'mobile' : 'desktop'] ||
       (isNarrow ? 'timeGrid3Days' : 'timeGridWeek'),
@@ -266,9 +285,11 @@ export function renderCalendar(
     headerToolbar,
     footerToolbar,
     views,
-    resourceAreaHeaderContent: 'Categories',
-    resources,
-    resourcesInitiallyExpanded: false,
+    ...(showResourceViews && {
+      resourceAreaHeaderContent: 'Categories',
+      resources,
+      resourcesInitiallyExpanded: false
+    }),
 
     // Business hours configuration
     ...(businessHours && { businessHours }),

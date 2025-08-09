@@ -51,3 +51,9 @@ Here’s how to set it up step by step:
 ---
 
 Once completed, you’ll be able to **sync your Google Calendar both ways**—any changes made in Obsidian will be reflected in Google Calendar, and vice versa.
+
+Notes:
+
+- Google calendars are writable from Obsidian (create, edit, delete). Some edits to a single instance of a recurring series create proper exceptions.
+- Duplicate checks are not enforced for Google; the source allows same-name events.
+- Events are converted into your chosen Display Timezone for viewing.

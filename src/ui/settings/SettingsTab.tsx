@@ -31,8 +31,6 @@ import * as ReactDOM from 'react-dom/client';
 import { createElement, createRef } from 'react';
 
 import { getNextColor } from '../colors';
-import { FullCalendarSettings } from '../../types/settings';
-import { generateCalendarId } from '../../types/calendar_settings';
 import { CalendarSettingsRef } from './components/CalendarSetting';
 import { getDailyNoteSettings } from 'obsidian-daily-notes-interface';
 import { importCalendars } from '../../calendars/parsing/caldav/import';
@@ -46,6 +44,7 @@ import { renderGeneralSettings } from './sections/renderGeneral';
 import { renderCalendarManagement } from './sections/renderCalendars';
 import { renderCategorizationSettings } from './sections/renderCategorization';
 import { renderAppearanceSettings } from './sections/renderAppearance';
+import { renderWorkspaceSettings } from './sections/renderWorkspaces';
 
 // Import the new React components
 import './changelog.css';
@@ -202,6 +201,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
   private _renderMainSettings(): void {
     renderGeneralSettings(this.containerEl, this.plugin, () => this.display());
     renderAppearanceSettings(this.containerEl, this.plugin, () => this.display());
+    renderWorkspaceSettings(this.containerEl, this.plugin, () => this.display());
     renderCategorizationSettings(this.containerEl, this.plugin, () => this.display());
     renderWhatsNew(this.containerEl, () => {
       this.showFullChangelog = true;
@@ -230,37 +230,8 @@ export class FullCalendarSettingTab extends PluginSettingTab {
 
 // These functions remain pure and outside the class.
 
-export function ensureCalendarIds(sources: any[]): { updated: boolean; sources: CalendarInfo[] } {
-  let updated = false;
-  const existingIds: string[] = sources.map(s => s.id).filter(Boolean);
-  const updatedSources = sources.map(source => {
-    if (!source.id) {
-      updated = true;
-      const newId = generateCalendarId(source.type, existingIds);
-      existingIds.push(newId);
-      return { ...source, id: newId };
-    }
-    return source;
-  });
-  return { updated, sources: updatedSources as CalendarInfo[] };
-}
-
-export function sanitizeInitialView(settings: FullCalendarSettings): FullCalendarSettings {
-  if (
-    !settings.enableAdvancedCategorization &&
-    settings.initialView.desktop.startsWith('resourceTimeline')
-  ) {
-    new Notice('Timeline view is disabled. Resetting default desktop view to "Week".', 5000);
-    return {
-      ...settings,
-      initialView: {
-        ...settings.initialView,
-        desktop: 'timeGridWeek'
-      }
-    };
-  }
-  return settings;
-}
+// ensureCalendarIds and sanitizeInitialView moved to ./utils to avoid loading this heavy
+// settings module (and React) during plugin startup. Keep imports above.
 
 class SelectGoogleCalendarsModal extends Modal {
   plugin: FullCalendarPlugin;

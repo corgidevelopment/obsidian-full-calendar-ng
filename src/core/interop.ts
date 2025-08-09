@@ -197,7 +197,12 @@ export function toEventInput(
     const displayZone =
       frontmatter.timezone || settings.displayTimezone || DateTime.local().zoneName;
 
-    const startRecurDate = frontmatter.startRecur || '1970-01-01';
+    // Use a recent default start date to avoid massive recurrence expansions when startRecur is absent.
+    const startRecurDate =
+      frontmatter.startRecur ||
+      DateTime.local().startOf('year').toISODate() ||
+      DateTime.local().toISODate() ||
+      '2025-01-01';
     let dtstart: DateTime;
 
     // 2  Build the local start-of-series DateTime

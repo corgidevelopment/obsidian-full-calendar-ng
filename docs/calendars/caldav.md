@@ -4,6 +4,14 @@ You can add any calendar that supports CalDAV over HTTPS basic authentication wi
 
 Calendars are automatically re-fetched from their source at most every five minutes. If you would like to revalidate remote calendars directly, you can run the command `Full Calendar: Revalidate remote calendars`.
 
+---
+
+## Read-only and timezone behavior
+
+- CalDAV calendars are read-only inside Obsidian.
+- Events are parsed with their source timezone and converted to your Display Timezone for viewing.
+- Cancellations/exceptions present on the server are respected.
+
 ## Using with Advanced Categories
 
 CalDAV calendars are fully compatible with the **[Advanced Categories feature](../events/categories.md)**.

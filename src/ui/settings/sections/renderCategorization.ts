@@ -21,7 +21,7 @@ export function renderCategorizationSettings(
   fragment.appendText('Learn more ');
   fragment.createEl('a', {
     text: 'here',
-    href: 'https://youfoundjk.github.io/plugin-full-calendar/events/categories.html'
+    href: 'https://youfoundjk.github.io/plugin-full-calendar/events/categories'
   });
   fragment.appendText('.');
   containerEl.createEl('p', {

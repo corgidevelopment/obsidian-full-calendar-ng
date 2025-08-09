@@ -6,6 +6,16 @@ Calendars are re-fetched automatically from their source at most every five minu
 
 ![](../assets/sync-setup-ics.gif)
 
+Note: `webcal://` links are automatically converted to `https://` when added.
+
+---
+
+## Read-only and timezone behavior
+
+- ICS calendars are read-only inside Obsidian.
+- Events are parsed with their source timezone (including TZID/UTC) and converted to your Display Timezone for viewing.
+- Cancellations/exceptions present in the feed are respected.
+
 ## Using with Advanced Categories
 
 Remote calendars are fully compatible with the **[Advanced Categories feature](../events/categories.md)**.
