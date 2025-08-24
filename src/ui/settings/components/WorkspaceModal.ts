@@ -6,7 +6,6 @@
 
 import { Modal, Setting, DropdownComponent, TextComponent, ToggleComponent } from 'obsidian';
 import FullCalendarPlugin from '../../../main';
-import { buildSettingsToRuntimeIdMap, getRuntimeCalendarId } from '../../settings/utilsSettings';
 import {
   WorkspaceSettings,
   generateWorkspaceId,
@@ -158,7 +157,7 @@ export class WorkspaceModal extends Modal {
     section.createEl('h3', { text: 'Calendar Filters' });
 
     // Get available calendars
-    const calendars = this.plugin.settings.calendarSources;
+    const calendars = this.plugin.providerRegistry.getAllSources();
 
     if (calendars.length === 0) {
       section.createEl('p', {
@@ -180,8 +179,7 @@ export class WorkspaceModal extends Modal {
   }
 
   private renderCalendarCheckboxes(container: HTMLElement, calendars: any[]) {
-    const selectedIds = (this.workspace.visibleCalendars || []).map(String);
-    const idMap = buildSettingsToRuntimeIdMap(this.plugin.settings.calendarSources);
+    const selectedIds = new Set((this.workspace.visibleCalendars || []).map(String));
 
     calendars.forEach(calendar => {
       const checkboxContainer = container.createEl('div', { cls: 'workspace-checkbox-item' });
@@ -204,14 +202,10 @@ export class WorkspaceModal extends Modal {
             }
             break;
           case 'caldav':
-            try {
-              displayName = `CalDAV: ${new URL(calendar.url).hostname}`;
-            } catch (_) {
-              displayName = 'CalDAV Calendar';
-            }
+            displayName = `CalDAV: ${calendar.name}`;
             break;
           case 'google':
-            displayName = `Google Calendar`;
+            displayName = `Google: ${calendar.name}`;
             break;
           default:
             displayName = `${calendar.type} Calendar`;
@@ -219,25 +213,18 @@ export class WorkspaceModal extends Modal {
       }
 
       new Setting(checkboxContainer).setName(displayName).addToggle(toggle => {
-        // Prefer runtime id for selection, fallback to settings id
-        const runtimeId = getRuntimeCalendarId(calendar);
         const settingsId = String(calendar.id);
-        const currentId = selectedIds.find(id => id === runtimeId || id === settingsId);
-        toggle.setValue(!!currentId);
-        toggle.onChange(checked => {
-          const currentList = (this.workspace.visibleCalendars || []).map(String);
-          const idToUse = runtimeId; // Store runtime ids going forward
+        toggle.setValue(selectedIds.has(settingsId));
 
+        toggle.onChange(checked => {
+          const currentSelected = new Set((this.workspace.visibleCalendars || []).map(String));
           if (checked) {
-            if (!currentList.includes(idToUse)) {
-              const newList = [...currentList, idToUse];
-              this.workspace.visibleCalendars = newList;
-            }
+            currentSelected.add(settingsId);
           } else {
-            // Remove both potential forms to keep data clean
-            const newList = currentList.filter(id => id !== idToUse && id !== settingsId);
-            this.workspace.visibleCalendars = newList.length > 0 ? newList : undefined;
+            currentSelected.delete(settingsId);
           }
+          const newList = Array.from(currentSelected);
+          this.workspace.visibleCalendars = newList.length > 0 ? newList : undefined;
         });
       });
     });
@@ -471,14 +458,7 @@ export class WorkspaceModal extends Modal {
       button => {
         button.addEventListener('click', () => {
           if (this.validateWorkspace()) {
-            // Normalize data before persisting to avoid runtime mismatches
-            if (this.workspace.visibleCalendars?.length) {
-              // Normalize to runtime ids for consistency
-              const idMap = buildSettingsToRuntimeIdMap(this.plugin.settings.calendarSources);
-              this.workspace.visibleCalendars = this.workspace.visibleCalendars
-                .map(String)
-                .map(id => idMap.get(id) || id);
-            }
+            // Normalization to runtime IDs is no longer needed.
             if (this.workspace.categoryFilter) {
               const deduped = Array.from(new Set(this.workspace.categoryFilter.categories || []));
               this.workspace.categoryFilter.categories = deduped;

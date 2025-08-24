@@ -5,8 +5,81 @@
  */
 
 import { Notice } from 'obsidian';
-import { FullCalendarSettings } from '../../types/settings';
+import { FullCalendarSettings, GoogleAccount } from '../../types/settings'; // Add GoogleAccount import
 import { CalendarInfo, generateCalendarId } from '../../types/calendar_settings';
+
+/**
+ * Performs all necessary migrations and sanitizations on a loaded settings object.
+ * This function is pure and does not modify the plugin state directly.
+ * @param settings The raw settings object loaded from data.json.
+ * @returns An object containing the migrated settings and a flag indicating if they need to be saved.
+ */
+export function migrateAndSanitizeSettings(settings: any): {
+  settings: FullCalendarSettings;
+  needsSave: boolean;
+} {
+  let needsSave = false;
+  let newSettings = { ...settings };
+
+  // Ensure googleAccounts array exists for the migration
+  if (!newSettings.googleAccounts) {
+    newSettings.googleAccounts = [];
+  }
+
+  // MIGRATION 1: Global googleAuth to source-specific auth (from previous work, can be removed or kept for safety)
+  const globalGoogleAuth = newSettings.googleAuth || null;
+  if (globalGoogleAuth) {
+    // This logic is technically superseded by the next migration,
+    // but we can leave it for robustness during the transition.
+    newSettings.calendarSources.forEach((s: any) => {
+      if (s.type === 'google' && !s.auth) {
+        s.auth = globalGoogleAuth;
+      }
+    });
+  }
+
+  // === FINAL MIGRATION: Move embedded auth to centralized googleAccounts ===
+  const refreshTokenToAccountId = new Map<string, string>();
+  newSettings.calendarSources.forEach((source: any) => {
+    if (source.type === 'google' && source.auth && !source.googleAccountId) {
+      needsSave = true;
+      const refreshToken = source.auth.refreshToken;
+      if (refreshToken) {
+        if (refreshTokenToAccountId.has(refreshToken)) {
+          source.googleAccountId = refreshTokenToAccountId.get(refreshToken);
+        } else {
+          const newAccountId = `gcal_${Math.random().toString(36).substr(2, 9)}`;
+          const newAccount: GoogleAccount = {
+            id: newAccountId,
+            email: 'Migrated Account',
+            ...source.auth
+          };
+          newSettings.googleAccounts.push(newAccount);
+          refreshTokenToAccountId.set(refreshToken, newAccountId);
+          source.googleAccountId = newAccountId;
+        }
+      }
+      delete source.auth;
+    }
+  });
+  if (newSettings.googleAuth) {
+    delete newSettings.googleAuth;
+    needsSave = true;
+  }
+  // === END FINAL MIGRATION ===
+
+  // MIGRATION 2: Ensure all calendar sources have a stable ID.
+  const { updated, sources } = ensureCalendarIds(newSettings.calendarSources);
+  if (updated) {
+    needsSave = true;
+  }
+  newSettings.calendarSources = sources;
+
+  // SANITIZATION 1: Correct initial view if timeline is disabled.
+  newSettings = sanitizeInitialView(newSettings);
+
+  return { settings: newSettings, needsSave };
+}
 
 /**
  * Ensure each calendar source has a stable id. Pure and UI-free.
@@ -44,50 +117,4 @@ export function sanitizeInitialView(settings: FullCalendarSettings): FullCalenda
     };
   }
   return settings;
-}
-
-/**
- * Compute the runtime calendar ID used by Calendar/EventCache for a given source.
- * This mirrors Calendar.id = `${type}::${identifier}` without instantiating a Calendar.
- * Also normalizes special schemes like webcal -> https for ICS sources to match runtime.
- */
-export function getRuntimeCalendarId(info: CalendarInfo): string {
-  switch (info.type) {
-    case 'local':
-      return `local::${(info as Extract<CalendarInfo, { type: 'local' }>).directory}`;
-    case 'dailynote':
-      return `dailynote::${(info as Extract<CalendarInfo, { type: 'dailynote' }>).heading}`;
-    case 'ical': {
-      let url = (info as Extract<CalendarInfo, { type: 'ical' }>).url;
-      // ICSCalendar converts webcal:// to https:// internally
-      if (url.toLowerCase().startsWith('webcal')) {
-        url = 'https' + url.slice('webcal'.length);
-      }
-      return `ical::${url}`;
-    }
-    case 'caldav':
-      return `caldav::${(info as Extract<CalendarInfo, { type: 'caldav' }>).url}`;
-    case 'google':
-      return `google::${(info as Extract<CalendarInfo, { type: 'google' }>).id}`;
-    default:
-      // FOR_TEST_ONLY and any unknown types fall back to their existing id if present
-      // This keeps tests and future types working without breaking filtering.
-      // @ts-ignore
-      return `${(info as any).type}::${(info as any).id ?? 'unknown'}`;
-  }
-}
-
-/**
- * Build a lookup map from settings source id (e.g., "local_1") to runtime id (e.g., "local::path").
- */
-export function buildSettingsToRuntimeIdMap(sources: CalendarInfo[]): Map<string, string> {
-  const m = new Map<string, string>();
-  for (const s of sources) {
-    // @ts-ignore - CalendarInfo has id for configured sources
-    if ((s as any).id) {
-      // @ts-ignore
-      m.set((s as any).id as string, getRuntimeCalendarId(s));
-    }
-  }
-  return m;
 }

@@ -61,22 +61,6 @@ export function renderGeneralSettings(
     });
 
   new Setting(containerEl)
-    .setName('Daily note timezone')
-    .setDesc(
-      'Choose how times in daily notes are handled. "Local" means times are relative to your computer\'s current timezone. "Strict" will anchor events to the display timezone, writing it to the note.'
-    )
-    .addDropdown(dropdown => {
-      dropdown
-        .addOption('local', 'Local (Flexible)')
-        .addOption('strict', 'Strict (Anchored to display timezone)');
-      dropdown.setValue(plugin.settings.dailyNotesTimezone);
-      dropdown.onChange(async value => {
-        plugin.settings.dailyNotesTimezone = value as 'local' | 'strict';
-        await plugin.saveSettings();
-      });
-    });
-
-  new Setting(containerEl)
     .setName('Display timezone')
     .setDesc(
       'Choose the timezone for displaying events. Defaults to your system timezone. Changing this will reload the calendar.'
@@ -103,6 +87,17 @@ export function renderGeneralSettings(
       toggle.onChange(async val => {
         plugin.settings.clickToCreateEventFromMonthView = val;
         await plugin.saveSettings();
+      });
+    });
+
+  new Setting(containerEl)
+    .setName('Enable event reminders')
+    .setDesc('Show a desktop notification 10 minutes before an event starts.')
+    .addToggle(toggle => {
+      toggle.setValue(plugin.settings.enableReminders).onChange(async value => {
+        plugin.settings.enableReminders = value;
+        await plugin.saveSettings();
+        rerender();
       });
     });
 }

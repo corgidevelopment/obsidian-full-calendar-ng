@@ -32,7 +32,6 @@ export class TFile extends TAbstractFile {
 
     get extension(): string {
         const ext = extname(this.name);
-        // Remove leading `.`
         if (ext.startsWith(".")) {
             return ext.slice(1);
         } else {

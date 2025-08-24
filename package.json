@@ -1,6 +1,6 @@
 {
-    "name": "obsidian-full-calendar",
-    "version": "0.11.8",
+    "name": "full-calendar-remasteredr",
+    "version": "0.12.0",
     "description": "Obsidian integration with Full Calendar (fullcalendar.io)",
     "main": "main.js",
     "scripts": {
@@ -64,7 +64,6 @@
         "@types/deep-equal": "^1.0.4",
         "@types/ical": "^0.8.3",
         "color": "^5.0.0",
-        "dav": "^1.8.0",
         "deep-equal": "^2.2.3",
         "esbuild-css-modules-plugin": "^3.1.5",
         "flatpickr": "^4.6.13",
@@ -78,6 +77,7 @@
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
         "rrule": "^2.8.1",
+        "tsdav": "^2.1.5",
         "zod": "^3.25.76"
     }
 }

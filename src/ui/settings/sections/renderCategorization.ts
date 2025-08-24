@@ -10,6 +10,10 @@ import * as ReactDOM from 'react-dom/client';
 import FullCalendarPlugin from '../../../main';
 import { BulkCategorizeModal } from '../../modals/BulkCategorizeModal';
 import { CategorySettingsManager } from '../components/CategorySetting';
+import {
+  bulkUpdateCategories,
+  bulkRemoveCategories
+} from '../../../features/category/bulkCategorization';
 
 export function renderCategorizationSettings(
   containerEl: HTMLElement,
@@ -41,7 +45,7 @@ export function renderCategorizationSettings(
           new BulkCategorizeModal(plugin.app, async (choice, defaultCategory) => {
             plugin.settings.enableAdvancedCategorization = true;
             await plugin.saveData(plugin.settings);
-            await plugin.categorizationManager.bulkUpdateCategories(choice, defaultCategory);
+            await bulkUpdateCategories(plugin, choice, defaultCategory);
             rerender();
           }).open();
         } else {
@@ -62,7 +66,7 @@ export function renderCategorizationSettings(
                   plugin.settings.enableAdvancedCategorization = false;
                   plugin.settings.categorySettings = [];
                   await plugin.saveData(plugin.settings);
-                  await plugin.categorizationManager.bulkRemoveCategories();
+                  await bulkRemoveCategories(plugin);
                   confirmModal.close();
                   rerender();
                 })

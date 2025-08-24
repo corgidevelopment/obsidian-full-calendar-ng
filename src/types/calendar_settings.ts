@@ -4,7 +4,7 @@
  *
  * @description
  * This file uses the `zod` library to define strongly-typed schemas for the
- * various calendar source types (local, dailynote, ical, caldav). These
+ * various calendar source types (local, dailynote, ical, caldav, google). These
  * schemas are used to parse and validate the calendar configurations stored
  * in `data.json`, ensuring data integrity and providing type safety
  * throughout the plugin.
@@ -16,10 +16,20 @@ import { ZodError, z } from 'zod';
 import { OFCEvent } from './schema';
 import { getNextColor } from '../ui/colors';
 
+// New schema for Google Auth object, now local to each Google source
+const GoogleAuthSchema = z
+  .object({
+    refreshToken: z.string().nullable(),
+    accessToken: z.string().nullable(),
+    expiryDate: z.number().nullable()
+  })
+  .nullable();
+
+// New flattened schemas for each calendar type
 const calendarOptionsSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('local'), directory: z.string(), id: z.string() }),
-  z.object({ type: z.literal('dailynote'), heading: z.string(), id: z.string() }),
-  z.object({ type: z.literal('ical'), url: z.string().url(), id: z.string() }),
+  z.object({ type: z.literal('local'), id: z.string(), directory: z.string() }),
+  z.object({ type: z.literal('dailynote'), id: z.string(), heading: z.string() }),
+  z.object({ type: z.literal('ical'), id: z.string(), url: z.string().url() }),
   z.object({
     type: z.literal('caldav'),
     id: z.string(),
@@ -32,7 +42,9 @@ const calendarOptionsSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('google'),
     id: z.string(),
-    name: z.string()
+    name: z.string(),
+    calendarId: z.string(), // Google's own ID for the calendar
+    googleAccountId: z.string().optional()
   })
 ]);
 
@@ -42,6 +54,7 @@ export type TestSource = {
   type: 'FOR_TEST_ONLY';
   id: string;
   events?: OFCEvent[];
+  config?: any;
 };
 
 export type CalendarInfo = (z.infer<typeof calendarOptionsSchema> | TestSource) &

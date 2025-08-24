@@ -12,65 +12,52 @@
  * @license See LICENSE.md
  */
 
+import { NotificationManager } from './features/NotificationManager'; // ADD THIS IMPORT
 import { LazySettingsTab } from './ui/settings/LazySettingsTab';
-import type { FullCalendarSettingTab } from './ui/settings/SettingsTab';
-import { ensureCalendarIds, sanitizeInitialView } from './ui/settings/utilsSettings';
+import {
+  ensureCalendarIds,
+  sanitizeInitialView,
+  migrateAndSanitizeSettings
+} from './ui/settings/utilsSettings';
 import { PLUGIN_SLUG } from './types';
 import EventCache from './core/EventCache';
 import { toEventInput } from './core/interop';
-import { ObsidianIO } from './ObsidianAdapter';
 import { renderCalendar } from './ui/calendar';
-import { manageTimezone } from './calendars/utils/Timezone';
+import { manageTimezone } from './features/Timezone';
 import { Notice, Plugin, TFile, App } from 'obsidian';
+
 // Heavy calendar classes are loaded lazily in the initializer map below
-import { CategorizationManager } from './core/CategorizationManager';
 import type { CalendarView } from './ui/view';
 import { FullCalendarSettings, DEFAULT_SETTINGS } from './types/settings';
+import { ProviderRegistry } from './providers/ProviderRegistry';
 
 // Inline the view type constants to avoid loading the heavy view module at startup
 const FULL_CALENDAR_VIEW_TYPE = 'full-calendar-view';
 const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = 'full-calendar-sidebar-view';
 
 export default class FullCalendarPlugin extends Plugin {
-  settings: FullCalendarSettings = DEFAULT_SETTINGS;
-  categorizationManager!: CategorizationManager;
+  private _settings: FullCalendarSettings = DEFAULT_SETTINGS;
+
+  notificationManager!: NotificationManager;
+
+  get settings(): FullCalendarSettings {
+    return this._settings;
+  }
+
+  set settings(newSettings: FullCalendarSettings) {
+    this._settings = newSettings;
+    // ALWAYS keep the provider registry in sync.
+    if (this.providerRegistry) {
+      this.providerRegistry.updateSources(this._settings.calendarSources);
+    }
+  }
+
   isMobile: boolean = false;
   settingsTab?: LazySettingsTab;
+  providerRegistry!: ProviderRegistry;
 
   // To parse `data.json` file.`
-  cache: EventCache = new EventCache(this, {
-    local: (info, settings) =>
-      info.type === 'local'
-        ? new (require('./calendars/FullNoteCalendar').default)(
-            new ObsidianIO(this.app),
-            this,
-            info,
-            settings
-          )
-        : null,
-    dailynote: (info, settings) =>
-      info.type === 'dailynote'
-        ? new (require('./calendars/DailyNoteCalendar').default)(
-            new ObsidianIO(this.app),
-            this,
-            info,
-            settings
-          )
-        : null,
-    ical: (info, settings) =>
-      info.type === 'ical'
-        ? new (require('./calendars/ICSCalendar').default)(info, settings)
-        : null,
-    caldav: (info, settings) =>
-      info.type === 'caldav'
-        ? new (require('./calendars/CalDAVCalendar').default)(info, settings)
-        : null,
-    google: (info, settings) =>
-      info.type === 'google'
-        ? new (require('./calendars/GoogleCalendar').default)(this, info, settings)
-        : null,
-    FOR_TEST_ONLY: () => null
-  });
+  cache: EventCache = new EventCache(this);
 
   renderCalendar = renderCalendar;
   processFrontmatter = toEventInput;
@@ -107,31 +94,44 @@ export default class FullCalendarPlugin extends Plugin {
    */
   async onload() {
     this.isMobile = (this.app as App & { isMobile: boolean }).isMobile;
-    this.categorizationManager = new CategorizationManager(this);
-    await this.loadSettings();
+    this.providerRegistry = new ProviderRegistry(this);
+
+    // Register all built-in providers in one call
+    this.providerRegistry.registerBuiltInProviders();
+
+    await this.loadSettings(); // This now handles setting and syncing
+    await this.providerRegistry.initializeInstances();
+
     await manageTimezone(this);
 
-    this.cache.reset(this.settings.calendarSources);
+    // Link the two singletons.
+    this.providerRegistry.setCache(this.cache);
+
+    this.cache.reset();
+
+    // ADD: Start NotificationManager after providerRegistry is initialized
+    this.notificationManager = new NotificationManager(this);
+    this.notificationManager.update(this.settings);
 
     // Respond to obsidian events
     this.registerEvent(
       this.app.metadataCache.on('changed', file => {
-        this.cache.fileUpdated(file);
+        this.providerRegistry.handleFileUpdate(file);
       })
     );
     this.registerEvent(
       this.app.vault.on('rename', (file, oldPath) => {
         if (file instanceof TFile) {
-          // console.debug('FILE RENAMED', file.path);
-          this.cache.deleteEventsAtPath(oldPath);
+          // A rename is a delete at the old path.
+          // The 'changed' event will pick up the creation at the new path.
+          this.providerRegistry.handleFileDelete(oldPath);
         }
       })
     );
     this.registerEvent(
       this.app.vault.on('delete', file => {
         if (file instanceof TFile) {
-          // console.debug('FILE DELETED', file.path);
-          this.cache.deleteEventsAtPath(file.path);
+          this.providerRegistry.handleFileDelete(file.path);
         }
       })
     );
@@ -166,7 +166,7 @@ export default class FullCalendarPlugin extends Plugin {
       await this.activateView();
     });
 
-    this.settingsTab = new LazySettingsTab(this.app, this);
+    this.settingsTab = new LazySettingsTab(this.app, this, this.providerRegistry);
     this.addSettingTab(this.settingsTab);
 
     // Commands visible in the command palette
@@ -182,7 +182,7 @@ export default class FullCalendarPlugin extends Plugin {
       id: 'full-calendar-reset',
       name: 'Reset Event Cache',
       callback: () => {
-        this.cache.reset(this.settings.calendarSources);
+        this.cache.reset();
         this.app.workspace.detachLeavesOfType(FULL_CALENDAR_VIEW_TYPE);
         this.app.workspace.detachLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE);
         new Notice('Full Calendar has been reset.');
@@ -192,7 +192,7 @@ export default class FullCalendarPlugin extends Plugin {
       id: 'full-calendar-revalidate',
       name: 'Revalidate remote calendars',
       callback: () => {
-        this.cache.revalidateRemoteCalendars(true);
+        this.providerRegistry.revalidateRemoteCalendars(true);
       }
     });
     this.addCommand({
@@ -202,7 +202,7 @@ export default class FullCalendarPlugin extends Plugin {
         this.activateView();
       }
     });
-    // vvv ADD THIS BLOCK vvv
+
     if (this.isMobile) {
       this.addCommand({
         id: 'full-calendar-open-analysis-mobile-disabled',
@@ -214,7 +214,7 @@ export default class FullCalendarPlugin extends Plugin {
         }
       });
     }
-    // ^^^ END OF BLOCK ^^^
+
     this.addCommand({
       id: 'full-calendar-open-sidebar',
       name: 'Open in sidebar',
@@ -242,7 +242,7 @@ export default class FullCalendarPlugin extends Plugin {
 
     this.registerObsidianProtocolHandler('full-calendar-google-auth', async params => {
       if (params.code && params.state) {
-        const { exchangeCodeForToken } = await import('./calendars/parsing/google/auth');
+        const { exchangeCodeForToken } = await import('./providers/google/auth');
         await exchangeCodeForToken(params.code, params.state, this);
         if (this.settingsTab) {
           await this.settingsTab.display();
@@ -260,6 +260,9 @@ export default class FullCalendarPlugin extends Plugin {
    * It cleans up by detaching all calendar and sidebar views.
    */
   onunload() {
+    if (this.notificationManager) {
+      this.notificationManager.unload();
+    }
     this.app.workspace.detachLeavesOfType(FULL_CALENDAR_VIEW_TYPE);
     this.app.workspace.detachLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE);
   }
@@ -268,15 +271,16 @@ export default class FullCalendarPlugin extends Plugin {
    * Loads plugin settings from disk, merging them with default values.
    */
   async loadSettings() {
-    let loadedSettings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    let loadedData = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
-    // Sanitize settings using pure functions
-    loadedSettings = sanitizeInitialView(loadedSettings);
+    // All migration and sanitization logic is now encapsulated in this utility function.
+    const { settings: migratedSettings, needsSave } = migrateAndSanitizeSettings(loadedData);
 
-    const { updated, sources } = ensureCalendarIds(loadedSettings.calendarSources);
-    this.settings = { ...loadedSettings, calendarSources: sources };
+    this.settings = migratedSettings;
+    this.cache.enhancer.updateSettings(this.settings);
 
-    if (updated) {
+    // Save back to disk if any migration or sanitization occurred.
+    if (needsSave) {
       new Notice('Full Calendar has updated your calendar settings to a new format.');
       await this.saveData(this.settings);
     }
@@ -288,16 +292,28 @@ export default class FullCalendarPlugin extends Plugin {
    * to ensure all calendars are using the new settings.
    */
   async saveSettings() {
+    // Create a mutable copy to work with.
+    const newSettings = { ...this.settings };
+
+    // Sanitize calendar sources before saving to ensure all have IDs.
+    const { sources } = ensureCalendarIds(newSettings.calendarSources);
+    newSettings.calendarSources = sources;
+
+    // Now, assign the fully-corrected settings object in one go.
+    // This triggers the setter ONCE with the final, valid data.
+    this.settings = newSettings;
+
     await this.saveData(this.settings);
-    // If calendarSources changed, rebuild cache; otherwise use lightweight resync
-    // This is a heuristic: callers that mutate calendarSources will trigger reset via Settings UI.
-    if (this.cache && this.cache.initialized) {
-      this.cache.resync();
-    } else {
-      this.cache.reset(this.settings.calendarSources);
-      await this.cache.populate();
-      this.cache.resync();
+    if (this.notificationManager) {
+      this.notificationManager.update(this.settings);
     }
+
+    // Any change from the settings tab that adds/removes a calendar
+    // requires a full reset of the cache and providers.
+    this.cache.reset();
+    await this.cache.populate();
+    this.providerRegistry.revalidateRemoteCalendars();
+    this.cache.resync(); // Finally, update the views with the new data.
   }
 
   /**

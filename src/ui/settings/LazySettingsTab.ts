@@ -12,14 +12,17 @@
 import { App, PluginSettingTab } from 'obsidian';
 import type FullCalendarPlugin from '../../main';
 import type { FullCalendarSettingTab } from './SettingsTab';
+import type { ProviderRegistry } from '../../providers/ProviderRegistry';
 
 export class LazySettingsTab extends PluginSettingTab {
   private actualTab?: FullCalendarSettingTab;
   private plugin: FullCalendarPlugin;
+  private registry: ProviderRegistry;
 
-  constructor(app: App, plugin: FullCalendarPlugin) {
+  constructor(app: App, plugin: FullCalendarPlugin, registry: ProviderRegistry) {
     super(app, plugin);
     this.plugin = plugin;
+    this.registry = registry;
   }
 
   /**
@@ -28,7 +31,7 @@ export class LazySettingsTab extends PluginSettingTab {
   private async ensureActualTab(): Promise<FullCalendarSettingTab> {
     if (!this.actualTab) {
       const { FullCalendarSettingTab } = await import('./SettingsTab');
-      this.actualTab = new FullCalendarSettingTab(this.app, this.plugin);
+      this.actualTab = new FullCalendarSettingTab(this.app, this.plugin, this.registry);
     }
     return this.actualTab;
   }

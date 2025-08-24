@@ -10,7 +10,7 @@ import EventCache, { UpdateViewCallback } from '../../core/EventCache';
 import { DataManager } from '../data/DataManager';
 import * as Translator from './translator';
 import { TimeRecord } from './types';
-import FullNoteCalendar from '../../calendars/FullNoteCalendar';
+// FullNoteCalendar class is no longer used directly; providers are stored instead.
 import { FullCalendarSettings } from '../../types/settings';
 
 export class DataService {
@@ -44,15 +44,19 @@ export class DataService {
     const records: TimeRecord[] = [];
     const useCategoryFeature = this.settings.enableAdvancedCategorization;
 
-    for (const calendar of this.eventCache.calendars.values()) {
-      if (!useCategoryFeature && !(calendar instanceof FullNoteCalendar)) {
+    for (const [calId, provider] of this.eventCache.calendars.entries()) {
+      // In legacy mode, only include local (full note) calendars
+      if (!useCategoryFeature && provider.type !== 'local') {
         continue;
       }
 
+      // Derive a human-friendly source label:
+      // - For local, use the directory from the runtime id: "local::<directory>"
+      // - Otherwise, use the provider displayName
       const calendarSource =
-        calendar instanceof FullNoteCalendar ? calendar.directory : calendar.name;
+        provider.type === 'local' ? calId.split('::')[1] || 'local' : provider.displayName;
 
-      const eventsInCalendar = this.eventCache._storeForTest.getEventsInCalendar(calendar);
+      const eventsInCalendar = this.eventCache._storeForTest.getEventsInCalendar(calId);
 
       for (const storedEvent of eventsInCalendar) {
         const timeRecord = Translator.storedEventToTimeRecord(

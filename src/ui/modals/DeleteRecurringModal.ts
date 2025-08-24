@@ -9,7 +9,7 @@ export class DeleteRecurringModal extends Modal {
     private onDeleteAll: () => void,
     private onDeleteInstance?: () => void,
     private instanceDate?: string,
-    private isGoogle: boolean = false // Add this new parameter
+    private isGoogle: boolean = false
   ) {
     super(app);
   }

@@ -98,10 +98,3 @@ export const PLOTLY_DARK_THEME: Partial<Plotly.Layout> = {
     bordercolor: 'var(--background-modifier-border)'
   }
 };
-
-// --- REMOVED CACHE TYPES ---
-// The following interfaces are no longer needed as we are using the main plugin's cache.
-//
-// export interface CacheEntry { ... }
-// export type ChronoCache = Record<string, CacheEntry>;
-// export interface ChronoAnalyserData { ... }

@@ -178,12 +178,10 @@ export class InsightConfigModal extends Modal {
   private knownProjects: string[];
   private expandedGroupName: string | null = null; // Collapsible state
 
-  // --- ADD/MODIFY THESE PROPERTIES ---
   private groupsContainerEl!: HTMLElement; // Our stable container
   private originalConfigString: string = '';
   private hasUnsavedChanges: boolean = false;
   private isSaving: boolean = false;
-  // --- END ---
 
   constructor(
     app: App,
@@ -263,11 +261,9 @@ export class InsightConfigModal extends Modal {
     // --- END MIGRATION LOGIC ---
   }
 
-  // --- ADD THIS HELPER METHOD ---
   private rerender() {
     this.renderGroups(this.groupsContainerEl);
   }
-  // --- END ---
 
   onOpen() {
     const { contentEl } = this;
@@ -371,12 +367,10 @@ export class InsightConfigModal extends Modal {
 
         // Use 'blur' to finalize the rename
         text.inputEl.addEventListener('blur', () => {
-          // --- ADD THIS CHECK AT THE VERY TOP ---
           // If the group was deleted while this input had focus, do nothing.
           if (!this.config.insightGroups[currentGroupName]) {
             return;
           }
-          // --- END OF ADDITION ---
 
           const newNameTrimmed = text.inputEl.value.trim();
           if (!newNameTrimmed || newNameTrimmed === currentGroupName) {
@@ -402,7 +396,7 @@ export class InsightConfigModal extends Modal {
           .setIcon('trash')
           .setTooltip('Delete this group')
           .setDisabled(!isExpanded)
-          // --- FIX: REMOVE 'evt' and 'stopPropagation' ---
+          // REMOVE 'evt' and 'stopPropagation'
           .onClick(() => {
             delete this.config.insightGroups[currentGroupName];
             this.checkForUnsavedChanges();
@@ -449,7 +443,6 @@ export class InsightConfigModal extends Modal {
           });
       });
 
-    // --- The rest of the settings ---
     this.createTagInput(
       foldableContent,
       'Matching Hierarchies',
@@ -514,7 +507,6 @@ export class InsightConfigModal extends Modal {
           });
       });
   }
-  // --- END OF REPLACEMENT ---
 
   private createTagInput(
     container: HTMLElement,

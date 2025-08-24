@@ -137,7 +137,7 @@ def write_day_file(path: str, heading: str, evs: List[GeneratedEvent]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate Daily Note calendar test data.")
-    parser.add_argument("-o", "--output", default="events_dailynote", help="Output directory")
+    parser.add_argument("-o", "--output", default="../obsidian-dev-vault/Calender/DailyNoteGen", help="Output directory")
     parser.add_argument("-d", "--days", type=int, default=14, help="Number of days to generate")
     parser.add_argument(
         "-s",

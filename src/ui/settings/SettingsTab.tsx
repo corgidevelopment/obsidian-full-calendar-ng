@@ -33,10 +33,9 @@ import { createElement, createRef } from 'react';
 import { getNextColor } from '../colors';
 import { CalendarSettingsRef } from './components/CalendarSetting';
 import { getDailyNoteSettings } from 'obsidian-daily-notes-interface';
-import { importCalendars } from '../../calendars/parsing/caldav/import';
-import { AddCalendarSource } from '../modals/components/AddCalendarSource';
-import { fetchGoogleCalendarList } from '../../calendars/parsing/google/api';
-import { makeDefaultPartialCalendarSource, CalendarInfo } from '../../types/calendar_settings';
+import { CalendarInfo } from '../../types/calendar_settings';
+import { ProviderRegistry } from '../../providers/ProviderRegistry';
+import { makeDefaultPartialCalendarSource } from '../../types/calendar_settings';
 
 // Import the new section renderers
 import { renderGoogleSettings } from './sections/renderGoogle';
@@ -49,7 +48,6 @@ import { renderWorkspaceSettings } from './sections/renderWorkspaces';
 // Import the new React components
 import './changelog.css';
 import { renderFooter } from './components/renderFooter';
-import { Changelog } from './components/Changelog';
 import { renderWhatsNew } from './sections/renderWhatsNew';
 
 export function addCalendarButton(
@@ -83,42 +81,28 @@ export function addCalendarButton(
       button.setIcon('plus-with-circle');
       button.onClick(async () => {
         const sourceType = dropdown.getValue();
+        const providerType = sourceType === 'icloud' ? 'caldav' : sourceType;
 
-        if (sourceType === 'google') {
-          if (!plugin.settings.googleAuth?.refreshToken) {
-            new Notice('Please connect your Google Account first.');
-            return;
-          }
-
-          try {
-            const calendars = await fetchGoogleCalendarList(plugin);
-            new SelectGoogleCalendarsModal(plugin, calendars, selected => {
-              selected.forEach(cal => submitCallback(cal));
-            }).open();
-          } catch (e: any) {
-            new Notice(`Error fetching calendar list: ${e.message}`);
-            console.error(e);
-          }
+        const providerClass = await plugin.providerRegistry.getProviderForType(providerType);
+        if (!providerClass) {
+          new Notice(`${providerType} provider is not registered.`);
           return;
         }
+        const ConfigComponent = (providerClass as any).getConfigurationComponent();
 
         let modal = new ReactModal(plugin.app, async () => {
           await plugin.loadSettings();
-          const usedDirectories = (
-            listUsedDirectories
-              ? listUsedDirectories
-              : () =>
-                  plugin.settings.calendarSources
-                    .map((s: CalendarInfo) => s.type === 'local' && s.directory)
-                    .filter((s): s is string => !!s)
-          )();
+
+          const usedDirectories = listUsedDirectories ? listUsedDirectories() : [];
+          const directories = plugin.app.vault
+            .getAllLoadedFiles()
+            .filter((f): f is TFolder => f instanceof TFolder)
+            .map(f => f.path);
+
           let headings: string[] = [];
           let { template } = getDailyNoteSettings();
-
           if (template) {
-            if (!template.endsWith('.md')) {
-              template += '.md';
-            }
+            if (!template.endsWith('.md')) template += '.md';
             const file = plugin.app.vault.getAbstractFileByPath(template);
             if (file instanceof TFile) {
               headings =
@@ -128,38 +112,44 @@ export function addCalendarButton(
 
           const existingCalendarColors = plugin.settings.calendarSources.map(s => s.color);
 
-          return createElement(AddCalendarSource, {
-            source: makeDefaultPartialCalendarSource(
-              dropdown.getValue() as CalendarInfo['type'],
-              existingCalendarColors
-            ),
-            directories: directories.filter(dir => usedDirectories.indexOf(dir) === -1),
-            headings,
-            submit: async (source: CalendarInfo) => {
-              if (source.type === 'caldav') {
-                try {
-                  const existingIds = plugin.settings.calendarSources.map(s => s.id);
-                  let sources = await importCalendars(
-                    {
-                      type: 'basic',
-                      username: source.username,
-                      password: source.password
-                    },
-                    source.url,
-                    existingIds
-                  );
-                  sources.forEach(source => submitCallback(source));
-                } catch (e) {
-                  if (e instanceof Error) {
-                    new Notice(e.message);
-                  }
-                }
-              } else {
-                submitCallback(source);
-              }
+          const initialConfig = sourceType === 'icloud' ? { url: 'https://caldav.icloud.com' } : {};
+
+          // Base props for all provider components
+          const componentProps: any = {
+            plugin: plugin, // Pass plugin for GoogleConfigComponent
+            config: initialConfig,
+            context: {
+              allDirectories: directories.filter(dir => usedDirectories.indexOf(dir) === -1),
+              usedDirectories: usedDirectories,
+              headings: headings
+            },
+            onClose: () => modal.close(),
+            onConfigChange: () => {},
+            onSave: (finalConfigs: any | any[], accountId?: string) => {
+              const configs = Array.isArray(finalConfigs) ? finalConfigs : [finalConfigs];
+
+              configs.forEach((finalConfig: any) => {
+                const partialSource = makeDefaultPartialCalendarSource(
+                  providerType as CalendarInfo['type'],
+                  existingCalendarColors
+                );
+                const finalSource = {
+                  ...partialSource,
+                  ...finalConfig,
+                  color: finalConfig.color || partialSource.color,
+                  name: finalConfig.name,
+                  ...(accountId && { googleAccountId: accountId }),
+                  calendarId: finalConfig.id
+                };
+                delete (finalSource as any).id;
+                submitCallback(finalSource as unknown as CalendarInfo);
+                existingCalendarColors.push(finalSource.color);
+              });
               modal.close();
             }
-          });
+          };
+
+          return createElement(ConfigComponent, componentProps);
         });
         modal.open();
       });
@@ -171,23 +161,26 @@ export class FullCalendarSettingTab extends PluginSettingTab {
   private showFullChangelog = false;
   private calendarSettingsRef: React.RefObject<CalendarSettingsRef | null> =
     createRef<CalendarSettingsRef>();
+  registry: ProviderRegistry;
 
-  constructor(app: App, plugin: FullCalendarPlugin) {
+  constructor(app: App, plugin: FullCalendarPlugin, registry: ProviderRegistry) {
     super(app, plugin);
     this.plugin = plugin;
+    this.registry = registry;
   }
 
-  display(): void {
+  async display(): Promise<void> {
     this.containerEl.empty();
     if (this.showFullChangelog) {
-      this._renderFullChangelog();
+      await this._renderFullChangelog(); // This now handles its own async rendering
     } else {
-      this._renderMainSettings();
+      await this._renderMainSettings();
     }
   }
 
-  private _renderFullChangelog(): void {
+  private async _renderFullChangelog(): Promise<void> {
     const root = ReactDOM.createRoot(this.containerEl);
+    const { Changelog } = await import('./components/Changelog');
     root.render(
       createElement(Changelog, {
         onBack: () => {
@@ -198,7 +191,28 @@ export class FullCalendarSettingTab extends PluginSettingTab {
     );
   }
 
-  private _renderMainSettings(): void {
+  private async _renderMainSettings(): Promise<void> {
+    // Defer loading of heavy settings sections
+    const [
+      renderGeneralSettings,
+      renderAppearanceSettings,
+      renderWorkspaceSettings,
+      renderCategorizationSettings,
+      renderWhatsNew,
+      renderCalendarManagement,
+      renderGoogleSettings,
+      renderFooter
+    ] = await Promise.all([
+      import('./sections/renderGeneral').then(m => m.renderGeneralSettings),
+      import('./sections/renderAppearance').then(m => m.renderAppearanceSettings),
+      import('./sections/renderWorkspaces').then(m => m.renderWorkspaceSettings),
+      import('./sections/renderCategorization').then(m => m.renderCategorizationSettings),
+      import('./sections/renderWhatsNew').then(m => m.renderWhatsNew),
+      import('./sections/renderCalendars').then(m => m.renderCalendarManagement),
+      import('./sections/renderGoogle').then(m => m.renderGoogleSettings),
+      import('./components/renderFooter').then(m => m.renderFooter)
+    ]);
+
     renderGeneralSettings(this.containerEl, this.plugin, () => this.display());
     renderAppearanceSettings(this.containerEl, this.plugin, () => this.display());
     renderWorkspaceSettings(this.containerEl, this.plugin, () => this.display());
@@ -232,83 +246,9 @@ export class FullCalendarSettingTab extends PluginSettingTab {
 
 // ensureCalendarIds and sanitizeInitialView moved to ./utils to avoid loading this heavy
 // settings module (and React) during plugin startup. Keep imports above.
+// settings module (and React) during plugin startup. Keep imports above.
+// These functions remain pure and outside the class.
 
-class SelectGoogleCalendarsModal extends Modal {
-  plugin: FullCalendarPlugin;
-  calendars: any[];
-  onSubmit: (selected: CalendarInfo[]) => void;
-  googleCalendarSelection: Set<string>;
-
-  constructor(
-    plugin: FullCalendarPlugin,
-    calendars: any[],
-    onSubmit: (selected: CalendarInfo[]) => void
-  ) {
-    super(plugin.app);
-    this.plugin = plugin;
-    this.calendars = calendars;
-    this.onSubmit = onSubmit;
-    this.googleCalendarSelection = new Set();
-  }
-
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.createEl('h2', { text: 'Select Google Calendars to Add' });
-
-    const existingGoogleCalendarIds = new Set(
-      this.plugin.settings.calendarSources
-        .filter(s => s.type === 'google')
-        .map(s => (s as Extract<CalendarInfo, { type: 'google' }>).id)
-    );
-
-    this.calendars.forEach(cal => {
-      if (!cal.id || existingGoogleCalendarIds.has(cal.id)) {
-        return;
-      }
-
-      new Setting(contentEl)
-        .setName(cal.summary || cal.id)
-        .setDesc(cal.description || '')
-        .addToggle(toggle =>
-          toggle.onChange(value => {
-            if (value) {
-              this.googleCalendarSelection.add(cal.id);
-            } else {
-              this.googleCalendarSelection.delete(cal.id);
-            }
-          })
-        );
-    });
-
-    new Setting(contentEl).addButton(button =>
-      button
-        .setButtonText('Add Selected Calendars')
-        .setCta()
-        .onClick(() => {
-          const existingColors = this.plugin.settings.calendarSources.map(s => s.color);
-
-          const selectedCalendars = this.calendars
-            .filter(cal => this.googleCalendarSelection.has(cal.id))
-            .map(cal => {
-              const newColor = getNextColor(existingColors);
-              existingColors.push(newColor);
-
-              const newCalendar: Extract<CalendarInfo, { type: 'google' }> = {
-                type: 'google',
-                id: cal.id,
-                name: cal.summary,
-                color: cal.backgroundColor || newColor
-              };
-              return newCalendar;
-            });
-
-          this.onSubmit(selectedCalendars);
-          this.close();
-        })
-    );
-  }
-
-  onClose() {
-    this.contentEl.empty();
-  }
-}
+// ensureCalendarIds and sanitizeInitialView moved to ./utils to avoid loading this heavy
+// settings module (and React) during plugin startup. Keep imports above.
+// settings module (and React) during plugin startup. Keep imports above.

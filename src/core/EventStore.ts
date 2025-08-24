@@ -12,7 +12,6 @@
  * @license See LICENSE.md
  */
 
-import { Calendar } from '../calendars/Calendar';
 import { EventLocation, OFCEvent } from '../types';
 
 interface Identifier {
@@ -27,6 +26,13 @@ class Path implements Identifier {
 }
 
 class EventID implements Identifier {
+  id: string;
+  constructor(id: string) {
+    this.id = id;
+  }
+}
+
+class StringIdentifier implements Identifier {
   id: string;
   constructor(id: string) {
     this.id = id;
@@ -135,7 +141,7 @@ export type StoredEvent = {
 };
 
 type AddEventProps = {
-  calendar: Calendar;
+  calendarId: string;
   location: EventLocation | null;
   id: string;
   event: OFCEvent;
@@ -156,7 +162,7 @@ type FileObj = { path: string };
 export default class EventStore {
   private store: Map<string, OFCEvent> = new Map();
 
-  private calendarIndex = new OneToMany<Calendar, EventID>();
+  private calendarIndex = new OneToMany<StringIdentifier, EventID>(); // Changed from Calendar to StringIdentifier
 
   private pathIndex = new OneToMany<Path, EventID>();
   private lineNumbers: Map<string, number> = new Map();
@@ -232,11 +238,11 @@ export default class EventStore {
    * @param param0
    * @returns ID for event in the store.
    */
-  add({ calendar, location, id, event }: AddEventProps): string {
+  add({ calendarId, location, id, event }: AddEventProps): string {
     if (this.store.has(id)) {
       throw new Error(
         `Event with given ID "${id}" that was supposed to be added to calendar "${
-          calendar.id
+          calendarId
         }" already exists in the EventStore within calendar "${this.calendarIndex.getRelated(
           new EventID(id)
         )}".`
@@ -246,7 +252,7 @@ export default class EventStore {
     // console.debug('adding event', { id, event, location });
 
     this.store.set(id, event);
-    this.calendarIndex.add(calendar, new EventID(id));
+    this.calendarIndex.add(new StringIdentifier(calendarId), new EventID(id));
     if (location) {
       const { file, lineNumber } = location;
       // console.debug('adding event in file:', file.path);
@@ -283,8 +289,8 @@ export default class EventStore {
     return eventIds;
   }
 
-  deleteEventsInCalendar(calendar: Calendar): Set<string> {
-    const eventIds = this.calendarIndex.getBy(calendar);
+  deleteEventsInCalendar(calendarId: string): Set<string> {
+    const eventIds = this.calendarIndex.getBy(new StringIdentifier(calendarId));
     eventIds.forEach(id => this.delete(id));
     return eventIds;
   }
@@ -297,13 +303,13 @@ export default class EventStore {
     return this.fetch(this.pathIndex.getBy(new Path(file)));
   }
 
-  getEventsInCalendar(calendar: Calendar): StoredEvent[] {
-    return this.fetch(this.calendarIndex.getBy(calendar));
+  getEventsInCalendar(calendarId: string): StoredEvent[] {
+    return this.fetch(this.calendarIndex.getBy(new StringIdentifier(calendarId)));
   }
 
-  getEventsInFileAndCalendar(file: FileObj, calendar: Calendar): StoredEvent[] {
+  getEventsInFileAndCalendar(file: FileObj, calendarId: string): StoredEvent[] {
     const inFile = this.pathIndex.getBy(new Path(file));
-    const inCalendar = this.calendarIndex.getBy(calendar);
+    const inCalendar = this.calendarIndex.getBy(new StringIdentifier(calendarId));
     return this.fetch([...inFile].filter(id => inCalendar.has(id)));
   }
 

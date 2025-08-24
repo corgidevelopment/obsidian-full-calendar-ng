@@ -234,7 +234,7 @@ def write_recurring(out_dir: str, ev: RecurringEvent) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate Full Note calendar test data.")
-    parser.add_argument("-o", "--output", default="events_fullnote", help="Output directory")
+    parser.add_argument("-o", "--output", default="../obsidian-dev-vault/Calender/FullNoteCal", help="Output directory")
     parser.add_argument("-n", "--num", type=int, default=30, help="Number of single events")
     parser.add_argument("-r", "--recurring", type=int, default=6, help="Number of recurring events")
     parser.add_argument(

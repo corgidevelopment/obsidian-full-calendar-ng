@@ -16,9 +16,10 @@ import { Notice } from 'obsidian';
 import * as React from 'react';
 import { CalendarInfo } from '../../types/calendar_settings';
 import { UrlInput } from './forms/UrlInput';
-import { TextInput } from './forms/TextInput';
 import { UsernameInput } from './forms/UsernameInput';
+import { PasswordInput } from './forms/PasswordInput';
 import { HeadingInput } from './forms/HeadingInput';
+import { TextInput } from './forms/TextInput';
 import { DirectorySelect } from './forms/DirectorySelect';
 
 interface CalendarSettingsProps {
@@ -26,7 +27,6 @@ interface CalendarSettingsProps {
   submit: (payload: CalendarInfo[]) => void;
 }
 
-// Expose this type in `settings.tsx`
 export interface CalendarSettingsRef {
   addSource: (source: CalendarInfo) => void;
   getUsedDirectories: () => string[];
@@ -55,7 +55,13 @@ export class CalendarSettings
 
   getUsedDirectories = () => {
     return this.state.sources
-      .map(s => s.type === 'local' && s.directory)
+      .map(s => {
+        const source: any = s;
+        if (source.type === 'local') {
+          return source.directory || source.config?.directory;
+        }
+        return null;
+      })
       .filter((s): s is string => !!s);
   };
 
@@ -117,55 +123,43 @@ export const CalendarSettingRow = ({
   onColorChange,
   deleteCalendar
 }: CalendarSettingsRowProps) => {
-  const isCalDAV = setting.type === 'caldav';
+  const source: any = setting;
+  const config: any = source.config || {};
+  const isCalDAV = source.type === 'caldav';
+
+  // Helper to get a property from either the flat object or the nested config
+  const getProp = (key: string) => source[key] || config[key];
+
   return (
     <div className="setting-item">
       <button type="button" onClick={deleteCalendar} className="fc-setting-delete-btn">
         ✕
       </button>
 
-      {/* Primary Display Field */}
-      <div className="setting-item-control">
-        {setting.type === 'local' && (
-          <DirectorySelect
-            value={(setting as any).directory}
-            onChange={() => {}}
-            readOnly={true}
-            directories={[]}
-          />
-        )}
-        {setting.type === 'dailynote' && (
-          <HeadingInput
-            value={(setting as any).heading}
-            onChange={() => {}}
-            readOnly={true}
-            headings={[]}
-          />
-        )}
-        {setting.type === 'google' && (
-          <TextInput value={(setting as any).name} onChange={() => {}} readOnly={true} />
-        )}
-        {(setting.type === 'ical' || setting.type === 'caldav') && (
-          <UrlInput value={(setting as any).url} onChange={() => {}} readOnly={true} />
-        )}
-      </div>
-
-      {/* Additional Fields for CalDAV */}
-      {isCalDAV && (
-        <div className="setting-item-control">
-          <TextInput value={(setting as any).name} onChange={() => {}} readOnly={true} />
-        </div>
+      {source.type === 'local' && (
+        <DirectorySelect
+          value={getProp('directory')}
+          onChange={() => {}}
+          directories={[]}
+          readOnly
+        />
       )}
-      {isCalDAV && (
-        <div className="setting-item-control">
-          <UsernameInput value={(setting as any).username} onChange={() => {}} readOnly={true} />
-        </div>
+      {source.type === 'dailynote' && (
+        <HeadingInput value={getProp('heading')} onChange={() => {}} headings={[]} readOnly />
+      )}
+      {(source.type === 'ical' || source.type === 'caldav') && (
+        <UrlInput value={getProp('url')} onChange={() => {}} readOnly />
+      )}
+      {source.type === 'google' && (
+        <TextInput value={getProp('name')} onChange={() => {}} readOnly />
       )}
 
-      {/* Color Picker */}
+      {isCalDAV && <TextInput value={getProp('name')} onChange={() => {}} readOnly />}
+      {isCalDAV && <UsernameInput value={getProp('username')} onChange={() => {}} readOnly />}
+
       <input
         type="color"
-        value={setting.color}
+        value={source.color}
         className="fc-setting-color-input"
         onChange={e => onColorChange(e.target.value)}
       />

@@ -1,8 +1,9 @@
 import { TFile } from 'obsidian';
 
 import EventStore from './EventStore';
-import { Calendar } from '../calendars/Calendar';
 import { EventLocation, OFCEvent } from '../types';
+
+type MockCalendar = { id: string };
 
 const withCounter = <T>(f: (x: string) => T, label?: string) => {
   const counter = () => {
@@ -15,7 +16,7 @@ const withCounter = <T>(f: (x: string) => T, label?: string) => {
 
 const mockFile = withCounter(path => ({ path }) as TFile, 'file');
 
-const mockCalendar = withCounter((id): Calendar => ({ id }) as Calendar, 'calendar');
+const mockCalendar = withCounter((id): MockCalendar => ({ id }), 'calendar');
 
 const mockEvent = withCounter((title): OFCEvent => ({ title }) as OFCEvent, 'event');
 
@@ -51,9 +52,9 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const id = mockId();
     const location = mockLocation(withLineNumbers);
 
-    store.add({ calendar, location, id, event });
+    store.add({ calendarId: calendar.id, location, id, event });
 
-    expect(store.getEventsInCalendar(calendar)).toEqual([
+    expect(store.getEventsInCalendar(calendar.id)).toEqual([
       {
         event,
         id,
@@ -78,15 +79,15 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const id = mockId();
     const event = mockEvent();
 
-    store.add({ calendar, location, id, event });
+    store.add({ calendarId: calendar.id, location, id, event });
 
-    expect(() => store.add({ calendar, location, id, event })).toThrow();
+    expect(() => store.add({ calendarId: calendar.id, location, id, event })).toThrow();
     const calendar2 = mockCalendar();
     const event2 = mockEvent();
     const location2 = mockLocation(withLineNumbers);
-    expect(() => store.add({ calendar: calendar2, location, id, event })).toThrow();
-    expect(() => store.add({ calendar, location: location2, id, event })).toThrow();
-    expect(() => store.add({ calendar, location, id, event: event2 })).toThrow();
+    expect(() => store.add({ calendarId: calendar2.id, location, id, event })).toThrow();
+    expect(() => store.add({ calendarId: calendar.id, location: location2, id, event })).toThrow();
+    expect(() => store.add({ calendarId: calendar.id, location, id, event: event2 })).toThrow();
   });
 
   it(`throws when trying to overwrite an ID entry`, () => {
@@ -96,12 +97,12 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const event = mockEvent();
     const event2 = mockEvent();
 
-    store.add({ calendar, location, id, event });
+    store.add({ calendarId: calendar.id, location, id, event });
     expect(store.eventCount).toBe(1);
     expect(store.getEventById(id)).toEqual(event);
     store.delete(id);
     expect(store.eventCount).toBe(0);
-    store.add({ calendar, location, id, event: event2 });
+    store.add({ calendarId: calendar.id, location, id, event: event2 });
     expect(store.eventCount).toBe(1);
     expect(store.getEventById(id)).toEqual(event2);
   });
@@ -111,9 +112,9 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const event = mockEvent();
     const id = mockId();
 
-    store.add({ calendar, location: null, id, event });
+    store.add({ calendarId: calendar.id, location: null, id, event });
 
-    expect(store.getEventsInCalendar(calendar)).toEqual([
+    expect(store.getEventsInCalendar(calendar.id)).toEqual([
       { event, id, location: null, calendarId: calendar.id }
     ]);
     expect(0).toBe(store.fileCount);
@@ -121,7 +122,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
 
   it(`gets events in new calendar`, () => {
     const calendar = mockCalendar();
-    expect(store.getEventsInCalendar(calendar)).toEqual([]);
+    expect(store.getEventsInCalendar(calendar.id)).toEqual([]);
   });
 
   it(`gets events in new file`, () => {
@@ -140,9 +141,9 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const event2 = mockEvent();
     const id2 = mockId();
 
-    store.add({ calendar, location, id: id1, event: event1 });
+    store.add({ calendarId: calendar.id, location, id: id1, event: event1 });
     store.add({
-      calendar,
+      calendarId: calendar.id,
       location: location2,
       id: id2,
       event: event2
@@ -152,7 +153,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     expect(store.fileCount).toBe(1);
     expect(store.calendarCount).toBe(1);
 
-    expect(store.getEventsInCalendar(calendar)).toEqual([
+    expect(store.getEventsInCalendar(calendar.id)).toEqual([
       {
         event: event1,
         id: id1,
@@ -192,14 +193,14 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const event2 = mockEvent();
     const id2 = mockId();
 
-    store.add({ calendar, location, id: id1, event: event1 });
-    store.add({ calendar, location: null, id: id2, event: event2 });
+    store.add({ calendarId: calendar.id, location, id: id1, event: event1 });
+    store.add({ calendarId: calendar.id, location: null, id: id2, event: event2 });
 
     expect(store.eventCount).toBe(2);
     expect(store.fileCount).toBe(1);
     expect(store.calendarCount).toBe(1);
 
-    expect(store.getEventsInCalendar(calendar)).toEqual([
+    expect(store.getEventsInCalendar(calendar.id)).toEqual([
       {
         event: event1,
         id: id1,
@@ -238,13 +239,13 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const id2 = mockId();
 
     store.add({
-      calendar: calendar1,
+      calendarId: calendar1.id,
       location: location1,
       id: id1,
       event: event1
     });
     store.add({
-      calendar: calendar2,
+      calendarId: calendar2.id,
       location: location2,
       id: id2,
       event: event2
@@ -254,7 +255,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     expect(store.fileCount).toBe(2);
     expect(store.calendarCount).toBe(2);
 
-    expect(store.getEventsInCalendar(calendar1)).toEqual([
+    expect(store.getEventsInCalendar(calendar1.id)).toEqual([
       {
         event: event1,
         id: id1,
@@ -271,7 +272,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
       }
     ]);
 
-    expect(store.getEventsInCalendar(calendar2)).toEqual([
+    expect(store.getEventsInCalendar(calendar2.id)).toEqual([
       {
         event: event2,
         id: id2,
@@ -295,9 +296,9 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const id = mockId();
     const location = mockLocation(withLineNumbers);
 
-    store.add({ calendar, location, id, event });
+    store.add({ calendarId: calendar.id, location, id, event });
 
-    expect(store.getEventsInCalendar(calendar)).toEqual([
+    expect(store.getEventsInCalendar(calendar.id)).toEqual([
       {
         event,
         id,
@@ -318,7 +319,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const result = store.delete(id);
     expect(result).toEqual(event);
 
-    expect(store.getEventsInCalendar(calendar)).toEqual([]);
+    expect(store.getEventsInCalendar(calendar.id)).toEqual([]);
     expect(store.getEventsInFile(location.file)).toEqual([]);
     expect(store.eventCount).toBe(0);
   });
@@ -340,19 +341,19 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const id3 = mockId();
 
     store.add({
-      calendar: calendar1,
+      calendarId: calendar1.id,
       location: location1,
       id: id1,
       event: event1
     });
     store.add({
-      calendar: calendar2,
+      calendarId: calendar2.id,
       location: location2,
       id: id2,
       event: event2
     });
     store.add({
-      calendar: calendar2,
+      calendarId: calendar2.id,
       location: location3,
       id: id3,
       event: event3
@@ -362,7 +363,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     expect(store.fileCount).toBe(3);
     expect(store.calendarCount).toBe(2);
 
-    expect(store.getEventsInCalendar(calendar1)).toEqual([
+    expect(store.getEventsInCalendar(calendar1.id)).toEqual([
       {
         event: event1,
         id: id1,
@@ -382,7 +383,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     // TODO: There appears to be a race condition or some other kind of nondeterminism here.
     // When lineNumbers=true, id13/file12 sometime has a lineNumber of undefined rather than 0.
     // Try to run this test a bunch and figure out what the issue is.
-    expect(store.getEventsInCalendar(calendar2)).toEqual([
+    expect(store.getEventsInCalendar(calendar2.id)).toEqual([
       {
         event: event2,
         id: id2,
@@ -442,7 +443,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     expect(store.getEventDetails(id1)?.calendarId).toBe(calendar1.id);
     expect(store.getEventDetails(id2)?.calendarId).toBe(calendar2.id);
     expect(store.getEventDetails(id3)?.calendarId).toBe(calendar2.id);
-    expect(store.getEventsInFileAndCalendar(location2.file, calendar2)).toEqual([
+    expect(store.getEventsInFileAndCalendar(location2.file, calendar2.id)).toEqual([
       {
         event: event2,
         id: id2,
@@ -470,19 +471,19 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const id3 = mockId();
 
     store.add({
-      calendar: calendar1,
+      calendarId: calendar1.id,
       location: location1,
       id: id1,
       event: event1
     });
     store.add({
-      calendar: calendar2,
+      calendarId: calendar2.id,
       location: location2,
       id: id2,
       event: event2
     });
     store.add({
-      calendar: calendar2,
+      calendarId: calendar2.id,
       location: location3,
       id: id3,
       event: event3
@@ -492,7 +493,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     expect(store.fileCount).toBe(3);
     expect(store.calendarCount).toBe(2);
 
-    expect(store.getEventsInCalendar(calendar1)).toEqual([
+    expect(store.getEventsInCalendar(calendar1.id)).toEqual([
       {
         event: event1,
         id: id1,
@@ -500,7 +501,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
         calendarId: calendar1.id
       }
     ]);
-    expect(store.getEventsInCalendar(calendar2)).toEqual([
+    expect(store.getEventsInCalendar(calendar2.id)).toEqual([
       {
         event: event2,
         id: id2,
@@ -550,8 +551,8 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     expect(store.fileCount).toBe(1);
     expect(store.calendarCount).toBe(1);
 
-    expect(store.getEventsInCalendar(calendar1)).toEqual([]);
-    expect(store.getEventsInCalendar(calendar2)).toEqual([
+    expect(store.getEventsInCalendar(calendar1.id)).toEqual([]);
+    expect(store.getEventsInCalendar(calendar2.id)).toEqual([
       {
         event: event3,
         id: id3,
@@ -575,7 +576,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     const event4 = mockEvent();
     const location4 = { file: location1.file, lineNumber: 30 };
     store.add({
-      calendar: calendar1,
+      calendarId: calendar1.id,
       location: location4,
       id: id4,
       event: event4
@@ -584,7 +585,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     expect(store.fileCount).toBe(2);
     expect(store.calendarCount).toBe(2);
 
-    expect(store.getEventsInCalendar(calendar1)).toEqual([
+    expect(store.getEventsInCalendar(calendar1.id)).toEqual([
       {
         event: event4,
         id: id4,
@@ -592,7 +593,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
         calendarId: calendar1.id
       }
     ]);
-    expect(store.getEventsInCalendar(calendar2)).toEqual([
+    expect(store.getEventsInCalendar(calendar2.id)).toEqual([
       {
         event: event3,
         id: id3,
@@ -624,7 +625,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
     expect(store.fileCount).toBe(1);
     expect(store.calendarCount).toBe(1);
 
-    expect(store.getEventsInCalendar(calendar1)).toEqual([
+    expect(store.getEventsInCalendar(calendar1.id)).toEqual([
       {
         event: event4,
         id: id4,
@@ -632,7 +633,7 @@ describe.each([true, false])('EventStore tests with lineNumbers=%p', withLineNum
         calendarId: calendar1.id
       }
     ]);
-    expect(store.getEventsInCalendar(calendar2)).toEqual([]);
+    expect(store.getEventsInCalendar(calendar2.id)).toEqual([]);
 
     expect(store.getEventsInFile(location1.file)).toEqual([
       {

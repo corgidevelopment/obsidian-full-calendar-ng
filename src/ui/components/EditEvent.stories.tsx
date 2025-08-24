@@ -1,8 +1,7 @@
 import type { Story } from '@ladle/react';
-import React from 'react';
 import { OFCEvent } from '../../types';
 
-import { EditEvent } from './EditEvent';
+import { EditEvent } from '../modals/components/EditEvent';
 
 const calendars = [
   { id: 'local::calendar', name: 'local calendar', type: 'local' as 'local' },
@@ -20,7 +19,6 @@ const calendars = [
 
 const submit = async function (event: OFCEvent, calendarIndex: number): Promise<void> {
   // alert('Event submitted, see console for details');
-  // console.log({ event, calendarIndex });
 };
 
 const EventModal = ({ initialEvent }: { initialEvent: Partial<OFCEvent> | undefined }) => (

@@ -30,6 +30,14 @@ export interface WorkspaceSettings {
   timelineExpanded?: boolean; // Timeline categories expanded by default
 }
 
+export interface GoogleAccount {
+  id: string; // A unique identifier for this account
+  email: string; // The user's email for display purposes
+  refreshToken: string | null;
+  accessToken: string | null;
+  expiryDate: number | null;
+}
+
 export interface FullCalendarSettings {
   calendarSources: CalendarInfo[];
   defaultCalendar: number;
@@ -39,23 +47,19 @@ export interface FullCalendarSettings {
     mobile: string;
   };
   timeFormat24h: boolean;
-  dailyNotesTimezone: 'local' | 'strict';
   clickToCreateEventFromMonthView: boolean;
   displayTimezone: string | null;
   lastSystemTimezone: string | null;
   enableAdvancedCategorization: boolean;
   chrono_analyser_config: any;
   categorySettings: { name: string; color: string }[];
-  googleAuth: {
-    refreshToken: string | null;
-    accessToken: string | null;
-    expiryDate: number | null;
-  } | null;
   useCustomGoogleClient: boolean;
   googleClientId: string;
   googleClientSecret: string;
+  googleAccounts: GoogleAccount[];
   businessHours: BusinessHoursSettings;
   enableBackgroundEvents: boolean;
+  enableReminders: boolean; // ADD THIS LINE
   workspaces: WorkspaceSettings[];
   activeWorkspace: string | null; // Workspace ID, null means default view
 }
@@ -69,17 +73,16 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
     mobile: 'timeGrid3Days'
   },
   timeFormat24h: false,
-  dailyNotesTimezone: 'local',
   clickToCreateEventFromMonthView: true,
   displayTimezone: null,
   lastSystemTimezone: null,
   enableAdvancedCategorization: false,
   chrono_analyser_config: null,
   categorySettings: [],
-  googleAuth: null,
   useCustomGoogleClient: false,
   googleClientId: '',
   googleClientSecret: '',
+  googleAccounts: [],
   businessHours: {
     enabled: false,
     daysOfWeek: [1, 2, 3, 4, 5], // Monday to Friday
@@ -87,6 +90,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
     endTime: '17:00'
   },
   enableBackgroundEvents: true,
+  enableReminders: false,
   workspaces: [],
   activeWorkspace: null
 };
