@@ -22,7 +22,6 @@ import {
 import { PLUGIN_SLUG } from './types';
 import EventCache from './core/EventCache';
 import { toEventInput } from './core/interop';
-import { renderCalendar } from './ui/calendar';
 import { manageTimezone } from './features/Timezone';
 import { Notice, Plugin, TFile, App } from 'obsidian';
 
@@ -59,7 +58,6 @@ export default class FullCalendarPlugin extends Plugin {
   // To parse `data.json` file.`
   cache: EventCache = new EventCache(this);
 
-  renderCalendar = renderCalendar;
   processFrontmatter = toEventInput;
 
   /**
@@ -106,12 +104,25 @@ export default class FullCalendarPlugin extends Plugin {
 
     // Link the two singletons.
     this.providerRegistry.setCache(this.cache);
+    this.providerRegistry.listenForSourceChanges();
 
     this.cache.reset();
 
     // ADD: Start NotificationManager after providerRegistry is initialized
     this.notificationManager = new NotificationManager(this);
-    this.notificationManager.update(this.settings);
+    this.notificationManager.update(this.settings); // Initial update
+    this.registerEvent(
+      (this.app.workspace as any).on(
+        'full-calendar:settings-updated',
+        this.notificationManager.update.bind(this.notificationManager)
+      )
+    );
+    this.registerEvent(
+      (this.app.workspace as any).on(
+        'full-calendar:settings-updated',
+        this.cache.updateSettings.bind(this.cache)
+      )
+    );
 
     // Respond to obsidian events
     this.registerEvent(
@@ -263,6 +274,9 @@ export default class FullCalendarPlugin extends Plugin {
     if (this.notificationManager) {
       this.notificationManager.unload();
     }
+    if (this.providerRegistry) {
+      this.providerRegistry.stopListening();
+    }
     this.app.workspace.detachLeavesOfType(FULL_CALENDAR_VIEW_TYPE);
     this.app.workspace.detachLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE);
   }
@@ -292,6 +306,9 @@ export default class FullCalendarPlugin extends Plugin {
    * to ensure all calendars are using the new settings.
    */
   async saveSettings() {
+    // Deep copy of settings BEFORE any modifications.
+    const oldSettings = JSON.parse(JSON.stringify(this.settings));
+
     // Create a mutable copy to work with.
     const newSettings = { ...this.settings };
 
@@ -304,16 +321,36 @@ export default class FullCalendarPlugin extends Plugin {
     this.settings = newSettings;
 
     await this.saveData(this.settings);
-    if (this.notificationManager) {
-      this.notificationManager.update(this.settings);
+
+    // Publish general settings update event for all subscribers
+    this.app.workspace.trigger('full-calendar:settings-updated', this.settings);
+
+    // Compare old and new settings to determine which specific events to publish.
+    const newSourcesString = JSON.stringify(this.settings.calendarSources);
+    const oldSourcesString = JSON.stringify(oldSettings.calendarSources);
+
+    if (newSourcesString !== oldSourcesString) {
+      this.app.workspace.trigger('full-calendar:sources-changed');
     }
 
-    // Any change from the settings tab that adds/removes a calendar
-    // requires a full reset of the cache and providers.
-    this.cache.reset();
-    await this.cache.populate();
-    this.providerRegistry.revalidateRemoteCalendars();
-    this.cache.resync(); // Finally, update the views with the new data.
+    const viewSettingsChanged =
+      oldSettings.firstDay !== this.settings.firstDay ||
+      oldSettings.timeFormat24h !== this.settings.timeFormat24h ||
+      JSON.stringify(oldSettings.initialView) !== JSON.stringify(this.settings.initialView) ||
+      oldSettings.activeWorkspace !== this.settings.activeWorkspace ||
+      JSON.stringify(oldSettings.businessHours) !== JSON.stringify(this.settings.businessHours) ||
+      oldSettings.enableAdvancedCategorization !== this.settings.enableAdvancedCategorization ||
+      JSON.stringify(oldSettings.categorySettings) !==
+        JSON.stringify(this.settings.categorySettings);
+
+    if (viewSettingsChanged) {
+      this.app.workspace.trigger('full-calendar:view-config-changed');
+    }
+
+    // This manual call is now redundant and will be removed.
+    // if (this.notificationManager) {
+    //   this.notificationManager.update(this.settings);
+    // }
   }
 
   /**

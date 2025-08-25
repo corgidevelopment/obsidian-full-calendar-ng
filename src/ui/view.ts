@@ -24,7 +24,6 @@ import type { Calendar, EventInput } from '@fullcalendar/core';
 
 import './overrides.css';
 import FullCalendarPlugin from '../main';
-import { renderCalendar } from './calendar';
 import { renderOnboarding } from './onboard';
 import { PLUGIN_SLUG, CalendarInfo } from '../types';
 import { UpdateViewCallback, CachedEvent } from '../core/EventCache';
@@ -69,6 +68,7 @@ export class CalendarView extends ItemView {
   private timelineResources:
     | { id: string; title: string; parentId?: string; eventColor?: string; extendedProps?: any }[]
     | null = null;
+  private settingsListener: (() => Promise<void>) | null = null; // Added for view-config pub/sub
 
   constructor(leaf: WorkspaceLeaf, plugin: FullCalendarPlugin, inSidebar = false) {
     super(leaf);
@@ -385,6 +385,8 @@ export class CalendarView extends ItemView {
       this.fullCalendarView = null;
     }
 
+    // LAZY LOAD THE CALENDAR RENDERER HERE
+    const { renderCalendar } = await import('./calendar');
     let currentViewType = '';
     const handleViewChange = () => {
       const newViewType = this.fullCalendarView?.view?.type || '';
@@ -405,7 +407,6 @@ export class CalendarView extends ItemView {
       }
       currentViewType = newViewType;
     };
-
     this.fullCalendarView = await renderCalendar(calendarEl, sources, {
       // timeZone:
       //   this.plugin.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -705,6 +706,20 @@ export class CalendarView extends ItemView {
       this.callback = null;
     }
 
+    // Remove previous settingsListener if present
+    if (this.settingsListener) {
+      (this.plugin.app.workspace as any).off(
+        'full-calendar:view-config-changed',
+        this.settingsListener
+      );
+    }
+    // Register new settingsListener for view-config changes
+    this.settingsListener = () => this.onOpen();
+    (this.plugin.app.workspace as any).on(
+      'full-calendar:view-config-changed',
+      this.settingsListener
+    );
+
     this.callback = this.plugin.cache.on('update', () => {
       if (!this.viewEnhancer || !this.fullCalendarView) {
         return;
@@ -748,6 +763,13 @@ export class CalendarView extends ItemView {
     if (this.callback) {
       this.plugin.cache.off('update', this.callback);
       this.callback = null;
+    }
+    if (this.settingsListener) {
+      (this.plugin.app.workspace as any).off(
+        'full-calendar:view-config-changed',
+        this.settingsListener
+      );
+      this.settingsListener = null;
     }
   }
 }

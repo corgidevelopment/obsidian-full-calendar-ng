@@ -390,4 +390,24 @@ export class ProviderRegistry {
     }
     return instance.createInstanceOverride(masterEvent, instanceDate, newEventData);
   }
+
+  // Add pub/sub event bus logic for settings changes
+  private onSourcesChanged = async (): Promise<void> => {
+    if (!this.cache) return;
+
+    // This is the "nuclear reset" logic moved from main.ts
+    await this.initializeInstances();
+    this.cache.reset();
+    await this.cache.populate();
+    this.revalidateRemoteCalendars();
+    this.cache.resync();
+  };
+
+  public listenForSourceChanges(): void {
+    (this.plugin.app.workspace as any).on('full-calendar:sources-changed', this.onSourcesChanged);
+  }
+
+  public stopListening(): void {
+    (this.plugin.app.workspace as any).off('full-calendar:sources-changed', this.onSourcesChanged);
+  }
 }

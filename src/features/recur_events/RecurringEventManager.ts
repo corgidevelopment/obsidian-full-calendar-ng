@@ -18,7 +18,6 @@ import { OFCEvent } from '../../types';
 import EventCache from '../../core/EventCache';
 import { StoredEvent } from '../../core/EventStore';
 import { toggleTask } from '../../utils/tasks';
-import { DeleteRecurringModal } from '../../ui/modals/DeleteRecurringModal';
 import FullCalendarPlugin from '../../main';
 
 /**
@@ -226,6 +225,8 @@ export class RecurringEventManager {
     const children = this.findRecurringChildren(eventId);
 
     if (children.length > 0 || options?.instanceDate) {
+      // LAZY LOAD MODAL
+      const { DeleteRecurringModal } = await import('../../ui/modals/DeleteRecurringModal');
       new DeleteRecurringModal(
         this.cache.plugin.app,
         () => this.promoteRecurringChildren(eventId),

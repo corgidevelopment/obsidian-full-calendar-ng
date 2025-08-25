@@ -38,10 +38,11 @@
  */
 
 import { Notice, TFile } from 'obsidian';
+import { FullCalendarSettings } from '../types/settings';
 
 import FullCalendarPlugin from '../main';
 import EventStore, { StoredEvent } from './EventStore';
-import { CalendarInfo, OFCEvent, validateEvent, EventLocation } from '../types';
+import { OFCEvent, EventLocation } from '../types';
 import { CalendarProvider } from '../providers/Provider';
 import { EventEnhancer } from './EventEnhancer';
 
@@ -106,6 +107,14 @@ export default class EventCache {
     this.enhancer = new EventEnhancer(this.plugin.settings);
     // REMOVE direct instantiation
     // this.recurringEventManager = new RecurringEventManager(this, this._plugin);
+  }
+
+  /**
+   * Public method to be called by subscribers when settings change.
+   * Updates the event enhancer with the latest settings.
+   */
+  public updateSettings(newSettings: FullCalendarSettings): void {
+    this.enhancer.updateSettings(newSettings);
   }
 
   get plugin(): FullCalendarPlugin {

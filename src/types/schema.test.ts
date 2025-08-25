@@ -41,15 +41,15 @@ describe('schema parsing tests', () => {
           allDay: true
         })
       ).toMatchInlineSnapshot(`
-          {
-            "allDay": true,
-            "category": "Work",
-            "date": "2021-01-01",
-            "endDate": null,
-            "title": "Test",
-            "type": "single",
-          }
-        `);
+        {
+          "allDay": true,
+          "category": "Work",
+          "date": "2021-01-01",
+          "endDate": null,
+          "title": "Test",
+          "type": "single",
+        }
+      `);
     });
 
     it('start time', () => {
@@ -215,6 +215,7 @@ describe('schema parsing tests', () => {
           "daysOfWeek": [
             "M",
           ],
+          "endDate": null,
           "skipDates": [],
           "title": "Test",
           "type": "recurring",
@@ -236,6 +237,7 @@ describe('schema parsing tests', () => {
             "M",
             "W",
           ],
+          "endDate": null,
           "skipDates": [],
           "title": "Test",
           "type": "recurring",
@@ -257,6 +259,7 @@ describe('schema parsing tests', () => {
           "daysOfWeek": [
             "M",
           ],
+          "endDate": null,
           "skipDates": [],
           "startRecur": "2023-01-05",
           "title": "Test",
@@ -279,6 +282,7 @@ describe('schema parsing tests', () => {
           "daysOfWeek": [
             "M",
           ],
+          "endDate": null,
           "endRecur": "2023-01-05",
           "skipDates": [],
           "title": "Test",
@@ -302,6 +306,7 @@ describe('schema parsing tests', () => {
           "daysOfWeek": [
             "M",
           ],
+          "endDate": null,
           "endRecur": "2023-05-12",
           "skipDates": [],
           "startRecur": "2023-01-05",
@@ -327,6 +332,7 @@ describe('schema parsing tests', () => {
       ).toMatchInlineSnapshot(`
         {
           "allDay": true,
+          "endDate": null,
           "id": "hi",
           "rrule": "RRULE",
           "skipDates": [],

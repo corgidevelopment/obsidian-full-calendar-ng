@@ -27,6 +27,7 @@ exports[`ics tests parses gcal ics file and categories: BEGIN:VCALENDAR\\nPRODID
   },
   {
     "allDay": false,
+    "endDate": null,
     "endTime": "07:00",
     "id": "ics::5tt2avr2th0h65homv3b6jeqof@google.com::2022-03-01::recurring",
     "rrule": "RRULE:FREQ=WEEKLY;BYDAY=TH,TU;WKST=SU",
