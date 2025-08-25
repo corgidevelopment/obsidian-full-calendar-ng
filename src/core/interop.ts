@@ -284,7 +284,23 @@ export function toEventInput(
       const startTime = parseTime(frontmatter.startTime);
       const endTime = parseTime(frontmatter.endTime);
       if (startTime && endTime) {
-        const duration = endTime.minus(startTime);
+        // Use Luxon to handle date math correctly, accounting for potential day crossing
+        let startDt = DateTime.fromISO(
+          combineDateTimeStrings(frontmatter.startRecur || '2025-01-01', frontmatter.startTime)!
+        );
+        let endDt = DateTime.fromISO(
+          combineDateTimeStrings(
+            frontmatter.endDate || frontmatter.startRecur || '2025-01-01',
+            frontmatter.endTime
+          )!
+        );
+
+        // If end time is logically before start time, it means it's on the next day
+        if (endDt < startDt) {
+          endDt = endDt.plus({ days: 1 });
+        }
+
+        const duration = endDt.diff(startDt);
         if (duration.as('milliseconds') > 0) {
           baseEvent.duration = duration.toFormat('hh:mm');
         }
@@ -301,15 +317,18 @@ export function toEventInput(
     baseEvent.allDay = !!frontmatter.allDay;
   } else if (frontmatter.type === 'rrule') {
     const dtstart = (() => {
+      const zone = frontmatter.timezone || settings.displayTimezone || 'local';
       if (frontmatter.allDay) {
-        return DateTime.fromISO(frontmatter.startDate, { zone: 'utc' }); // Updated to use UTC timezone
+        // For all-day events, we treat them as being at the start of the day in the specified zone.
+        return DateTime.fromISO(frontmatter.startDate, { zone });
       } else {
         const dtstartStr = combineDateTimeStrings(frontmatter.startDate, frontmatter.startTime);
 
         if (!dtstartStr) {
           return null;
         }
-        return DateTime.fromISO(dtstartStr);
+        // When creating the DateTime, explicitly use the event's timezone.
+        return DateTime.fromISO(dtstartStr, { zone });
       }
     })();
     if (dtstart === null) {
@@ -328,28 +347,42 @@ export function toEventInput(
       })
       .flatMap((d: string) => (d ? [d] : []));
 
-    baseEvent = {
-      id,
-      title: frontmatter.title,
-      allDay: frontmatter.allDay,
-      rrule: rrulestr(frontmatter.rrule, {
-        dtstart: dtstart.toJSDate()
-      }).toString(),
-      exdate,
-      extendedProps: { ...baseEvent.extendedProps, isTask: !!frontmatter.isTask } // Added line
-    };
+    // Manually construct the rrule string with TZID to preserve timezone context for FullCalendar.
+    const zone = frontmatter.timezone || settings.displayTimezone || 'local';
+    const dtstartString = `DTSTART;TZID=${zone}:${dtstart.toFormat("yyyyMMdd'T'HHmmss")}`;
+    const rruleString = frontmatter.rrule;
+
+    baseEvent.rrule = [dtstartString, rruleString].join('\n'); // We don't need exdates here as FullCalendar handles them separately.
+    baseEvent.exdate = exdate;
+    baseEvent.extendedProps = { ...baseEvent.extendedProps, isTask: !!frontmatter.isTask };
 
     if (!frontmatter.allDay) {
       const startTime = parseTime(frontmatter.startTime);
       if (startTime && frontmatter.endTime) {
         const endTime = parseTime(frontmatter.endTime);
-        const duration = endTime?.minus(startTime);
-        if (duration) {
-          baseEvent.duration = duration.toISOTime({
-            includePrefix: false,
-            suppressMilliseconds: true,
-            suppressSeconds: true
-          });
+        if (endTime) {
+          let startDt = DateTime.fromISO(
+            combineDateTimeStrings(frontmatter.startDate, frontmatter.startTime)!
+          );
+          let endDt = DateTime.fromISO(
+            combineDateTimeStrings(
+              frontmatter.endDate || frontmatter.startDate,
+              frontmatter.endTime
+            )!
+          );
+
+          if (endDt < startDt) {
+            endDt = endDt.plus({ days: 1 });
+          }
+
+          const duration = endDt.diff(startDt);
+          if (duration.as('milliseconds') > 0) {
+            baseEvent.duration = duration.toISOTime({
+              includePrefix: false,
+              suppressMilliseconds: true,
+              suppressSeconds: true
+            });
+          }
         }
       }
     }
@@ -453,7 +486,8 @@ export function fromEventApi(event: EventApi, newResource?: string): OFCEvent {
 
     ...(isRecurring
       ? {
-          type: 'recurring',
+          type: 'recurring' as const,
+          endDate: null,
           daysOfWeek: event.extendedProps.daysOfWeek.map((i: number) => DAYS[i]),
           startRecur: event.extendedProps.startRecur && getDate(event.extendedProps.startRecur),
           endRecur: event.extendedProps.endRecur && getDate(event.extendedProps.endRecur),

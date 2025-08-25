@@ -21,7 +21,8 @@ describe('ChronoAnalyser Utils - skipDates handling', () => {
     startRecur: '2023-11-01',
     endRecur: '2023-11-30',
     allDay: true,
-    skipDates
+    skipDates,
+    endDate: null
   });
 
   const createTimeRecord = (event: OFCEvent): TimeRecord => ({
@@ -186,7 +187,8 @@ describe('ChronoAnalyser Utils - skipDates handling', () => {
       rrule: 'FREQ=WEEKLY;BYDAY=MO,WE,FR', // Monday, Wednesday, Friday
       startDate: '2023-11-01',
       allDay: true,
-      skipDates
+      skipDates,
+      endDate: null
     });
 
     describe('getRruleInstances', () => {
@@ -238,7 +240,8 @@ describe('ChronoAnalyser Utils - skipDates handling', () => {
           rrule: 'INVALID_RRULE',
           startDate: '2023-11-01',
           allDay: true,
-          skipDates: []
+          skipDates: [],
+          endDate: null
         };
         const record = createTimeRecord(invalidRruleEvent);
 
@@ -287,7 +290,8 @@ describe('ChronoAnalyser Utils - skipDates handling', () => {
           rrule: 'INVALID_RRULE',
           startDate: '2023-11-01',
           allDay: true,
-          skipDates: []
+          skipDates: [],
+          endDate: null
         };
 
         const count = calculateRruleInstancesInDateRange(

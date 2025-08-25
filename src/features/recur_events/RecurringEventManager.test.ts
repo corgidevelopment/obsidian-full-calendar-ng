@@ -96,7 +96,8 @@ describe('RecurringEventManager', () => {
       startTime: '09:00',
       endTime: '10:00',
       isTask: true,
-      skipDates: ['2023-11-20']
+      skipDates: ['2023-11-20'],
+      endDate: null
     };
 
     const originalOverrideEvent: OFCEvent = {

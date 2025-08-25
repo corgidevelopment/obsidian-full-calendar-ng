@@ -60,8 +60,13 @@ export function fromGoogleEvent(gEvent: any): OFCEvent | null {
     // Timed event
     eventData.allDay = false;
 
-    const start = DateTime.fromISO(gEvent.start.dateTime);
-    const end = DateTime.fromISO(gEvent.end.dateTime);
+    // Use Luxon to correctly parse the absolute time and then shift it to the event's specified timezone.
+    const start = DateTime.fromISO(gEvent.start.dateTime, { setZone: true }).setZone(
+      gEvent.start.timeZone
+    );
+    const end = DateTime.fromISO(gEvent.end.dateTime, { setZone: true }).setZone(
+      gEvent.end.timeZone
+    );
 
     eventData.date = start.toISODate();
     eventData.startTime = start.toFormat('HH:mm');

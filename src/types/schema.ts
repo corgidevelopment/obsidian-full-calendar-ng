@@ -97,6 +97,7 @@ export const EventSchema = z
     }),
     z.object({
       type: z.literal('recurring'),
+      endDate: ParsedDate.nullable().default(null),
       daysOfWeek: z.array(z.enum(['U', 'M', 'T', 'W', 'R', 'F', 'S'])).optional(),
       month: z.number().int().min(1).max(12).optional(),
       dayOfMonth: z.number().int().min(1).max(31).optional(),
@@ -108,6 +109,7 @@ export const EventSchema = z
     z.object({
       type: z.literal('rrule'),
       startDate: ParsedDate,
+      endDate: ParsedDate.nullable().default(null),
       rrule: z.string(),
       skipDates: z.array(ParsedDate).default([]),
       isTask: z.boolean().optional()

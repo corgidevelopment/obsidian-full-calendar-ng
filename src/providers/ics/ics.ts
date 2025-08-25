@@ -80,14 +80,18 @@ function icsToOFC(input: ical.Event): OFCEvent {
       return icalTimeToLuxon(exdate).toISODate();
     });
 
+    const startDateISO = getLuxonDate(startDate)!;
+    const endDateISO = getLuxonDate(endDate)!;
+
     return {
       type: 'rrule',
       uid,
       title: eventData.title,
-      id: `ics::${uid}::${getLuxonDate(startDate)}::recurring`,
+      id: `ics::${uid}::${startDateISO}::recurring`,
       rrule: rrule.toString(),
       skipDates: exdates.flatMap(d => (d ? [d] : [])),
-      startDate: getLuxonDate(startDate)!,
+      startDate: startDateISO,
+      endDate: startDateISO !== endDateISO ? endDateISO : null,
       timezone,
       ...(isAllDay
         ? { allDay: true }

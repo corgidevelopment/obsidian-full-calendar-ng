@@ -95,6 +95,7 @@ export function convertEvent<T extends OFCEvent>(
       newEvent.startRecur = newStart.toISODate()!;
       newEvent.startTime = newStart.toFormat('HH:mm');
 
+      // Handle day shifts for daysOfWeek property
       const originalStart = DateTime.fromISO(`${dateStr}T${startTime.toFormat('HH:mm')}`, {
         zone: sourceZone
       });
@@ -114,20 +115,21 @@ export function convertEvent<T extends OFCEvent>(
         }) as typeof newEvent.daysOfWeek;
       }
 
+      // Handle endTime and potential new endDate
       if (newEvent.endTime) {
         const endTime = parseTime(newEvent.endTime);
         if (endTime) {
-          const endDateSrc = newEvent.endRecur || dateStr;
+          // Use the original endDate if it exists, otherwise use the original start date.
+          const endDateSrc = newEvent.endDate || dateStr;
           const newEnd = convert(endDateSrc, endTime);
           newEvent.endTime = newEnd.toFormat('HH:mm');
-          if (newEvent.endRecur) {
-            newEvent.endRecur = newEnd.toISODate()!;
-          }
+          // Set endDate ONLY if it's on a different day than the new start date.
+          newEvent.endDate =
+            newEnd.toISODate()! !== newEvent.startRecur ? newEnd.toISODate()! : null;
         }
       }
       break;
     }
-    // ^^^ END OF REPLACEMENT ^^^
 
     case 'rrule': {
       if (Array.isArray(newEvent.skipDates) && newEvent.skipDates.length) {
@@ -145,9 +147,11 @@ export function convertEvent<T extends OFCEvent>(
       if (newEvent.endTime) {
         const endTime = parseTime(newEvent.endTime);
         if (endTime) {
-          const endDateSrc = newEvent.startDate;
+          const endDateSrc = newEvent.endDate || newEvent.startDate;
           const newEnd = convert(endDateSrc, endTime);
           newEvent.endTime = newEnd.toFormat('HH:mm');
+          newEvent.endDate =
+            newEnd.toISODate()! !== newEvent.startDate ? newEnd.toISODate()! : null;
         }
       }
       break;
