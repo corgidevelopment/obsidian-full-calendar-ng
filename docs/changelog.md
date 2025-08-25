@@ -4,6 +4,34 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
+## Version 0.12.1
+
+-   **New:** Event Reminder System with Desktop Notifications (BETA)
+    _Introducing the `NotificationManager` for native desktop notifications. Users can opt-in to receive reminders 10 minutes before events start and, optionally, 10 minutes before they end. Perfect for never missing important meetings or deadlines._
+    
+-   **New:** Multi-Account Google Calendar Integration  
+    _Google Calendar integration now supports connecting and managing multiple accounts simultaneously. Features a dedicated account management hub with a streamlined two-step wizard for adding new calendars from any connected account._
+
+-   **Improvement:** Provider-Based Architecture with Multi-Account Support  
+    _Complete architectural overhaul to a provider-based system where each calendar source (Local, Daily Notes, ICS, CalDAV, Google) is a self-contained, instanced provider. The new `ProviderRegistry` acts as a central persistence gateway, managing all I/O and abstracting storage details. This enables stateful features and robust multi-account Google Calendar integration._
+
+-   **Improvement:** Event-Driven Settings with Instant Updates  
+    _Settings persistence refactored to a publish/subscribe model. The `saveSettings` function now diffs old vs new state and publishes granular events (`sources-changed`, `view-config-changed`, `settings-updated`). Calendar views re-render instantly without flicker or unnecessary reloads._
+
+-   **Improvement:** Lazy-Loading for Faster Startup Performance  
+    _Heavy dependencies are now dynamically imported only when needed: FullCalendar engine loads when opening a calendar view, React modals load on demand. This dramatically reduces startup time and memory usage._
+
+-   **Improvement:** Centralized Event Enhancement Pipeline  
+    _New `EventEnhancer` module centralizes all timezone conversions and category parsing, essentially intercepting all raw events befor it reaches the Cache. Business logic extracted into dedicated stateless modules with a new `WorkspaceManager` handling all workspace filtering and display logic._
+
+-   **Fix:** Timezone Handling for Recurring Events [#94](https://github.com/YouFoundJK/plugin-full-calendar/issues/94)
+    _Recurring events now properly handle timezones with endDate support, resolving timezone branching issues and ensuring correct time display across different time zones._
+
+-   **Fix:** ICS events now loads properly [#91](https://github.com/YouFoundJK/plugin-full-calendar/issues/91)
+    _Parsing issues in Remote ICS calendar is fixed and should now load properly._
+
+---
+
 ## Version 0.11.9
 
 -   **New:** Calendar Workspaces (#90)  

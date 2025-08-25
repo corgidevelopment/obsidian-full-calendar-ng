@@ -5,6 +5,19 @@ For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
 ---
 
+## 🔔 Event Reminder System
+
+Never miss an important meeting again! The new **Event Reminder System** brings native desktop notifications to Full Calendar. Get notified 10 minutes before your events start, and optionally before they end.
+
+- **Smart Notifications:** Native desktop notifications work across all operating systems
+- **Flexible Timing:** 10-minute advance warning with optional end-time reminders
+- **Universal Support:** Works with all calendar sources - local notes, Google Calendar, CalDAV, and ICS feeds
+- **Privacy-First:** All reminder processing happens locally in your vault
+
+➡️ Enable notifications in Settings → General → Event Notifications
+
+---
+
 ## 🧩 Calendar Workspaces
 
 Create and switch between tailored calendar setups with Workspaces. Save your selected sources, filters (categories, tasks, all‑day), and view preferences (month/week/day/timeline) into named workspaces like "Planning" or "Deep Work" and swap in a click. Optimized to apply changes incrementally for fast transitions.
@@ -24,9 +37,9 @@ Full Calendar now supports **two-way sync with Google Calendar**! Connect your G
 - **Seamless Sync:** Events created in Obsidian appear instantly in Google Calendar, and vice versa.
 - **Recurring Events:** Full support for recurring events and per-instance overrides.
 - **Advanced Categories:** Google Calendar events can use category coloring and sub-category organization for powerful visual management.
-- **Setup Guide:** See [Google Calendar Setup](calendars/gcal.md) for step-by-step instructions.
+- **Multi-Account Multi-Calendar:** Now supports multiple calendars across different Google Accounts.
 
-➡️ **[Learn how to set up Google Calendar Sync](calendars/gcal.md)**
+➡️ **[Learn how to set up OAUTH2.0 for Google Calendar Sync](calendars/gcal.md)**
 
 ---
 

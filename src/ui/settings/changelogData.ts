@@ -14,6 +14,58 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.12.1',
+    changes: [
+      {
+        type: 'new',
+        title: 'Event reminder system with desktop notifications',
+        description:
+          'New notification manager provides native desktop notifications for upcoming events. Get reminded 10 minutes before an event starts and optionally before it ends.'
+      },
+      {
+        type: 'new',
+        title: 'Multi-account Google Calendar integration',
+        description:
+          'Connect and manage multiple Google accounts with a dedicated account management hub. Streamlined two-step wizard for adding calendars from any connected account.'
+      },
+      {
+        type: 'improvement',
+        title: 'Provider-based architecture with multi-account support',
+        description:
+          'Complete overhaul from Instance-based to a provider-based architecture enabling stateful features and multi-account supports. Each calendar source is now self-contained with improved isolation and performance.'
+      },
+      {
+        type: 'improvement',
+        title: 'Event-driven settings with instant updates',
+        description:
+          'Settings now use publish/subscribe model with granular events (sources-changed, view-config-changed). Calendar re-renders instantly without flicker or unnecessary reloads.'
+      },
+      {
+        type: 'improvement',
+        title: 'Lazy-loading for faster startup',
+        description:
+          'Heavy dependencies like FullCalendar engine and React modals are now dynamically imported only when needed, dramatically improving startup time and memory usage.'
+      },
+      {
+        type: 'improvement',
+        title: 'Centralized event enhancement pipeline',
+        description:
+          'New EventEnhancer module centralizes timezone conversions and category parsing, with dedicated WorkspaceManager for filtering and display logic.'
+      },
+      {
+        type: 'fix',
+        title: 'Timezone handling for recurring events',
+        description:
+          'Recurring events now properly handle timezones with endDate support, resolving timezone branching issues.'
+      },
+      {
+        type: 'fix',
+        title: 'ICS remote events loading fix',
+        description: 'Remove ICS events should now load properly.'
+      }
+    ]
+  },
+  {
     version: '0.11.9',
     changes: [
       {
