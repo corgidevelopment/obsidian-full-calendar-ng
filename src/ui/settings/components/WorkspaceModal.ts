@@ -11,6 +11,7 @@ import {
   generateWorkspaceId,
   BusinessHoursSettings
 } from '../../../types/settings';
+import { CalendarInfo } from '../../../types/calendar_settings';
 
 export class WorkspaceModal extends Modal {
   plugin: FullCalendarPlugin;
@@ -178,38 +179,36 @@ export class WorkspaceModal extends Modal {
     this.renderCalendarCheckboxes(this.visibleCalendarsContainer, calendars);
   }
 
-  private renderCalendarCheckboxes(container: HTMLElement, calendars: any[]) {
+  private renderCalendarCheckboxes(container: HTMLElement, calendars: CalendarInfo[]) {
     const selectedIds = new Set((this.workspace.visibleCalendars || []).map(String));
 
     calendars.forEach(calendar => {
       const checkboxContainer = container.createEl('div', { cls: 'workspace-checkbox-item' });
 
       // Generate a meaningful display name based on calendar type
-      let displayName = calendar.name;
-      if (!displayName || displayName.trim() === '') {
-        switch (calendar.type) {
-          case 'local':
-            displayName = `Local: ${calendar.directory}`;
-            break;
-          case 'dailynote':
-            displayName = `Daily Notes: ${calendar.heading}`;
-            break;
-          case 'ical':
-            try {
-              displayName = `ICS: ${new URL(calendar.url).hostname}`;
-            } catch (_) {
-              displayName = 'ICS Calendar';
-            }
-            break;
-          case 'caldav':
-            displayName = `CalDAV: ${calendar.name}`;
-            break;
-          case 'google':
-            displayName = `Google: ${calendar.name}`;
-            break;
-          default:
-            displayName = `${calendar.type} Calendar`;
-        }
+      let displayName: string;
+      switch (calendar.type) {
+        case 'local':
+          displayName = `Local: ${calendar.directory}`;
+          break;
+        case 'dailynote':
+          displayName = `Daily Notes: ${calendar.heading}`;
+          break;
+        case 'ical':
+          try {
+            displayName = `ICS: ${new URL(calendar.url).hostname}`;
+          } catch (_) {
+            displayName = 'ICS Calendar';
+          }
+          break;
+        case 'caldav':
+          displayName = `CalDAV: ${calendar.name}`;
+          break;
+        case 'google':
+          displayName = `Google: ${calendar.name}`;
+          break;
+        default:
+          displayName = `${calendar.type} Calendar`;
       }
 
       new Setting(checkboxContainer).setName(displayName).addToggle(toggle => {

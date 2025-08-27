@@ -21,7 +21,32 @@ import { rrulestr } from 'rrule';
  * @param gEvent The raw event object from the Google API.
  * @returns An OFCEvent object, or null if the input is invalid.
  */
-export function fromGoogleEvent(gEvent: any): OFCEvent | null {
+// Minimal subset of the Google Calendar API event we actually consume.
+// Fields not used are intentionally omitted for simplicity.
+export interface GoogleEventLike {
+  id?: string;
+  status?: string;
+  summary?: string;
+  recurringEventId?: string;
+  originalStartTime?: {
+    date?: string;
+    dateTime?: string;
+    timeZone?: string;
+  } | null;
+  start?: {
+    date?: string;
+    dateTime?: string;
+    timeZone?: string;
+  } | null;
+  end?: {
+    date?: string;
+    dateTime?: string;
+    timeZone?: string;
+  } | null;
+  recurrence?: string[];
+}
+
+export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
   if (gEvent.status === 'cancelled') {
     // This is an exception marker for a deleted instance of a recurring event.
     // Its information is already incorporated into the master event's `exdates`.
@@ -38,34 +63,35 @@ export function fromGoogleEvent(gEvent: any): OFCEvent | null {
   const uid = gEvent.id;
   const recurringEventId = gEvent.recurringEventId;
 
-  let eventData: any = { uid, recurringEventId };
+  // We'll build up a partial raw event; cast at the end once required fields are ensured
+  const eventData: Record<string, unknown> = { uid, recurringEventId };
 
   // Title and Category Parsing
   eventData.title = gEvent.summary;
 
   // All-Day vs. Timed Events
-  if (gEvent.start.date) {
+  if (gEvent.start && gEvent.start.date) {
     // All-day event
     eventData.allDay = true;
     eventData.date = gEvent.start.date;
 
     // Google's all-day end date is exclusive. To make it inclusive like FullCalendar's
     // internal model for local events, we subtract one day.
-    if (gEvent.end.date && gEvent.end.date !== gEvent.start.date) {
+    if (gEvent.end && gEvent.end.date && gEvent.end.date !== gEvent.start.date) {
       eventData.endDate = DateTime.fromISO(gEvent.end.date).minus({ days: 1 }).toISODate();
     } else {
       eventData.endDate = null;
     }
-  } else if (gEvent.start.dateTime) {
+  } else if (gEvent.start && gEvent.start.dateTime && gEvent.end && gEvent.end.dateTime) {
     // Timed event
     eventData.allDay = false;
 
     // Use Luxon to correctly parse the absolute time and then shift it to the event's specified timezone.
     const start = DateTime.fromISO(gEvent.start.dateTime, { setZone: true }).setZone(
-      gEvent.start.timeZone
+      gEvent.start.timeZone || 'utc'
     );
     const end = DateTime.fromISO(gEvent.end.dateTime, { setZone: true }).setZone(
-      gEvent.end.timeZone
+      gEvent.end.timeZone || 'utc'
     );
 
     eventData.date = start.toISODate();
@@ -105,7 +131,7 @@ export function fromGoogleEvent(gEvent: any): OFCEvent | null {
       const rruleEvent: Partial<OFCEvent> = {
         type: 'rrule',
         // Google doesn't have a separate startDate for rrules, so we use the event's start date.
-        startDate: eventData.date,
+        startDate: eventData.date as string,
         rrule: rrule.toString(),
         skipDates: exdates,
         isTask: false // Google Calendar events are not tasks in the OFC sense.
@@ -129,7 +155,8 @@ export function fromGoogleEvent(gEvent: any): OFCEvent | null {
  * @returns A JSON object ready to be sent to the Google Calendar API.
  */
 export function toGoogleEvent(event: OFCEvent): object {
-  const gEvent: any = {};
+  // Use a plain object with inferred type; keep it loose but not `any`.
+  const gEvent: Record<string, unknown> = {};
 
   // 1. Summary (Title)
   gEvent.summary = constructTitle(event.category, event.subCategory, event.title);

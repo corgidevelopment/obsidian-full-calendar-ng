@@ -188,7 +188,7 @@ export class GoogleAuthManager {
       a => a.id !== accountId
     );
     this.plugin.settings.calendarSources = this.plugin.settings.calendarSources.filter(
-      s => s.type !== 'google' || (s as any).googleAccountId !== accountId
+      s => !(s.type === 'google' && s.googleAccountId === accountId)
     );
     await this.plugin.saveSettings();
   }

@@ -12,7 +12,8 @@
  * @license See LICENSE.md
  */
 
-import { NotificationManager } from './features/NotificationManager'; // ADD THIS IMPORT
+import { NotificationManager } from './features/NotificationManager';
+import { StatusBarManager } from './features/statusbar/StatusBarManager'; // added
 import { LazySettingsTab } from './ui/settings/LazySettingsTab';
 import {
   ensureCalendarIds,
@@ -38,6 +39,7 @@ export default class FullCalendarPlugin extends Plugin {
   private _settings: FullCalendarSettings = DEFAULT_SETTINGS;
 
   notificationManager!: NotificationManager;
+  statusBarManager!: StatusBarManager; // added
 
   get settings(): FullCalendarSettings {
     return this._settings;
@@ -107,18 +109,36 @@ export default class FullCalendarPlugin extends Plugin {
     this.providerRegistry.listenForSourceChanges();
 
     this.cache.reset();
+    this.cache.listenForSettingsChanges(this.app.workspace); // ADD THIS LINE
 
     // ADD: Start NotificationManager after providerRegistry is initialized
     this.notificationManager = new NotificationManager(this);
-    this.notificationManager.update(this.settings); // Initial update
+    this.notificationManager.update(this.settings);
+    this.statusBarManager = new StatusBarManager(this); // added
+    this.statusBarManager.update(this.settings); // added
+    const workspaceEvents = this.app.workspace as unknown as {
+      // Keep `any` here because Obsidian's internal event system passes heterogeneous arguments.
+      // Localising the unsafeness avoids polluting the rest of the codebase.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      on: (name: string, cb: (...args: any[]) => unknown) => any;
+      registerHoverLinkSource?: (id: string, def: { display: string; defaultMod: boolean }) => void;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      trigger: (name: string, ...data: any[]) => void;
+    };
     this.registerEvent(
-      (this.app.workspace as any).on(
+      workspaceEvents.on(
         'full-calendar:settings-updated',
         this.notificationManager.update.bind(this.notificationManager)
       )
     );
     this.registerEvent(
-      (this.app.workspace as any).on(
+      workspaceEvents.on(
+        'full-calendar:settings-updated',
+        this.statusBarManager.update.bind(this.statusBarManager) // added
+      )
+    );
+    this.registerEvent(
+      workspaceEvents.on(
         'full-calendar:settings-updated',
         this.cache.updateSettings.bind(this.cache)
       )
@@ -147,7 +167,6 @@ export default class FullCalendarPlugin extends Plugin {
       })
     );
 
-    // @ts-ignore
     window.cache = this.cache;
 
     this.registerView(
@@ -246,7 +265,7 @@ export default class FullCalendarPlugin extends Plugin {
     });
 
     // Register view content on hover
-    (this.app.workspace as any).registerHoverLinkSource(PLUGIN_SLUG, {
+    workspaceEvents.registerHoverLinkSource?.(PLUGIN_SLUG, {
       display: 'Full Calendar',
       defaultMod: true
     });
@@ -274,11 +293,17 @@ export default class FullCalendarPlugin extends Plugin {
     if (this.notificationManager) {
       this.notificationManager.unload();
     }
+    if (this.statusBarManager) {
+      this.statusBarManager.unload(); // added
+    }
     if (this.providerRegistry) {
       this.providerRegistry.stopListening();
     }
-    this.app.workspace.detachLeavesOfType(FULL_CALENDAR_VIEW_TYPE);
-    this.app.workspace.detachLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE);
+    if (this.cache) {
+      this.cache.stopListening();
+    }
+    // NOTE: Per Obsidian plugin guidelines, do NOT detach leaves of custom views here.
+    // Obsidian will handle stale views; detaching in onunload is considered an anti-pattern.
   }
 
   /**

@@ -9,17 +9,29 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const MILLICONDS_BETWEEN_REVALIDATIONS = 5 * MINUTE;
 
+// Keep the generic constructor loose because individual providers have distinct
+// config types (FullNoteProviderConfig, DailyNoteProviderConfig, etc.). Enforcing
+// a single CalendarInfo arg caused incompatibilities. We instead type the
+// instance side via CalendarProvider<unknown> while still avoiding pervasive `any`.
+// eslint-disable-next-line @typescript-eslint/ban-types
+// NOTE: We intentionally keep the constructor param typed as `any` here.
+// Each concrete provider has a distinct config type; using a union or unknown
+// causes incompatibilities (construct signature variance) when dynamically
+// importing modules. Keeping `any` localised here avoids leaking it elsewhere
+// while preserving flexibility for heterogeneous provider configs.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type CalendarProviderClass = new (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: any,
   plugin: FullCalendarPlugin,
   app?: ObsidianInterface
-) => CalendarProvider<any>;
+) => CalendarProvider<unknown>;
 
 type ProviderLoader = () => Promise<{ [key: string]: CalendarProviderClass }>;
 
 export class ProviderRegistry {
   private providers = new Map<string, ProviderLoader>();
-  private instances = new Map<string, CalendarProvider<any>>();
+  private instances = new Map<string, CalendarProvider<unknown>>();
   private sources: CalendarInfo[] = [];
 
   // Properties from IdentifierManager and for linking singletons
@@ -61,16 +73,17 @@ export class ProviderRegistry {
   }
 
   public getSource(id: string): CalendarInfo | undefined {
-    return this.sources.find(s => (s as any).id === id);
+    return this.sources.find(s => s.id === id);
   }
 
   public getAllSources(): CalendarInfo[] {
     return this.sources;
   }
 
-  public getConfig(id: string): any | undefined {
+  public getConfig(id: string): unknown | undefined {
     const source = this.getSource(id);
-    return source ? (source as any).config : undefined;
+    if (!source) return undefined;
+    return 'config' in source ? (source as Record<string, unknown>).config : undefined;
   }
 
   public async getProviderForType(type: string): Promise<CalendarProviderClass | undefined> {
@@ -82,8 +95,9 @@ export class ProviderRegistry {
     try {
       const module = await loader();
       const ProviderClass = Object.values(module).find(
-        (exported: any) => exported?.type === type
-      ) as CalendarProviderClass | undefined;
+        (exported: unknown): exported is CalendarProviderClass =>
+          typeof exported === 'function' && (exported as { type?: string }).type === type
+      );
 
       if (!ProviderClass) {
         console.error(
@@ -103,7 +117,7 @@ export class ProviderRegistry {
     const sources = this.plugin.settings.calendarSources;
 
     for (const source of sources) {
-      const settingsId = (source as any).id;
+      const settingsId = source.id;
       if (!settingsId) {
         console.warn('Full Calendar: Calendar source is missing an ID.', source);
         continue;
@@ -113,7 +127,8 @@ export class ProviderRegistry {
 
       if (ProviderClass) {
         const app = new ObsidianIO(this.plugin.app);
-        const instance = new ProviderClass(source as any, this.plugin, app);
+        // Provider constructor accepts loosely typed config; pass source directly
+        const instance = new ProviderClass(source, this.plugin, app);
         this.instances.set(settingsId, instance);
       } else {
         // Warning is already logged in getProviderForType
@@ -146,7 +161,9 @@ export class ProviderRegistry {
     return `${calendarId}::${handle.persistentId}`;
   }
 
-  public buildMap(store: any): void {
+  public buildMap(store: {
+    getAllEvents(): { event: OFCEvent; calendarId: string; id: string }[];
+  }): void {
     // store is EventStore
     if (!this.cache) return;
     this.identifierMapPromise = (async () => {
@@ -272,8 +289,10 @@ export class ProviderRegistry {
 
         let isRelevant = false;
         if (instance.type === 'local') {
-          const directory = (sourceInfo as any).directory;
-          isRelevant = !!directory && file.path.startsWith(directory + '/');
+          if (sourceInfo.type === 'local') {
+            const directory = sourceInfo.directory;
+            isRelevant = !!directory && file.path.startsWith(directory + '/');
+          }
         } else if (instance.type === 'dailynote') {
           const { folder } = require('obsidian-daily-notes-interface').getDailyNoteSettings();
           isRelevant = folder ? file.path.startsWith(folder + '/') : true;
@@ -309,7 +328,9 @@ export class ProviderRegistry {
     if (!this.cache) return;
     // For a delete, the new state of the file is "no events".
     // The cache will diff this against its old state and remove everything.
-    await this.cache.syncFile({ path } as TFile, []);
+    // Provide a minimal file-like object; syncFile only requires a .path property via TFile shape.
+    // Create minimal TFile-like object for cache sync
+    await this.cache.syncFile({ path } as unknown as TFile, []);
   }
 
   // Add these properties for remote revalidation
@@ -346,7 +367,8 @@ export class ProviderRegistry {
         })
         .catch(err => {
           const source = this.getSource(settingsId);
-          const name = (source as any)?.name || instance.type;
+          const name =
+            source && 'name' in source ? (source as { name: string }).name : instance.type;
           throw new Error(`Failed to revalidate calendar "${name}": ${err.message}`);
         });
     });
@@ -404,10 +426,19 @@ export class ProviderRegistry {
   };
 
   public listenForSourceChanges(): void {
-    (this.plugin.app.workspace as any).on('full-calendar:sources-changed', this.onSourcesChanged);
+    // Obsidian's Workspace interface doesn't declare custom events; cast only the event emitter portion
+    (
+      this.plugin.app.workspace as unknown as {
+        on: (name: string, cb: () => void) => void;
+      }
+    ).on('full-calendar:sources-changed', this.onSourcesChanged);
   }
 
   public stopListening(): void {
-    (this.plugin.app.workspace as any).off('full-calendar:sources-changed', this.onSourcesChanged);
+    (
+      this.plugin.app.workspace as unknown as {
+        off: (name: string, cb: () => void) => void;
+      }
+    ).off('full-calendar:sources-changed', this.onSourcesChanged);
   }
 }

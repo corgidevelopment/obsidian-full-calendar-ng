@@ -54,7 +54,8 @@ export type TestSource = {
   type: 'FOR_TEST_ONLY';
   id: string;
   events?: OFCEvent[];
-  config?: any;
+  // Keep test helper flexible but avoid `any`.
+  config?: Record<string, unknown>;
 };
 
 export type CalendarInfo = (z.infer<typeof calendarOptionsSchema> | TestSource) &

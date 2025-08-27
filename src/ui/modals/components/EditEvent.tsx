@@ -175,6 +175,22 @@ export const EditEvent = ({
   const [endRecur, setEndRecur] = useState(
     initialEvent?.type === 'recurring' ? initialEvent.endRecur : undefined
   );
+  const [repeatInterval, setRepeatInterval] = useState(
+    initialEvent?.type === 'recurring' ? initialEvent.repeatInterval || 1 : 1
+  );
+  // START ADDITION
+  type MonthlyMode = 'dayOfMonth' | 'onThe';
+  const getInitialMonthlyMode = (): MonthlyMode =>
+    initialEvent?.type === 'recurring' && initialEvent.repeatOn ? 'onThe' : 'dayOfMonth';
+
+  const [monthlyMode, setMonthlyMode] = useState<MonthlyMode>(getInitialMonthlyMode());
+  const [repeatOnWeek, setRepeatOnWeek] = useState(
+    initialEvent?.type === 'recurring' ? initialEvent.repeatOn?.week || 1 : 1
+  );
+  const [repeatOnWeekday, setRepeatOnWeekday] = useState(
+    initialEvent?.type === 'recurring' ? initialEvent.repeatOn?.weekday || 0 : 0
+  );
+  // END ADDITION
   const [display, setDisplay] = useState<
     'auto' | 'block' | 'list-item' | 'background' | 'inverse-background' | 'none'
   >(initialEvent?.display || 'auto');
@@ -229,13 +245,22 @@ export const EditEvent = ({
         startRecur: date || undefined,
         endRecur: endRecur,
         isTask: isTask,
-        skipDates: initialEvent?.type === 'recurring' ? initialEvent.skipDates : []
+        skipDates: initialEvent?.type === 'recurring' ? initialEvent.skipDates : [],
+        repeatInterval: repeatInterval > 1 ? repeatInterval : undefined
       };
 
       if (recurrenceType === 'weekly') {
         recurringData.daysOfWeek = daysOfWeek as ('U' | 'M' | 'T' | 'W' | 'R' | 'F' | 'S')[];
       } else if (recurrenceType === 'monthly' && date) {
-        recurringData.dayOfMonth = DateTime.fromISO(date).day;
+        // START MODIFICATION
+        if (monthlyMode === 'onThe') {
+          recurringData.repeatOn = { week: repeatOnWeek, weekday: repeatOnWeekday };
+          recurringData.dayOfMonth = undefined; // Ensure mutual exclusivity
+        } else {
+          recurringData.dayOfMonth = DateTime.fromISO(date).day;
+          recurringData.repeatOn = undefined; // Ensure mutual exclusivity
+        }
+        // END MODIFICATION
       } else if (recurrenceType === 'yearly' && date) {
         const dt = DateTime.fromISO(date);
         recurringData.month = dt.month;
@@ -481,6 +506,26 @@ export const EditEvent = ({
             </select>
           </div>
         </div>
+        {isRecurring && (
+          <div className="setting-item">
+            <div className="setting-item-info"></div>
+            <div className="setting-item-control" style={{ alignItems: 'center', gap: '8px' }}>
+              <span>Repeat every</span>
+              <input
+                type="number"
+                min="1"
+                value={repeatInterval}
+                onChange={e => setRepeatInterval(parseInt(e.target.value, 10) || 1)}
+                style={{ width: '60px' }}
+              />
+              <span>
+                {recurrenceType === 'weekly' && (repeatInterval > 1 ? 'weeks' : 'week')}
+                {recurrenceType === 'monthly' && (repeatInterval > 1 ? 'months' : 'month')}
+                {recurrenceType === 'yearly' && (repeatInterval > 1 ? 'years' : 'year')}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Recurring fields fragment replaced */}
         {isRecurring && (
@@ -495,14 +540,79 @@ export const EditEvent = ({
                 </div>
               </div>
             )}
+            {/* REPLACE monthly block */}
             {recurrenceType === 'monthly' && date && (
               <div className="setting-item">
                 <div className="setting-item-info"></div>
-                <div className="setting-item-control">
-                  Repeats on day {DateTime.fromISO(date).day} of every month.
+                <div className="setting-item-control" style={{ display: 'block' }}>
+                  {/* Radio button for "On day X" */}
+                  <div>
+                    <input
+                      type="radio"
+                      id="monthly-day-of-month"
+                      name="monthly-mode"
+                      value="dayOfMonth"
+                      checked={monthlyMode === 'dayOfMonth'}
+                      onChange={() => setMonthlyMode('dayOfMonth')}
+                    />
+                    <label htmlFor="monthly-day-of-month">
+                      {' '}
+                      On day {DateTime.fromISO(date).day}
+                    </label>
+                  </div>
+                  {/* Radio button for "On the Nth weekday" */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginTop: '8px'
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      id="monthly-on-the"
+                      name="monthly-mode"
+                      value="onThe"
+                      checked={monthlyMode === 'onThe'}
+                      onChange={() => setMonthlyMode('onThe')}
+                    />
+                    <label htmlFor="monthly-on-the">On the</label>
+                    <select
+                      value={repeatOnWeek}
+                      onChange={e => setRepeatOnWeek(parseInt(e.target.value, 10))}
+                      disabled={monthlyMode !== 'onThe'}
+                    >
+                      <option value="1">first</option>
+                      <option value="2">second</option>
+                      <option value="3">third</option>
+                      <option value="4">fourth</option>
+                      <option value="-1">last</option>
+                    </select>
+                    <select
+                      value={repeatOnWeekday}
+                      onChange={e => setRepeatOnWeekday(parseInt(e.target.value, 10))}
+                      disabled={monthlyMode !== 'onThe'}
+                    >
+                      {[
+                        'Sunday',
+                        'Monday',
+                        'Tuesday',
+                        'Wednesday',
+                        'Thursday',
+                        'Friday',
+                        'Saturday'
+                      ].map((day, index) => (
+                        <option key={index} value={index}>
+                          {day}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
+            {/* END monthly block replacement */}
             {recurrenceType === 'yearly' && date && (
               <div className="setting-item">
                 <div className="setting-item-info"></div>

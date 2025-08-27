@@ -60,9 +60,12 @@ export class CalDAVProvider implements CalendarProvider<CalDAVProviderConfig> {
 
       // The rest of the pipeline remains the same:
       // Pass raw ICS data to the existing parser.
+      interface RawCalDAVObject {
+        data?: string;
+      }
       return caldavEvents
-        .filter((vevent: any) => vevent.data)
-        .flatMap((vevent: any) => getEventsFromICS(vevent.data))
+        .filter((vevent: RawCalDAVObject) => typeof vevent.data === 'string')
+        .flatMap((vevent: RawCalDAVObject) => getEventsFromICS(vevent.data as string))
         .map((event: OFCEvent) => [event, null]);
     } catch (e) {
       console.error(`Error fetching CalDAV events from ${this.source.url}`, e);

@@ -23,8 +23,14 @@ import type {
 } from '@fullcalendar/core';
 
 import { Menu } from 'obsidian';
+import type { PluginDef } from '@fullcalendar/core';
 
 let didPatchRRule = false;
+
+// Minimal shape for the rrule plugin we monkeypatch.
+interface RRulePluginLike {
+  recurringTypes: { expand: (...args: unknown[]) => unknown }[];
+}
 
 interface ExtraRenderProps {
   eventClick?: (info: EventClickArg) => void;
@@ -73,8 +79,10 @@ export async function renderCalendar(
 
   // Apply RRULE monkeypatch once after plugin loads
   if (!didPatchRRule) {
-    const rrulePlugin: any = (rrule as any).default || rrule;
+    const rrulePlugin = ((rrule as unknown as { default?: RRulePluginLike }).default ||
+      (rrule as unknown as RRulePluginLike)) as RRulePluginLike;
     const originalExpand = rrulePlugin.recurringTypes[0].expand;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rrulePlugin.recurringTypes[0].expand = function (errd: any, fr: any, de: any) {
       if (errd.rruleSet.tzid()) {
         return originalExpand.call(this, errd, fr, de);
@@ -110,7 +118,7 @@ export async function renderCalendar(
   // Wrap eventClick to ignore shadow events
   const wrappedEventClick =
     eventClick &&
-    ((info: any) => {
+    ((info: EventClickArg) => {
       // Ignore clicks on shadow events
       if (info.event.extendedProps.isShadow) {
         return;
@@ -170,7 +178,13 @@ export async function renderCalendar(
       }
     : false;
 
-  const views: any = {
+  type ViewSpec = {
+    type: string;
+    duration?: { days?: number; weeks?: number };
+    buttonText: string;
+    slotMinWidth?: number;
+  };
+  const views: Record<string, ViewSpec> = {
     timeGridDay: {
       type: 'timeGrid',
       duration: { days: 1 },
@@ -196,7 +210,8 @@ export async function renderCalendar(
     };
   }
 
-  const customButtonConfig: any = customButtons || {};
+  const customButtonConfig: Record<string, { text: string; click: (ev: MouseEvent) => void }> =
+    Object.assign({}, customButtons);
 
   // Always add the "Views" dropdown
   customButtonConfig.views = {
@@ -251,13 +266,16 @@ export async function renderCalendar(
 
   // FullCalendar Premium open-source license key (GPLv3 projects)
   // See: https://fullcalendar.io/license for details
-  const CalendarCtor = (core as any).Calendar as typeof Calendar;
-  const dayGridPlugin = (daygrid as any).default;
-  const timeGridPlugin = (timegrid as any).default;
-  const listPlugin = (list as any).default;
-  const rrulePlugin = (rrule as any).default;
-  const interactionPlugin = (interaction as any).default;
-  const resourceTimelinePlugin = resourceTimeline ? (resourceTimeline as any).default : null;
+  // Narrow dynamic imports to expected shapes without pervasive any usage.
+  const CalendarCtor = (core as { Calendar: typeof Calendar }).Calendar;
+  const dayGridPlugin = (daygrid as { default: PluginDef }).default;
+  const timeGridPlugin = (timegrid as { default: PluginDef }).default;
+  const listPlugin = (list as { default: PluginDef }).default;
+  const rrulePlugin = (rrule as { default: PluginDef }).default;
+  const interactionPlugin = (interaction as { default: PluginDef }).default;
+  const resourceTimelinePlugin = resourceTimeline
+    ? (resourceTimeline as { default: PluginDef }).default
+    : null;
 
   const cal = new CalendarCtor(containerEl, {
     schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
@@ -284,6 +302,7 @@ export async function renderCalendar(
     dayMaxEvents: true,
     headerToolbar,
     footerToolbar,
+    // Cast at usage point to satisfy FullCalendar without polluting variable with any
     views,
     ...(showResourceViews && {
       resourceAreaHeaderContent: 'Categories',
@@ -337,8 +356,7 @@ export async function renderCalendar(
     eventDidMount: ({ event, el, textColor }) => {
       // Don't add context menu or checkboxes to shadow events
       if (event.extendedProps.isShadow) {
-        el.style.pointerEvents = 'none';
-        el.style.cursor = 'default';
+        el.addClass('fc-event-shadow');
         return;
       }
 

@@ -25,7 +25,10 @@ function sanitizeTitleForFilename(title: string): string {
     .trim();
 }
 
-const basenameFromEvent = (event: OFCEvent, settings: any): string => {
+interface TitleSettingsLike {
+  enableAdvancedCategorization?: boolean;
+}
+const basenameFromEvent = (event: OFCEvent, settings: TitleSettingsLike): string => {
   const fullTitle = settings.enableAdvancedCategorization
     ? constructTitle(event.category, event.subCategory, event.title)
     : event.title;
@@ -52,7 +55,7 @@ const basenameFromEvent = (event: OFCEvent, settings: any): string => {
   }
 };
 
-const filenameForEvent = (event: OFCEvent, settings: any) =>
+const filenameForEvent = (event: OFCEvent, settings: TitleSettingsLike) =>
   `${basenameFromEvent(event, settings)}.md`;
 
 // Provider Implementation
@@ -99,10 +102,10 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
       return [];
     }
 
-    const rawEventData: any = {
+    const rawEventData = {
       ...metadata.frontmatter,
-      title: metadata.frontmatter.title || file.basename
-    };
+      title: (metadata.frontmatter as { title?: string }).title || file.basename
+    } as Record<string, unknown>;
 
     const rawEvent = validateEvent(rawEventData);
     if (!rawEvent) {

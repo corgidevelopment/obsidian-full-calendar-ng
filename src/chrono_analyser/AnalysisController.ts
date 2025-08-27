@@ -9,7 +9,7 @@ import FullCalendarPlugin from '../main';
 import * as Plotter from './ui/plotter';
 import * as Aggregator from './data/aggregator';
 import { DataManager } from './data/DataManager';
-import { UIService } from './ui/UIService';
+import { UIService, ChartType, ChartSpecificFilter } from './ui/UIService';
 import { DataService } from './data/DataService';
 import { PieData, TimeRecord } from './data/types';
 import { InsightsEngine } from './data/InsightsEngine';
@@ -32,7 +32,7 @@ export class AnalysisController {
   public insightsEngine: InsightsEngine;
   public rootEl: HTMLElement;
 
-  private activeChartType: string | null = null;
+  private activeChartType: ChartType | null = null;
   private isChartRendered = false;
 
   private activePieBreakdown: string | null = null;
@@ -142,7 +142,7 @@ export class AnalysisController {
     let useReact = !isNewChartType && this.isChartRendered;
 
     if (!isNewChartType) {
-      switch (newChartType) {
+      switch (chartSpecificFilters.chart) {
         case 'pie':
           if (this.activePieBreakdown !== chartSpecificFilters.breakdownBy) useReact = false;
           break;
@@ -165,7 +165,8 @@ export class AnalysisController {
     // filters.pattern = chartSpecificFilters.pattern; // DELETE THIS LINE
 
     // REFACTOR: Tell DataManager to expand events for time-based charts
-    const expandRecurring = ['time-series', 'activity'].includes(newChartType || '');
+    const expandRecurring =
+      chartSpecificFilters.chart === 'time-series' || chartSpecificFilters.chart === 'activity';
     const { records, totalHours, fileCount } = this.dataManager.getAnalyzedData(
       filters,
       null, // breakdown is handled by the chart strategy if needed
@@ -175,13 +176,42 @@ export class AnalysisController {
     this.renderUI(records, totalHours, fileCount, useReact, isNewChartType);
 
     this.activeChartType = newChartType;
-    this.activePieBreakdown = newChartType === 'pie' ? chartSpecificFilters.breakdownBy : null;
-    this.activeSunburstLevel = newChartType === 'sunburst' ? chartSpecificFilters.level : null;
-    this.activeTimeSeriesGranularity =
-      newChartType === 'time-series' ? chartSpecificFilters.granularity : null;
-    this.activeTimeSeriesType = newChartType === 'time-series' ? chartSpecificFilters.type : null;
-    this.activeActivityPattern =
-      newChartType === 'activity' ? chartSpecificFilters.patternType : null;
+    switch (chartSpecificFilters.chart) {
+      case 'pie':
+        this.activePieBreakdown = chartSpecificFilters.breakdownBy;
+        this.activeSunburstLevel = null;
+        this.activeTimeSeriesGranularity = null;
+        this.activeTimeSeriesType = null;
+        this.activeActivityPattern = null;
+        break;
+      case 'sunburst':
+        this.activeSunburstLevel = chartSpecificFilters.level;
+        this.activePieBreakdown = null;
+        this.activeTimeSeriesGranularity = null;
+        this.activeTimeSeriesType = null;
+        this.activeActivityPattern = null;
+        break;
+      case 'time-series':
+        this.activeTimeSeriesGranularity = chartSpecificFilters.granularity;
+        this.activeTimeSeriesType = chartSpecificFilters.type;
+        this.activePieBreakdown = null;
+        this.activeSunburstLevel = null;
+        this.activeActivityPattern = null;
+        break;
+      case 'activity':
+        this.activeActivityPattern = chartSpecificFilters.patternType;
+        this.activePieBreakdown = null;
+        this.activeSunburstLevel = null;
+        this.activeTimeSeriesGranularity = null;
+        this.activeTimeSeriesType = null;
+        break;
+      default:
+        this.activePieBreakdown = null;
+        this.activeSunburstLevel = null;
+        this.activeTimeSeriesGranularity = null;
+        this.activeTimeSeriesType = null;
+        this.activeActivityPattern = null;
+    }
   }
 
   private renderUI(
@@ -241,6 +271,7 @@ export class AnalysisController {
         isNewChartType: boolean
       ) => {
         const pieFilters = controller.uiService.getChartSpecificFilter('pie');
+        if (pieFilters.chart !== 'pie') return;
         const breakdownBy = pieFilters.breakdownBy as keyof TimeRecord;
 
         const aggregation = new Map<string, number>();
@@ -276,6 +307,7 @@ export class AnalysisController {
         isNewChartType: boolean
       ) => {
         const sunburstFilters = controller.uiService.getChartSpecificFilter('sunburst');
+        if (sunburstFilters.chart !== 'sunburst') return;
         const sunburstData = Aggregator.aggregateForSunburst(
           filteredRecords,
           sunburstFilters.level

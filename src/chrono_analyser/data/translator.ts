@@ -107,11 +107,19 @@ export function storedEventToTimeRecord(
 
   const metadata: OFCEvent = { ...event };
   if (metadata.type === 'recurring') {
-    if (metadata.startRecur && typeof metadata.startRecur === 'string') {
-      (metadata as any).startRecur = new Date(metadata.startRecur);
+    // Convert ISO date strings to Date objects only if they are valid and of the expected form.
+    if (typeof metadata.startRecur === 'string') {
+      const d = new Date(metadata.startRecur);
+      if (!isNaN(d.getTime())) {
+        // Assign to a temporary variable to satisfy the existing string type without broad any casts.
+        (metadata as Record<string, unknown>).startRecur = d;
+      }
     }
-    if (metadata.endRecur && typeof metadata.endRecur === 'string') {
-      (metadata as any).endRecur = new Date(metadata.endRecur);
+    if (typeof metadata.endRecur === 'string') {
+      const d = new Date(metadata.endRecur);
+      if (!isNaN(d.getTime())) {
+        (metadata as Record<string, unknown>).endRecur = d;
+      }
     }
   }
 

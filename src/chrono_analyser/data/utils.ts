@@ -25,7 +25,9 @@ export function getMonthStartDate(date: Date): Date | null {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
 }
 
-export function getHourFromTimeStr(timeStr: any): number | null {
+export function getHourFromTimeStr(
+  timeStr: string | number | Date | null | undefined
+): number | null {
   if (timeStr == null) return null;
   if (typeof timeStr === 'number') {
     const hour = Math.floor(timeStr);
@@ -55,11 +57,13 @@ export function getDayOfWeekNumber(dayChar: string): number | undefined {
 }
 
 export function calculateDuration(
-  startTime: any,
-  endTime: any,
+  startTime: string | number | Date | null | undefined,
+  endTime: string | number | Date | null | undefined,
   days: number | undefined = 1
 ): number {
-  const parseTime = (timeStr: any): { hours: number; minutes: number } | null => {
+  const parseTime = (
+    timeStr: string | number | Date | null | undefined
+  ): { hours: number; minutes: number } | null => {
     if (timeStr == null) return null;
     if (typeof timeStr === 'number') {
       if (isNaN(timeStr) || !isFinite(timeStr)) return null;

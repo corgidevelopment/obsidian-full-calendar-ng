@@ -287,19 +287,26 @@ Handled by the `RecurringEventManager`, this uses a "skip and override" strategy
 If you build a new UI component that needs to display live event data, subscribe to the `EventCache`.
 
 ```typescript
-// In your view's onOpen() or component's useEffect
-const callback = this.plugin.cache.on('update', payload => {
-    if (payload.type === 'events') {
-        // Handle payload.toAdd and payload.toRemove
-    } else if (payload.type === 'resync') {
-        // Re-fetch all events from the cache and re-render
-    } else if (payload.type === 'calendar') {
-        // A specific calendar source has been updated
-    }
+// Events (add/remove/update batches)
+const eventsCallback = plugin.cache.on('update', payload => {
+  if (payload.type === 'events') {
+    // Handle payload.toAdd / payload.toRemove
+  } else if (payload.type === 'resync') {
+    // Full resync
+  } else if (payload.type === 'calendar') {
+    // Single calendar source updated
+  }
 });
 
-// In your view's onunload() or component's cleanup function
-this.plugin.cache.off('update', callback);
+// High-frequency clock / "now" tick (e.g., for current time indicators)
+const timeCallback = plugin.cache.on('time-tick', state => {
+  // state.now (Date), state.localOffset, etc.
+  // Use to re-render "current time" markers without rebuilding all events.
+});
+
+// Cleanup
+plugin.cache.off('update', eventsCallback);
+plugin.cache.off('time-tick', timeCallback);
 ```
 
 ## Development and Tooling

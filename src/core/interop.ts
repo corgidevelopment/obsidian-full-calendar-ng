@@ -173,7 +173,7 @@ export function toEventInput(
   // Assign category-level coloring
   if (settings.enableAdvancedCategorization && frontmatter.category) {
     const categorySetting = (settings.categorySettings || []).find(
-      (c: any) => c.name === frontmatter.category
+      (c: { name: string; color: string }) => c.name === frontmatter.category
     );
     if (categorySetting) {
       const { color, textColor } = getCalendarColors(categorySetting.color);
@@ -220,12 +220,19 @@ export function toEventInput(
     }
 
     // 3  RRULE string (plus UNTIL if endRecur exists)
+    // START REPLACEMENT
     let rruleString: string;
+    const weekdays = { U: 'SU', M: 'MO', T: 'TU', W: 'WE', R: 'TH', F: 'FR', S: 'SA' };
+    const rruleWeekdays = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 
     if (frontmatter.daysOfWeek?.length) {
-      const weekdays = { U: 'SU', M: 'MO', T: 'TU', W: 'WE', R: 'TH', F: 'FR', S: 'SA' };
       const byday = frontmatter.daysOfWeek.map((c: keyof typeof weekdays) => weekdays[c]);
       rruleString = `FREQ=WEEKLY;BYDAY=${byday.join(',')}`;
+    } else if (frontmatter.repeatOn) {
+      const byday = rruleWeekdays[frontmatter.repeatOn.weekday];
+      const bysetpos = frontmatter.repeatOn.week;
+      // Note: rrule.js seems to use BYSETPOS for this, which is correct.
+      rruleString = `FREQ=MONTHLY;BYDAY=${byday};BYSETPOS=${bysetpos}`;
     } else if (frontmatter.month && frontmatter.dayOfMonth) {
       rruleString = `FREQ=YEARLY;BYMONTH=${frontmatter.month};BYMONTHDAY=${frontmatter.dayOfMonth}`;
     } else if (frontmatter.dayOfMonth) {
@@ -234,6 +241,11 @@ export function toEventInput(
       console.error('FullCalendar: invalid recurring event frontmatter.', frontmatter);
       return null;
     }
+
+    if (frontmatter.repeatInterval && frontmatter.repeatInterval > 1) {
+      rruleString += `;INTERVAL=${frontmatter.repeatInterval}`;
+    }
+    // END REPLACEMENT
 
     if (frontmatter.endRecur) {
       const endLocal = DateTime.fromISO(frontmatter.endRecur, { zone: displayZone }).endOf('day');

@@ -34,7 +34,14 @@ export async function importCalendars(
       loadObjects: false
     });
 
-    const discoveredCalendars: any[] = await findCalendars({ account });
+    // Minimal shape of a tsdav discovered calendar we rely on
+    interface DiscoveredCalDAVCalendar {
+      components?: string[];
+      displayName?: string;
+      url: string; // home URL
+      appleCalendarColor?: string;
+    }
+    const discoveredCalendars: DiscoveredCalDAVCalendar[] = await findCalendars({ account });
 
     return discoveredCalendars
       .filter(cal => cal.components?.includes('VEVENT'))
@@ -47,7 +54,7 @@ export async function importCalendars(
           name: cal.displayName || 'Unnamed Calendar',
           url,
           homeUrl: cal.url,
-          color: cal.appleCalendarColor || undefined,
+          color: cal.appleCalendarColor || '#888888',
           username: auth.username,
           password: auth.password
         };

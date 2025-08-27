@@ -45,6 +45,7 @@ import EventStore, { StoredEvent } from './EventStore';
 import { OFCEvent, EventLocation } from '../types';
 import { CalendarProvider } from '../providers/Provider';
 import { EventEnhancer } from './EventEnhancer';
+import { TimeEngine, TimeState } from './TimeEngine'; // ADDED import
 
 export type CacheEntry = { event: OFCEvent; id: string; calendarId: string };
 
@@ -94,6 +95,11 @@ export default class EventCache {
   private recurringEventManager:
     | import('../features/recur_events/RecurringEventManager').RecurringEventManager
     | null = null;
+  private timeEngine: TimeEngine; // ADDED
+
+  // ADD: Listener for view config changes
+  private viewConfigListener: (() => void) | null = null;
+  private workspaceEmitter: import('obsidian').Workspace | null = null;
 
   calendars = new Map<string, CalendarProvider<any>>();
   initialized = false;
@@ -105,8 +111,37 @@ export default class EventCache {
   constructor(plugin: FullCalendarPlugin) {
     this._plugin = plugin;
     this.enhancer = new EventEnhancer(this.plugin.settings);
+    this.timeEngine = new TimeEngine(this); // ADDED
     // REMOVE direct instantiation
     // this.recurringEventManager = new RecurringEventManager(this, this._plugin);
+  }
+
+  // ADD: Listen for settings changes
+  public listenForSettingsChanges(workspace: import('obsidian').Workspace): void {
+    this.workspaceEmitter = workspace;
+    const emitter = workspace as unknown as {
+      on: (name: string, cb: () => void) => void;
+    };
+    this.viewConfigListener = () => {
+      this.onSettingsChanged();
+    };
+    emitter.on('full-calendar:view-config-changed', this.viewConfigListener);
+  }
+
+  public stopListening(): void {
+    if (this.viewConfigListener && this.workspaceEmitter) {
+      const emitter = this.workspaceEmitter as unknown as {
+        off: (name: string, cb: () => void) => void;
+      };
+      emitter.off('full-calendar:view-config-changed', this.viewConfigListener);
+      this.viewConfigListener = null;
+      this.workspaceEmitter = null;
+    }
+  }
+
+  private async onSettingsChanged(): Promise<void> {
+    await this.populate();
+    this.resync();
   }
 
   /**
@@ -134,6 +169,7 @@ export default class EventCache {
    */
   reset(): void {
     this.initialized = false;
+    this.timeEngine.stop(); // ADDED
     const infos = this.plugin.providerRegistry.getAllSources();
     this.calendars.clear();
     this._store.clear();
@@ -141,7 +177,7 @@ export default class EventCache {
     // this.resync();
 
     infos.forEach(info => {
-      const settingsId = (info as any).id;
+      const settingsId = info.id;
       if (!settingsId) {
         console.warn('Full Calendar: Calendar source is missing an ID.', info);
         return;
@@ -177,6 +213,7 @@ export default class EventCache {
 
     this.initialized = true;
     this.plugin.providerRegistry.buildMap(this._store);
+    await this.timeEngine.start(); // modified: await async start
   }
 
   // ====================================================================
@@ -226,7 +263,6 @@ export default class EventCache {
       const events = eventsByCalendar.get(calId) || [];
       const calendarInfo = this.plugin.providerRegistry.getSource(calId);
       if (!calendarInfo) continue;
-      const config = (calendarInfo as any).config || {};
       const capabilities = provider.getCapabilities();
       const editable = capabilities.canCreate || capabilities.canEdit || capabilities.canDelete;
       result.push({
@@ -251,7 +287,6 @@ export default class EventCache {
     if (!provider) return false;
     const calendarInfo = this.plugin.providerRegistry.getSource(details.calendarId);
     if (!calendarInfo) return false;
-    const config = (calendarInfo as any).config;
     const capabilities = provider.getCapabilities();
     return capabilities.canCreate || capabilities.canEdit || capabilities.canDelete;
   }
@@ -366,6 +401,8 @@ export default class EventCache {
           calendarId: calendarId
         };
 
+        this.timeEngine.scheduleCacheRebuild(); // ADDED
+
         return true;
       } catch (e) {
         // FAILURE: I/O failed. Roll back all optimistic changes.
@@ -407,7 +444,7 @@ export default class EventCache {
       throw new Error(`Event with ID ${eventId} not found for deletion.`);
     }
     const { event, calendarId } = originalDetails;
-    const { provider, config } = this.getProviderForEvent(eventId);
+    const { provider } = this.getProviderForEvent(eventId);
 
     // Step 2: Pre-flight checks and recurring event logic
     if (!provider.getCapabilities().canDelete) {
@@ -444,11 +481,13 @@ export default class EventCache {
           `Could not generate a persistent handle for the event being deleted. Proceeding with deletion from cache only.`
         );
         // No I/O to perform, so no rollback is necessary. The operation is complete.
+        this.timeEngine.scheduleCacheRebuild(); // ADDED
         return;
       }
 
       try {
         await this.plugin.providerRegistry.deleteEventInProvider(eventId, event, calendarId);
+        this.timeEngine.scheduleCacheRebuild(); // ADDED
         // SUCCESS: The external source is now in sync with the cache.
       } catch (e) {
         // FAILURE: The I/O operation failed. Roll back the optimistic changes.
@@ -529,7 +568,7 @@ export default class EventCache {
       throw new Error(`Event with ID ${eventId} not present in event store.`);
     }
 
-    const { provider, config, event: oldEvent } = this.getProviderForEvent(eventId);
+    const { provider, event: oldEvent } = this.getProviderForEvent(eventId);
     const calendarId = originalDetails.calendarId;
 
     // Step 2: Pre-flight checks and recurring event logic
@@ -619,6 +658,8 @@ export default class EventCache {
             event: newEventWithId
           });
         }
+
+        this.timeEngine.scheduleCacheRebuild(); // ADDED
 
         return true;
       } catch (e) {
@@ -750,6 +791,7 @@ export default class EventCache {
   // ====================================================================
 
   private updateViewCallbacks: UpdateViewCallback[] = [];
+  private timeTickCallbacks: ((state: TimeState) => void)[] = [];
 
   public updateQueue: { toRemove: Set<string>; toAdd: Map<string, CacheEntry> } = {
     toRemove: new Set(),
@@ -757,29 +799,42 @@ export default class EventCache {
   };
 
   /**
-   * Register a callback for a view.
-   * @param eventType event type (currently just "update")
-   * @param callback
-   * @returns reference to callback for de-registration.
+   * Register a callback.
+   * Added overloads for better type inference (update vs time-tick).
    */
-  on(eventType: 'update', callback: UpdateViewCallback) {
+  on(eventType: 'update', callback: UpdateViewCallback): UpdateViewCallback;
+  on(eventType: 'time-tick', callback: (state: TimeState) => void): (state: TimeState) => void;
+  on(
+    eventType: 'update' | 'time-tick',
+    callback: UpdateViewCallback | ((state: TimeState) => void)
+  ): UpdateViewCallback | ((state: TimeState) => void) {
     switch (eventType) {
       case 'update':
-        this.updateViewCallbacks.push(callback);
+        this.updateViewCallbacks.push(callback as UpdateViewCallback);
+        break;
+      case 'time-tick':
+        this.timeTickCallbacks.push(callback as (state: TimeState) => void);
         break;
     }
     return callback;
   }
 
   /**
-   * De-register a callback for a view.
-   * @param eventType event type
-   * @param callback callback to remove
+   * De-register a callback.
+   * Added overloads for better type inference.
    */
-  off(eventType: 'update', callback: UpdateViewCallback) {
+  off(eventType: 'update', callback: UpdateViewCallback): void;
+  off(eventType: 'time-tick', callback: (state: TimeState) => void): void;
+  off(
+    eventType: 'update' | 'time-tick',
+    callback: UpdateViewCallback | ((state: TimeState) => void)
+  ): void {
     switch (eventType) {
       case 'update':
-        this.updateViewCallbacks.remove(callback);
+        this.updateViewCallbacks.remove(callback as UpdateViewCallback);
+        break;
+      case 'time-tick':
+        this.timeTickCallbacks.remove(callback as (state: TimeState) => void);
         break;
     }
   }
@@ -803,6 +858,19 @@ export default class EventCache {
 
     for (const callback of this.updateViewCallbacks) {
       callback({ type: 'events', ...payload });
+    }
+  }
+
+  /**
+   * Broadcast TimeEngine state to subscribers.
+   */
+  public broadcastTimeTick(state: TimeState): void {
+    for (const cb of this.timeTickCallbacks) {
+      try {
+        cb(state);
+      } catch (e) {
+        console.error('Full Calendar: time-tick callback error', e);
+      }
     }
   }
 
@@ -895,6 +963,7 @@ export default class EventCache {
       calendarId
     }));
     this.flushUpdateQueue(idsToRemove, cacheEntriesToAdd);
+    this.timeEngine.scheduleCacheRebuild(); // ADDED
   }
 
   // ====================================================================
@@ -967,6 +1036,7 @@ export default class EventCache {
       calendarId
     }));
     this.flushUpdateQueue(idsToRemove, cacheEntriesToAdd);
+    this.timeEngine.scheduleCacheRebuild(); // ADDED
   }
 
   private getProviderForEvent(eventId: string) {
@@ -983,6 +1053,6 @@ export default class EventCache {
     if (!calendarInfo) {
       throw new Error(`CalendarInfo for calendar ID ${calendarId} not found.`);
     }
-    return { provider, config: (calendarInfo as any).config, location, event };
+    return { provider, location, event };
   }
 }

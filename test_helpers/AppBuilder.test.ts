@@ -78,7 +78,8 @@ describe('AppBuilder read tests', () => {
       }
     `);
 
-    const contents = await app.vault.read(file as TFile);
+  if (!(file instanceof TFile)) throw new Error('Expected TFile');
+  const contents = await app.vault.read(file);
     expect(contents).toMatchInlineSnapshot(`
       		"---
       		one: 1
@@ -88,7 +89,7 @@ describe('AppBuilder read tests', () => {
       		- list item
       		"
     	`);
-    const metadata = app.metadataCache.getFileCache(file as TFile);
+  const metadata = app.metadataCache.getFileCache(file);
     expect(metadata).toMatchInlineSnapshot(`
       		{
       		  "frontmatter": {
@@ -155,9 +156,10 @@ describe('AppBuilder read tests', () => {
     expect(app.vault.getAllLoadedFiles().length).toBe(5);
     for (let i = 1; i <= 4; i++) {
       const basename = `file${i}`;
-      const file = app.vault.getAbstractFileByPath(`${basename}.md`) as TFile;
-      const contents = await app.vault.read(file);
-      const metadata = app.metadataCache.getFileCache(file);
+  const file = app.vault.getAbstractFileByPath(`${basename}.md`);
+  if (!(file instanceof TFile)) throw new Error('Expected TFile');
+  const contents = await app.vault.read(file);
+  const metadata = app.metadataCache.getFileCache(file);
       expect(contents).toBe(`## ${basename} heading\n`);
       const headings = metadata?.headings || [];
       expect(headings[0].heading).toBe(`${basename} heading`);
@@ -175,7 +177,8 @@ describe('AppBuilder read tests', () => {
 
     const files = app.vault.getAllLoadedFiles();
     expect(files.length).toBe(4);
-    const rootFile = app.vault.getAbstractFileByPath('root.md') as TFile;
+  const rootFile = app.vault.getAbstractFileByPath('root.md');
+  if (!(rootFile instanceof TFile)) throw new Error('Expected TFile');
     expect(rootFile).toBeTruthy();
     expect([await app.vault.read(rootFile), app.metadataCache.getFileCache(rootFile)])
       .toMatchInlineSnapshot(`
@@ -204,7 +207,8 @@ describe('AppBuilder read tests', () => {
       		  },
       		]
     	`);
-    const nestedFile = app.vault.getAbstractFileByPath('nested/nestedfile.md') as TFile;
+  const nestedFile = app.vault.getAbstractFileByPath('nested/nestedfile.md');
+  if (!(nestedFile instanceof TFile)) throw new Error('Expected TFile');
     expect(nestedFile).toBeTruthy();
     expect([await app.vault.read(nestedFile), app.metadataCache.getFileCache(nestedFile)])
       .toMatchInlineSnapshot(`
@@ -256,7 +260,8 @@ describe('AppBuilder read tests', () => {
         "nested/double/double.md",
       ]
     `);
-    const nestedFile = app.vault.getAbstractFileByPath('nested/double/double.md') as TFile;
+  const nestedFile = app.vault.getAbstractFileByPath('nested/double/double.md');
+  if (!(nestedFile instanceof TFile)) throw new Error('Expected TFile');
     expect(nestedFile).toBeTruthy();
     expect(
       normalizePaths([

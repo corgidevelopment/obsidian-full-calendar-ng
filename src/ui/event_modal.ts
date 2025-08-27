@@ -33,7 +33,7 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
   const calendars = plugin.providerRegistry
     .getAllSources()
     .map(info => {
-      const instance = plugin.providerRegistry.getInstance((info as any).id);
+      const instance = plugin.providerRegistry.getInstance(info.id);
       if (!instance) return null;
       const capabilities = instance.getCapabilities();
       if (!capabilities.canCreate) return null; // Filter for writable calendars
@@ -41,9 +41,12 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
       const providerClass = plugin.providerRegistry.getProviderForType(info.type);
       if (!providerClass) return null;
       return {
-        id: (info as any).id, // This is the SETTINGS ID
+        id: info.id, // This is the SETTINGS ID
         type: info.type,
-        name: (info as any).name || (providerClass as any)?.displayName
+        name:
+          'name' in info && typeof (info as { name?: unknown }).name === 'string'
+            ? (info as { name: string }).name
+            : (providerClass as { displayName?: string } | undefined)?.displayName || info.type
       };
     })
     .filter((c): c is { id: string; type: CalendarInfo['type']; name: string } => !!c);
@@ -99,7 +102,7 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
   const calendars = plugin.providerRegistry
     .getAllSources()
     .map(info => {
-      const instance = plugin.providerRegistry.getInstance((info as any).id);
+      const instance = plugin.providerRegistry.getInstance(info.id);
       if (!instance) return null;
       const capabilities = instance.getCapabilities();
       if (!capabilities.canEdit && !capabilities.canCreate) return null;
@@ -107,9 +110,12 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
       const providerClass = plugin.providerRegistry.getProviderForType(info.type);
       if (!providerClass) return null;
       return {
-        id: (info as any).id,
+        id: info.id,
         type: info.type,
-        name: (info as any).name || (providerClass as any)?.displayName
+        name:
+          'name' in info && typeof (info as { name?: unknown }).name === 'string'
+            ? (info as { name: string }).name
+            : (providerClass as { displayName?: string } | undefined)?.displayName || info.type
       };
     })
     .filter((c): c is { id: string; type: CalendarInfo['type']; name: string } => !!c);

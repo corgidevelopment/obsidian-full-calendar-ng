@@ -6,7 +6,7 @@ import { OFCEvent, EventLocation } from '../types';
  */
 export type EventHandle = {
   persistentId: string;
-  location?: any;
+  location?: { path: string; lineNumber?: number };
 };
 
 /**

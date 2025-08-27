@@ -17,18 +17,58 @@ import { Insight } from '../data/InsightsEngine';
 import { DetailPopup } from './components/DetailPopup';
 import { InsightsRenderer } from './components/InsightsRenderer';
 
+// ----------------------------------
+// Chart / Filter Type Definitions
+// ----------------------------------
+export type ChartType = 'pie' | 'sunburst' | 'time-series' | 'activity';
+
+export type PieBreakdown = 'hierarchy' | 'project' | 'subproject';
+export type SunburstLevel = 'project' | 'subproject';
+export type TimeSeriesGranularity = 'daily' | 'weekly' | 'monthly';
+export type TimeSeriesType = 'line' | 'stackedArea';
+export type TimeSeriesStackingLevel = PieBreakdown; // same options
+export type ActivityPatternType = 'dayOfWeek' | 'hourOfDay' | 'heatmapDOWvsHOD';
+
+export interface PieChartFilter {
+  chart: 'pie';
+  breakdownBy: keyof TimeRecord; // narrowed at runtime to PieBreakdown values
+}
+export interface SunburstChartFilter {
+  chart: 'sunburst';
+  level: SunburstLevel;
+}
+export interface TimeSeriesChartFilter {
+  chart: 'time-series';
+  granularity: TimeSeriesGranularity;
+  type: TimeSeriesType;
+  stackingLevel?: TimeSeriesStackingLevel; // only relevant when type === 'stackedArea'
+}
+export interface ActivityChartFilter {
+  chart: 'activity';
+  patternType: ActivityPatternType;
+}
+export interface NullChartFilter {
+  chart: null;
+}
+export type ChartSpecificFilter =
+  | PieChartFilter
+  | SunburstChartFilter
+  | TimeSeriesChartFilter
+  | ActivityChartFilter
+  | NullChartFilter;
+
 export interface FilterPayload {
-  analysisTypeSelect?: string;
+  analysisTypeSelect?: ChartType;
   hierarchyFilterInput?: string;
   projectFilterInput?: string;
   dateRangePicker?: [Date, Date];
-  levelSelect_pie?: string;
-  levelSelect?: string;
+  levelSelect_pie?: PieBreakdown;
+  levelSelect?: SunburstLevel;
   patternInput?: string;
-  timeSeriesGranularitySelect?: string;
-  timeSeriesTypeSelect?: string;
-  timeSeriesStackingLevelSelect?: string;
-  activityPatternTypeSelect?: string;
+  timeSeriesGranularitySelect?: TimeSeriesGranularity;
+  timeSeriesTypeSelect?: TimeSeriesType;
+  timeSeriesStackingLevelSelect?: TimeSeriesStackingLevel;
+  activityPatternTypeSelect?: ActivityPatternType;
 }
 
 /**
@@ -114,11 +154,36 @@ export class UIService {
       generateBtn.disabled = true;
       generateBtn.classList.add('is-loading');
       // MODIFIED: Programmatically create the loading indicator
-      const container = resultContainer as any;
-      container.empty();
-      const loadingContainer = container.createDiv({ cls: 'loading-container' });
-      loadingContainer.createDiv({ cls: 'loading-spinner' });
-      loadingContainer.createDiv({ text: 'Analyzing your data...' });
+      const container = resultContainer as Partial<{
+        empty: () => void;
+        createDiv: (opts?: { cls?: string; text?: string }) => HTMLDivElement;
+      }> &
+        HTMLElement;
+      container.empty?.();
+      const loadingContainer: HTMLElement = container.createDiv
+        ? container.createDiv({ cls: 'loading-container' })
+        : (() => {
+            const div = document.createElement('div');
+            div.className = 'loading-container';
+            resultContainer.appendChild(div);
+            return div;
+          })();
+      const maybeCreateDiv = (
+        loadingContainer as Partial<{
+          createDiv: (o?: { cls?: string; text?: string }) => HTMLDivElement;
+        }>
+      ).createDiv;
+      if (maybeCreateDiv) {
+        maybeCreateDiv.call(loadingContainer, { cls: 'loading-spinner' });
+        maybeCreateDiv.call(loadingContainer, { text: 'Analyzing your data...' });
+      } else {
+        const spinner = document.createElement('div');
+        spinner.className = 'loading-spinner';
+        loadingContainer.appendChild(spinner);
+        const text = document.createElement('div');
+        text.textContent = 'Analyzing your data...';
+        loadingContainer.appendChild(text);
+      }
     } else {
       generateBtn.textContent = 'Generate Insights';
       generateBtn.disabled = false;
@@ -137,15 +202,19 @@ export class UIService {
   }
 
   // Delegate to the DetailPopup instance
-  public showDetailPopup = (categoryName: string, recordsList: TimeRecord[], context: any = {}) => {
-    this.detailPopup.show(categoryName, recordsList, context);
+  public showDetailPopup = (
+    categoryName: string,
+    recordsList: TimeRecord[],
+    context: { type?: ChartType; value?: number | null } = {}
+  ) => {
+    this.detailPopup.show(categoryName, recordsList, context as Record<string, unknown>);
   };
 
   public destroy(): void {
     this.flatpickrInstance?.destroy();
   }
 
-  public getFilterState(): { filters: AnalysisFilters; newChartType: string | null } {
+  public getFilterState(): { filters: AnalysisFilters; newChartType: ChartType | null } {
     const hierarchyFilter =
       this.rootEl
         .querySelector<HTMLInputElement>('#hierarchyFilterInput')
@@ -171,39 +240,45 @@ export class UIService {
     };
 
     const newChartType =
-      this.rootEl.querySelector<HTMLSelectElement>('#analysisTypeSelect')?.value ?? null;
+      (this.rootEl.querySelector<HTMLSelectElement>('#analysisTypeSelect')?.value as
+        | ChartType
+        | undefined) ?? null;
     return { filters, newChartType };
   }
 
-  public getChartSpecificFilter(type: string | null): Record<string, any> {
+  public getChartSpecificFilter(type: ChartType | null): ChartSpecificFilter {
     switch (type) {
-      case 'pie':
-        return {
-          breakdownBy: (this.rootEl.querySelector<HTMLSelectElement>('#levelSelect_pie')?.value ||
-            'hierarchy') as keyof TimeRecord
-          // The 'pattern' property is now removed from here
-        };
-      case 'sunburst':
-        return {
-          level: this.rootEl.querySelector<HTMLSelectElement>('#levelSelect')?.value ?? ''
-          // The 'pattern' property is now removed from here
-        };
-      case 'time-series':
-        return {
-          granularity:
-            this.rootEl.querySelector<HTMLSelectElement>('#timeSeriesGranularitySelect')?.value ??
-            'daily',
-          type:
-            this.rootEl.querySelector<HTMLSelectElement>('#timeSeriesTypeSelect')?.value ?? 'line'
-        };
-      case 'activity':
-        return {
-          patternType:
-            this.rootEl.querySelector<HTMLSelectElement>('#activityPatternTypeSelect')?.value ??
-            'dayOfWeek'
-        };
+      case 'pie': {
+        const breakdown = (this.rootEl.querySelector<HTMLSelectElement>('#levelSelect_pie')
+          ?.value || 'hierarchy') as PieBreakdown;
+        return { chart: 'pie', breakdownBy: breakdown };
+      }
+      case 'sunburst': {
+        const level = (this.rootEl.querySelector<HTMLSelectElement>('#levelSelect')?.value ||
+          'project') as SunburstLevel;
+        return { chart: 'sunburst', level };
+      }
+      case 'time-series': {
+        const granularity = (this.rootEl.querySelector<HTMLSelectElement>(
+          '#timeSeriesGranularitySelect'
+        )?.value || 'daily') as TimeSeriesGranularity;
+        const tsType = (this.rootEl.querySelector<HTMLSelectElement>('#timeSeriesTypeSelect')
+          ?.value || 'line') as TimeSeriesType;
+        const stackingLevel =
+          tsType === 'stackedArea'
+            ? ((this.rootEl.querySelector<HTMLSelectElement>('#timeSeriesStackingLevelSelect')
+                ?.value || 'hierarchy') as TimeSeriesStackingLevel)
+            : undefined;
+        return { chart: 'time-series', granularity, type: tsType, stackingLevel };
+      }
+      case 'activity': {
+        const patternType = (this.rootEl.querySelector<HTMLSelectElement>(
+          '#activityPatternTypeSelect'
+        )?.value || 'dayOfWeek') as ActivityPatternType;
+        return { chart: 'activity', patternType };
+      }
       default:
-        return {};
+        return { chart: null };
     }
   }
 
@@ -293,7 +368,7 @@ export class UIService {
   public saveState = (lastFolderPath: string | null) => {
     const getElValue = (id: string) =>
       this.rootEl.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`)?.value;
-    const state: any = {
+    const state: Record<string, unknown> = {
       analysisTypeSelect: getElValue('analysisTypeSelect'),
       hierarchyFilter: getElValue('hierarchyFilterInput'),
       projectFilter: getElValue('projectFilterInput'),
@@ -477,12 +552,14 @@ export class UIService {
 
     const showNextTip = () => {
       if (!this.proTipTextEl) return;
-      this.proTipTextEl.style.opacity = '0';
+      this.proTipTextEl.removeClass('is-opaque');
+      this.proTipTextEl.addClass('is-transparent');
       setTimeout(() => {
         if (!this.proTipTextEl) return;
         this.currentTipIndex = (this.currentTipIndex + 1) % this.proTips.length;
         this.proTipTextEl.textContent = this.proTips[this.currentTipIndex];
-        this.proTipTextEl.style.opacity = '1';
+        this.proTipTextEl.removeClass('is-transparent');
+        this.proTipTextEl.addClass('is-opaque');
       }, 150);
     };
 

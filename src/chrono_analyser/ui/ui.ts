@@ -80,7 +80,8 @@ class AutocompleteComponent {
   private onBlur = () => {
     // Delay hiding to allow click events on suggestions to fire
     setTimeout(() => {
-      this.suggestionsEl.style.display = 'none';
+      this.suggestionsEl.removeClass('is-visible');
+      this.suggestionsEl.addClass('is-hidden');
     }, 200);
   };
 
@@ -98,12 +99,14 @@ class AutocompleteComponent {
 
         this.isSelectionInProgress = true;
         this.onSelectCallback(valueToSubmit);
-        this.suggestionsEl.style.display = 'none';
+        this.suggestionsEl.removeClass('is-visible');
+        this.suggestionsEl.addClass('is-hidden');
         this.inputEl.blur();
         this.isSelectionInProgress = false;
         break;
       case 'Escape':
-        this.suggestionsEl.style.display = 'none';
+        this.suggestionsEl.removeClass('is-visible');
+        this.suggestionsEl.addClass('is-hidden');
         break;
       case 'ArrowDown':
       case 'ArrowUp':
@@ -140,15 +143,18 @@ class AutocompleteComponent {
           e.preventDefault(); // Prevent blur event from firing first
           this.isSelectionInProgress = true;
           this.onSelectCallback(item);
-          this.suggestionsEl.style.display = 'none';
+          this.suggestionsEl.removeClass('is-visible');
+          this.suggestionsEl.addClass('is-hidden');
           this.isSelectionInProgress = false;
         });
 
         this.suggestionsEl.appendChild(div);
       });
-      this.suggestionsEl.style.display = 'block';
+      this.suggestionsEl.removeClass('is-hidden');
+      this.suggestionsEl.addClass('is-visible');
     } else {
-      this.suggestionsEl.style.display = 'none';
+      this.suggestionsEl.removeClass('is-visible');
+      this.suggestionsEl.addClass('is-hidden');
     }
   };
 
@@ -521,11 +527,9 @@ export class InsightConfigModal extends Modal {
     const wrapper = setting.controlEl.createDiv({ cls: 'autocomplete-wrapper' });
     const tagInputContainer = wrapper.createDiv({ cls: 'tag-input-container' });
     const tagsEl = tagInputContainer.createDiv({ cls: 'tags' });
-    const inputEl = tagInputContainer.createEl('input', {
-      type: 'text',
-      cls: 'tag-input',
-      placeholder
-    });
+    const inputEl = tagInputContainer.createEl('input', { cls: 'tag-input' });
+    inputEl.setAttribute('type', 'text');
+    inputEl.setAttribute('placeholder', placeholder);
 
     const renderTags = () => {
       tagsEl.empty();

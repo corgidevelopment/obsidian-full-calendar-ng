@@ -61,10 +61,10 @@ async function sha256(plain: string): Promise<ArrayBuffer> {
 }
 
 function base64urlencode(a: ArrayBuffer): string {
-  return btoa(String.fromCharCode.apply(null, new Uint8Array(a) as any))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  const bytes = new Uint8Array(a);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 async function generateCodeChallenge(verifier: string): Promise<string> {

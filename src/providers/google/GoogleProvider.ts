@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
-import { OFCEvent, EventLocation, validateEvent } from '../../types';
+import { OFCEvent, EventLocation, validateEvent, CalendarInfo } from '../../types';
 import FullCalendarPlugin from '../../main';
-import { fromGoogleEvent, toGoogleEvent } from './parser_gcal';
+import { fromGoogleEvent, toGoogleEvent, GoogleEventLike } from './parser_gcal';
 import { makeAuthenticatedRequest, GoogleApiError } from './request';
 
 import { CalendarProvider, CalendarProviderCapabilities } from '../Provider';
@@ -49,7 +49,14 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
   }
 
   async getEvents(): Promise<[OFCEvent, EventLocation | null][]> {
-    const token = await this.authManager.getTokenForSource(this.source as any);
+    const token = await this.authManager.getTokenForSource({
+      type: 'google',
+      id: this.source.id,
+      name: this.source.name,
+      calendarId: this.source.calendarId,
+      googleAccountId: this.source.googleAccountId,
+      color: ''
+    } as Extract<CalendarInfo, { type: 'google' }>); // Provide exact subtype
     if (!token) return [];
 
     const displayTimezone = this.plugin.settings.displayTimezone;
@@ -69,12 +76,20 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
       url.searchParams.set('singleEvents', 'false');
       url.searchParams.set('maxResults', '2500');
 
-      const data = await makeAuthenticatedRequest(token, url.toString());
-      if (!data.items || !Array.isArray(data.items)) return [];
+      const data = await makeAuthenticatedRequest<{ items?: GoogleEventLike[] }>(
+        token,
+        url.toString()
+      );
+      if (!Array.isArray(data.items)) return [];
 
       const cancellations = new Map<string, Set<string>>();
       for (const gEvent of data.items) {
-        if (gEvent.status === 'cancelled' && gEvent.recurringEventId && gEvent.originalStartTime) {
+        if (
+          gEvent.status === 'cancelled' &&
+          gEvent.recurringEventId &&
+          gEvent.originalStartTime &&
+          gEvent.originalStartTime.dateTime
+        ) {
           const parentId = gEvent.recurringEventId;
           if (!cancellations.has(parentId)) {
             cancellations.set(parentId, new Set());
@@ -89,8 +104,8 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
       }
 
       // Remove convertEvent logic; just validate and return events
-      return data.items
-        .map((gEvent: any) => {
+      const tuples: ([OFCEvent, EventLocation | null] | null)[] = data.items.map(
+        (gEvent: GoogleEventLike) => {
           let rawEvent = fromGoogleEvent(gEvent);
           if (!rawEvent) return null;
 
@@ -107,8 +122,9 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
           if (!validated) return null;
 
           return [validated, null];
-        })
-        .filter((e: [OFCEvent, EventLocation | null] | null): e is [OFCEvent, null] => e !== null);
+        }
+      );
+      return tuples.filter((e): e is [OFCEvent, EventLocation | null] => e !== null);
     } catch (e) {
       console.error(`Error fetching events for Google Calendar "${this.source.name}":`, e);
       return [];
@@ -116,16 +132,23 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
   }
 
   async createEvent(event: OFCEvent): Promise<[OFCEvent, EventLocation | null]> {
-    const token = await this.authManager.getTokenForSource(this.source as any);
+    const token = await this.authManager.getTokenForSource({
+      type: 'google',
+      id: this.source.id,
+      name: this.source.name,
+      calendarId: this.source.calendarId,
+      googleAccountId: this.source.googleAccountId,
+      color: ''
+    } as Extract<CalendarInfo, { type: 'google' }>);
     if (!token) throw new GoogleApiError('Cannot create event: not authenticated.');
 
     const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
       this.source.calendarId
     )}/events`;
     const body = toGoogleEvent(event);
-    const createdGEvent = await makeAuthenticatedRequest(token, url, 'POST', body);
+    const createdGEvent = await makeAuthenticatedRequest<GoogleEventLike>(token, url, 'POST', body);
 
-    const rawEvent = fromGoogleEvent(createdGEvent);
+    const rawEvent = fromGoogleEvent(createdGEvent as GoogleEventLike);
     if (!rawEvent) throw new Error('Could not parse event from Google API after creation.');
 
     return [rawEvent, null];
@@ -136,7 +159,14 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
     oldEventData: OFCEvent,
     newEventData: OFCEvent
   ): Promise<EventLocation | null> {
-    const token = await this.authManager.getTokenForSource(this.source as any);
+    const token = await this.authManager.getTokenForSource({
+      type: 'google',
+      id: this.source.id,
+      name: this.source.name,
+      calendarId: this.source.calendarId,
+      googleAccountId: this.source.googleAccountId,
+      color: ''
+    } as Extract<CalendarInfo, { type: 'google' }>);
     if (!token) throw new GoogleApiError('Cannot update event: not authenticated.');
 
     const newSkipDates = new Set(
@@ -173,7 +203,14 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
   }
 
   async deleteEvent(handle: EventHandle): Promise<void> {
-    const token = await this.authManager.getTokenForSource(this.source as any);
+    const token = await this.authManager.getTokenForSource({
+      type: 'google',
+      id: this.source.id,
+      name: this.source.name,
+      calendarId: this.source.calendarId,
+      googleAccountId: this.source.googleAccountId,
+      color: ''
+    } as Extract<CalendarInfo, { type: 'google' }>);
     if (!token) throw new GoogleApiError('Cannot delete event: not authenticated.');
 
     const eventId = handle.persistentId;
@@ -184,17 +221,26 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
   }
 
   private async cancelInstance(parentEvent: OFCEvent, instanceDate: string): Promise<void> {
-    const token = await this.authManager.getTokenForSource(this.source as any);
+    const token = await this.authManager.getTokenForSource({
+      type: 'google',
+      id: this.source.id,
+      name: this.source.name,
+      calendarId: this.source.calendarId,
+      googleAccountId: this.source.googleAccountId,
+      color: ''
+    } as Extract<CalendarInfo, { type: 'google' }>);
     if (!token) throw new GoogleApiError('Cannot cancel instance: not authenticated.');
 
     if (!parentEvent.uid) {
       throw new Error('Cannot cancel an instance of a recurring event that has no master UID.');
     }
-    const body: any = {
+    const body: Record<string, unknown> = {
       recurringEventId: parentEvent.uid,
       status: 'cancelled'
     };
-    let startTimeObject: any;
+    // Google API expects either a date (all-day) or dateTime/timeZone pair.
+    // `toISO()` can theoretically return null, so allow null and guard.
+    let startTimeObject: { date?: string; dateTime?: string; timeZone?: string };
     if (parentEvent.allDay) {
       startTimeObject = { date: instanceDate };
     } else {
@@ -204,7 +250,9 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
       const isoDateTime = DateTime.fromISO(`${instanceDate}T${startTime}`, {
         zone: timeZone
       }).toISO();
-      startTimeObject = { dateTime: isoDateTime, timeZone: timeZone };
+      startTimeObject = isoDateTime
+        ? { dateTime: isoDateTime, timeZone: timeZone }
+        : { date: instanceDate };
     }
     body.originalStartTime = startTimeObject;
     body.start = startTimeObject;
@@ -221,7 +269,14 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
     instanceDate: string,
     newEventData: OFCEvent
   ): Promise<[OFCEvent, EventLocation | null]> {
-    const token = await this.authManager.getTokenForSource(this.source as any);
+    const token = await this.authManager.getTokenForSource({
+      type: 'google',
+      id: this.source.id,
+      name: this.source.name,
+      calendarId: this.source.calendarId,
+      googleAccountId: this.source.googleAccountId,
+      color: ''
+    } as Extract<CalendarInfo, { type: 'google' }>);
     if (!token) throw new GoogleApiError('Cannot create instance override: not authenticated.');
 
     if (newEventData.allDay === false && masterEvent.allDay === false) {
@@ -236,14 +291,14 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
         originalStartTime: originalStartTime
       };
 
-      const newGEvent = await makeAuthenticatedRequest(
+      const newGEvent = await makeAuthenticatedRequest<GoogleEventLike>(
         token,
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(this.source.calendarId)}/events`,
         'POST',
         body
       );
 
-      const rawEvent = fromGoogleEvent(newGEvent);
+      const rawEvent = fromGoogleEvent(newGEvent as GoogleEventLike);
       if (!rawEvent) {
         throw new Error('Could not parse Google API response after creating instance override.');
       }

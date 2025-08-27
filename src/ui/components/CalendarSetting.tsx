@@ -56,13 +56,15 @@ export class CalendarSettings
   getUsedDirectories = () => {
     return this.state.sources
       .map(s => {
-        const source: any = s;
-        if (source.type === 'local') {
-          return source.directory || source.config?.directory;
+        if (s.type === 'local') {
+          // Local sources always have a directory property (flat or nested)
+          const flat = (s as { directory?: unknown }).directory;
+          const nested = (s as { config?: { directory?: unknown } }).config?.directory;
+          return typeof flat === 'string' ? flat : typeof nested === 'string' ? nested : null;
         }
         return null;
       })
-      .filter((s): s is string => !!s);
+      .filter((p): p is string => typeof p === 'string' && !!p);
   };
 
   render() {
@@ -123,12 +125,13 @@ export const CalendarSettingRow = ({
   onColorChange,
   deleteCalendar
 }: CalendarSettingsRowProps) => {
-  const source: any = setting;
-  const config: any = source.config || {};
+  const source = setting as CalendarInfo & { config?: Record<string, unknown> };
+  const config = source.config || {};
   const isCalDAV = source.type === 'caldav';
 
   // Helper to get a property from either the flat object or the nested config
-  const getProp = (key: string) => source[key] || config[key];
+  const getProp = (key: string): unknown =>
+    (source as Record<string, unknown>)[key] ?? config[key as keyof typeof config];
 
   return (
     <div className="setting-item">
@@ -138,24 +141,33 @@ export const CalendarSettingRow = ({
 
       {source.type === 'local' && (
         <DirectorySelect
-          value={getProp('directory')}
+          value={(getProp('directory') as string) || ''}
           onChange={() => {}}
           directories={[]}
           readOnly
         />
       )}
       {source.type === 'dailynote' && (
-        <HeadingInput value={getProp('heading')} onChange={() => {}} headings={[]} readOnly />
+        <HeadingInput
+          value={(getProp('heading') as string) || ''}
+          onChange={() => {}}
+          headings={[]}
+          readOnly
+        />
       )}
       {(source.type === 'ical' || source.type === 'caldav') && (
-        <UrlInput value={getProp('url')} onChange={() => {}} readOnly />
+        <UrlInput value={(getProp('url') as string) || ''} onChange={() => {}} readOnly />
       )}
       {source.type === 'google' && (
-        <TextInput value={getProp('name')} onChange={() => {}} readOnly />
+        <TextInput value={(getProp('name') as string) || ''} onChange={() => {}} readOnly />
       )}
 
-      {isCalDAV && <TextInput value={getProp('name')} onChange={() => {}} readOnly />}
-      {isCalDAV && <UsernameInput value={getProp('username')} onChange={() => {}} readOnly />}
+      {isCalDAV && (
+        <TextInput value={(getProp('name') as string) || ''} onChange={() => {}} readOnly />
+      )}
+      {isCalDAV && (
+        <UsernameInput value={(getProp('username') as string) || ''} onChange={() => {}} readOnly />
+      )}
 
       <input
         type="color"

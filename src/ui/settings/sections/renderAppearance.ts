@@ -119,4 +119,16 @@ export function renderAppearanceSettings(
         await plugin.saveSettings();
       });
     });
+
+  // Show current event in status bar toggle
+  new Setting(containerEl)
+    .setName('Show current event in status bar')
+    .setDesc('Display the title of the currently running event in the Obsidian status bar.')
+    .addToggle(toggle => {
+      toggle.setValue(plugin.settings.showEventInStatusBar);
+      toggle.onChange(async val => {
+        plugin.settings.showEventInStatusBar = val;
+        await plugin.saveSettings();
+      });
+    });
 }

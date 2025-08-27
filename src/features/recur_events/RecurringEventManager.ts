@@ -24,6 +24,12 @@ import FullCalendarPlugin from '../../main';
  * Manages all complex business logic related to recurring events.
  * This class is intended for internal use by the EventCache only.
  */
+export interface DeleteOptions {
+  silent?: boolean;
+  force?: boolean;
+  instanceDate?: string; // date of a specific instance to target when deleting an override
+}
+
 export class RecurringEventManager {
   private cache: EventCache;
   private plugin: FullCalendarPlugin;
@@ -159,7 +165,11 @@ export class RecurringEventManager {
    * If so, it opens a modal to ask the user how to proceed.
    * @returns `true` if the deletion was handled (modal opened), `false` otherwise.
    */
-  public async handleDelete(eventId: string, event: OFCEvent, options?: any): Promise<boolean> {
+  public async handleDelete(
+    eventId: string,
+    event: OFCEvent,
+    options?: DeleteOptions
+  ): Promise<boolean> {
     // Check if we are "undoing" an override. This is now the full operation.
     if (event.type === 'single' && event.recurringEventId) {
       const eventDetails = this.cache.store.getEventDetails(eventId);
@@ -178,8 +188,14 @@ export class RecurringEventManager {
         return true;
       }
       const { config } = providerResult;
-      // Reconstruct the master event's full path.
-      const masterPath = `${(config as any).directory}/${masterFilename}`;
+      // Reconstruct the master event's full path (only for local sources)
+      if (config.type !== 'local') {
+        console.warn('Expected local calendar for recurring override cleanup.');
+        await this.cache.deleteEvent(eventId, { silent: true, force: true });
+        this.cache.flushUpdateQueue([], []);
+        return true;
+      }
+      const masterPath = `${config.directory}/${masterFilename}`;
       const globalMasterIdentifier = `${calendarId}::${masterPath}`;
 
       const masterSessionId = await this.cache.getSessionId(globalMasterIdentifier);
@@ -302,7 +318,7 @@ export class RecurringEventManager {
     };
 
     // CORRECTED: The calendar ID for addEvent comes from the source info.
-    await this.cache.addEvent((calendarInfo as any).id, finalOverrideEvent, { silent: true });
+    await this.cache.addEvent(calendarInfo.id, finalOverrideEvent, { silent: true });
 
     await this.cache.processEvent(
       masterEventId,
@@ -466,7 +482,10 @@ export class RecurringEventManager {
         }
 
         const { config } = providerResult;
-        const masterPath = `${(config as any).directory}/${masterFilename}`;
+        const masterPath =
+          config.type === 'local' && 'directory' in config
+            ? `${config.directory}/${masterFilename}`
+            : masterFilename;
         const globalMasterIdentifier = `${calendarId}::${masterPath}`;
         const masterSessionId = await this.cache.getSessionId(globalMasterIdentifier);
 
@@ -506,7 +525,8 @@ export class RecurringEventManager {
     const providerResult = this.getProviderAndConfig(calendarId);
     if (!providerResult) return;
     const { provider, config } = providerResult;
-    const directory = (config as any).directory;
+    if (config.type !== 'local') return;
+    const directory = config.directory;
     if (!directory) return;
 
     const oldFullTitle = this.plugin.cache.enhancer.prepareForStorage(oldParentEvent).title;

@@ -34,11 +34,12 @@ async function getFilesToProcess(plugin: FullCalendarPlugin): Promise<TFile[]> {
   const files = new Set<TFile>();
 
   // 1. Get files from 'local' (Full Note) providers
-  const localSources = plugin.settings.calendarSources.filter(s => s.type === 'local');
+  const localSources = plugin.settings.calendarSources.filter(
+    (s): s is Extract<(typeof plugin.settings.calendarSources)[number], { type: 'local' }> =>
+      s.type === 'local'
+  );
   for (const source of localSources) {
-    // @ts-ignore
-    const config = (source as any).config || source;
-    const eventFolder = plugin.app.vault.getAbstractFileByPath(config.directory);
+    const eventFolder = plugin.app.vault.getAbstractFileByPath(source.directory);
     if (eventFolder instanceof TFolder) {
       const addFilesRecursively = (folder: TFolder) => {
         for (const child of folder.children) {
@@ -126,9 +127,7 @@ export async function bulkUpdateCategories(
       let modified = false;
 
       for (const source of dailyNoteSources) {
-        // @ts-ignore
-        const config = (source as any).config || source;
-        const listItems = getListsUnderHeading(config.heading, metadata);
+        const listItems = getListsUnderHeading(source.heading, metadata);
         if (listItems.length === 0) continue;
 
         for (const item of listItems) {
@@ -231,9 +230,7 @@ export async function bulkRemoveCategories(plugin: FullCalendarPlugin): Promise<
       let modified = false;
 
       for (const source of dailyNoteSources) {
-        // @ts-ignore
-        const config = (source as any).config || source;
-        const listItems = getListsUnderHeading(config.heading, metadata);
+        const listItems = getListsUnderHeading(source.heading, metadata);
         if (listItems.length === 0) continue;
 
         for (const item of listItems) {

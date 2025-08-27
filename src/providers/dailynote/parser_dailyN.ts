@@ -11,6 +11,7 @@
  */
 
 import { CachedMetadata, HeadingCache, ListItemCache, Loc, Pos } from 'obsidian';
+import { DateTime } from 'luxon';
 
 import { OFCEvent, validateEvent } from '../../types';
 import { FullCalendarSettings } from '../../types/settings';
@@ -107,6 +108,11 @@ const makeListItem = (
   const titleToWrite = title;
 
   const attrs: Partial<OFCEvent> = { ...data };
+  // If endDate is present but is the same as the start date, nullify it so it isn't written to the file.
+  if (attrs.endDate && attrs.date === attrs.endDate) {
+    attrs.endDate = null;
+  }
+
   delete attrs['completed'];
   delete attrs['title'];
   delete attrs['type'];
@@ -152,12 +158,11 @@ export const getInlineEventFromLine = (
     return null;
   }
 
-  let eventData: any = {};
-  eventData.title = rawTitle;
+  const eventData: Partial<OFCEvent> = { title: rawTitle };
 
   const allDay = !('startTime' in attrs && !!attrs.startTime);
 
-  const attrsForValidation = {
+  const attrsForValidation: Record<string, unknown> = {
     ...eventData,
     completed: checkboxTodo(text),
     ...globals,
@@ -165,11 +170,26 @@ export const getInlineEventFromLine = (
     allDay
   };
 
-  if (!attrsForValidation.date) {
-    attrsForValidation.date = '1970-01-01';
+  // Handle legacy overnight events if no explicit endDate is provided.
+  if (
+    !attrsForValidation.endDate &&
+    !allDay &&
+    attrsForValidation.startTime &&
+    attrsForValidation.endTime
+  ) {
+    if (String(attrsForValidation.endTime) < String(attrsForValidation.startTime)) {
+      const startDate = attrsForValidation.date as string;
+      if (startDate) {
+        attrsForValidation.endDate = DateTime.fromISO(startDate).plus({ days: 1 }).toISODate();
+      }
+    }
   }
 
-  return validateEvent(attrsForValidation);
+  if (!('date' in attrsForValidation)) {
+    attrsForValidation['date'] = '1970-01-01';
+  }
+
+  return validateEvent(attrsForValidation as OFCEvent);
 };
 
 export function getAllInlineEventsFromFile(

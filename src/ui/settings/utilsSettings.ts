@@ -14,36 +14,82 @@ import { CalendarInfo, generateCalendarId } from '../../types/calendar_settings'
  * @param settings The raw settings object loaded from data.json.
  * @returns An object containing the migrated settings and a flag indicating if they need to be saved.
  */
-export function migrateAndSanitizeSettings(settings: any): {
+// Legacy shape support for migrations
+type LegacyGoogleAuth = {
+  refreshToken: string | null;
+  accessToken: string | null;
+  expiryDate: number | null;
+};
+type GoogleSourceWithAuth = Extract<CalendarInfo, { type: 'google' }> & { auth?: LegacyGoogleAuth };
+type LegacySettings = Partial<FullCalendarSettings> & {
+  calendarSources?: (CalendarInfo | GoogleSourceWithAuth)[];
+  googleAuth?: LegacyGoogleAuth;
+};
+
+// Accept unknown to force validation of shape when accessing.
+export function migrateAndSanitizeSettings(settings: unknown): {
   settings: FullCalendarSettings;
   needsSave: boolean;
 } {
   let needsSave = false;
-  let newSettings = { ...settings };
+  const raw = (settings as LegacySettings) || {};
+  // Start from raw, ensure required arrays/objects
+  let newSettings = {
+    calendarSources: (raw.calendarSources || []) as (CalendarInfo | GoogleSourceWithAuth)[],
+    defaultCalendar: raw.defaultCalendar ?? 0,
+    firstDay: raw.firstDay ?? 0,
+    initialView: raw.initialView ?? { desktop: 'timeGridWeek', mobile: 'timeGrid3Days' },
+    timeFormat24h: raw.timeFormat24h ?? false,
+    clickToCreateEventFromMonthView: raw.clickToCreateEventFromMonthView ?? true,
+    displayTimezone: raw.displayTimezone ?? null,
+    lastSystemTimezone: raw.lastSystemTimezone ?? null,
+    enableAdvancedCategorization: raw.enableAdvancedCategorization ?? false,
+    chrono_analyser_config: raw.chrono_analyser_config ?? null,
+    categorySettings: raw.categorySettings || [],
+    useCustomGoogleClient: raw.useCustomGoogleClient ?? false,
+    googleClientId: raw.googleClientId ?? '',
+    googleClientSecret: raw.googleClientSecret ?? '',
+    googleAccounts: raw.googleAccounts || [],
+    businessHours: raw.businessHours || {
+      enabled: false,
+      daysOfWeek: [1, 2, 3, 4, 5],
+      startTime: '09:00',
+      endTime: '17:00'
+    },
+    enableBackgroundEvents: raw.enableBackgroundEvents ?? true,
+    enableReminders: raw.enableReminders ?? false,
+    workspaces: raw.workspaces || [],
+    activeWorkspace: raw.activeWorkspace ?? null,
+    showEventInStatusBar: (raw as Partial<FullCalendarSettings>).showEventInStatusBar ?? false
+  } as FullCalendarSettings & { calendarSources: (CalendarInfo | GoogleSourceWithAuth)[] } & {
+    googleAuth?: LegacyGoogleAuth;
+  };
 
   // Ensure googleAccounts array exists for the migration
-  if (!newSettings.googleAccounts) {
-    newSettings.googleAccounts = [];
-  }
+  // googleAccounts already defaulted above
 
   // MIGRATION 1: Global googleAuth to source-specific auth (from previous work, can be removed or kept for safety)
-  const globalGoogleAuth = newSettings.googleAuth || null;
+  const globalGoogleAuth = (raw.googleAuth as LegacyGoogleAuth | undefined) || null;
   if (globalGoogleAuth) {
     // This logic is technically superseded by the next migration,
     // but we can leave it for robustness during the transition.
-    newSettings.calendarSources.forEach((s: any) => {
-      if (s.type === 'google' && !s.auth) {
-        s.auth = globalGoogleAuth;
+    newSettings.calendarSources.forEach(s => {
+      if (s.type === 'google' && !('googleAccountId' in s) && !(s as GoogleSourceWithAuth).auth) {
+        (s as GoogleSourceWithAuth).auth = globalGoogleAuth;
       }
     });
   }
 
   // === FINAL MIGRATION: Move embedded auth to centralized googleAccounts ===
   const refreshTokenToAccountId = new Map<string, string>();
-  newSettings.calendarSources.forEach((source: any) => {
-    if (source.type === 'google' && source.auth && !source.googleAccountId) {
+  newSettings.calendarSources.forEach(source => {
+    if (
+      source.type === 'google' &&
+      (source as GoogleSourceWithAuth).auth &&
+      !source.googleAccountId
+    ) {
       needsSave = true;
-      const refreshToken = source.auth.refreshToken;
+      const refreshToken = (source as GoogleSourceWithAuth).auth?.refreshToken;
       if (refreshToken) {
         if (refreshTokenToAccountId.has(refreshToken)) {
           source.googleAccountId = refreshTokenToAccountId.get(refreshToken);
@@ -52,20 +98,17 @@ export function migrateAndSanitizeSettings(settings: any): {
           const newAccount: GoogleAccount = {
             id: newAccountId,
             email: 'Migrated Account',
-            ...source.auth
+            ...(source as GoogleSourceWithAuth).auth!
           };
           newSettings.googleAccounts.push(newAccount);
           refreshTokenToAccountId.set(refreshToken, newAccountId);
           source.googleAccountId = newAccountId;
         }
       }
-      delete source.auth;
+      delete (source as GoogleSourceWithAuth).auth;
     }
   });
-  if (newSettings.googleAuth) {
-    delete newSettings.googleAuth;
-    needsSave = true;
-  }
+  // global googleAuth removed implicitly by not copying it forward
   // === END FINAL MIGRATION ===
 
   // MIGRATION 2: Ensure all calendar sources have a stable ID.
@@ -84,13 +127,20 @@ export function migrateAndSanitizeSettings(settings: any): {
 /**
  * Ensure each calendar source has a stable id. Pure and UI-free.
  */
-export function ensureCalendarIds(sources: any[]): { updated: boolean; sources: CalendarInfo[] } {
+export function ensureCalendarIds(sources: unknown[]): {
+  updated: boolean;
+  sources: CalendarInfo[];
+} {
   let updated = false;
-  const existingIds: string[] = sources.map(s => s.id).filter(Boolean);
-  const updatedSources = sources.map(source => {
-    if (!source.id) {
+  const existingIds: string[] = (sources as { id?: string }[])
+    .map(s => s.id)
+    .filter((id): id is string => !!id);
+  const updatedSources = (
+    sources as (CalendarInfo | { id?: string; type: CalendarInfo['type'] })[]
+  ).map(source => {
+    if (!('id' in source) || !source.id) {
       updated = true;
-      const newId = generateCalendarId(source.type, existingIds);
+      const newId = generateCalendarId((source as CalendarInfo).type, existingIds);
       existingIds.push(newId);
       return { ...source, id: newId };
     }

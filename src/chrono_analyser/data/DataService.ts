@@ -9,12 +9,12 @@
 import EventCache, { UpdateViewCallback } from '../../core/EventCache';
 import { DataManager } from '../data/DataManager';
 import * as Translator from './translator';
-import { TimeRecord } from './types';
+import { TimeRecord, ProcessingError } from './types';
 // FullNoteCalendar class is no longer used directly; providers are stored instead.
 import { FullCalendarSettings } from '../../types/settings';
 
 export class DataService {
-  public processingErrors: any[] = [];
+  public processingErrors: ProcessingError[] = [];
   private eventCacheUpdateCallback: UpdateViewCallback;
 
   constructor(

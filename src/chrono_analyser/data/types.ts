@@ -18,6 +18,9 @@ export interface TimeRecord {
   date: Date | null;
   metadata: OFCEvent; // Changed from FileMetadata to the more specific OFCEvent
   _effectiveDurationInPeriod?: number;
+  // Internal tagging metadata added during insights processing.
+  _semanticTags?: string[];
+  _isMuted?: boolean;
 }
 
 export interface ProcessingError {

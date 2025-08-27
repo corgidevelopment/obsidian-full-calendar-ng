@@ -68,8 +68,8 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
       const fullTitle = constructTitle(event.category, event.subCategory, event.title);
       const persistentId = `${event.date}::${fullTitle}`;
       const m = moment(event.date);
-      const file = getDailyNote(m, getAllDailyNotes()) as TFile;
-      if (!file) return null;
+      const file = getDailyNote(m, getAllDailyNotes());
+      if (!file || !(file instanceof TFile)) return null;
       return { persistentId, location: { path: file.path } };
     }
     return null;

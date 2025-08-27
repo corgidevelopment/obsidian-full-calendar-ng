@@ -15,7 +15,15 @@ import {
 } from '../data/types';
 import * as Utils from '../data/utils';
 
-type ShowDetailPopupFn = (categoryName: string, recordsList: TimeRecord[], context?: any) => void;
+interface DetailPopupContextBase {
+  [key: string]: unknown;
+  value?: number | null;
+}
+type ShowDetailPopupFn = (
+  categoryName: string,
+  recordsList: TimeRecord[],
+  context?: DetailPopupContextBase
+) => void;
 
 // Type guard for Obsidian HTMLElement extensions
 interface ObsidianHTMLElement extends HTMLElement {
@@ -32,19 +40,27 @@ interface ObsidianHTMLElement extends HTMLElement {
 
 // Helper functions to safely interact with DOM elements
 function safeEmpty(element: HTMLElement): void {
-  if ('empty' in element && typeof (element as any).empty === 'function') {
-    (element as any).empty();
+  const maybe = element as Partial<ObsidianHTMLElement>;
+  if (typeof maybe.empty === 'function') {
+    maybe.empty();
     element.innerHTML = '';
+  } else {
+    element.textContent = '';
   }
 }
 
-function safeCreateEl(
-  element: HTMLElement,
-  tag: string,
-  options?: { cls?: string; text?: string; attr?: Record<string, string> }
-): HTMLElement {
-  if ('createEl' in element && typeof (element as any).createEl === 'function') {
-    return (element as any).createEl(tag, options);
+interface CreateOptions {
+  cls?: string;
+  text?: string;
+  attr?: Record<string, string>;
+}
+function safeCreateEl(element: HTMLElement, tag: string, options?: CreateOptions): HTMLElement {
+  const maybe = element as Partial<ObsidianHTMLElement>;
+  if (typeof maybe.createEl === 'function') {
+    return maybe.createEl(
+      tag as keyof HTMLElementTagNameMap,
+      options as CreateOptions
+    ) as HTMLElement;
   }
 
   const newEl = document.createElement(tag);
@@ -59,22 +75,21 @@ function safeCreateEl(
   return newEl;
 }
 
-function safeCreateDiv(
-  element: HTMLElement,
-  options?: { cls?: string; text?: string; attr?: Record<string, string> }
-): HTMLDivElement {
+function safeCreateDiv(element: HTMLElement, options?: CreateOptions): HTMLDivElement {
   return safeCreateEl(element, 'div', options) as HTMLDivElement;
 }
 
 function setupPlotlyEvents(
   element: HTMLElement,
   eventType: string,
-  handler: (eventData: any) => void
+  handler: (eventData: unknown) => void
 ): void {
-  if ('removeAllListeners' in element && 'on' in element) {
-    (element as any).removeAllListeners(eventType);
-    (element as any).on(eventType, handler);
-  }
+  const maybe = element as unknown as {
+    removeAllListeners?: (evt: string) => void;
+    on?: (evt: string, cb: (d: unknown) => void) => void;
+  };
+  maybe.removeAllListeners?.(eventType);
+  maybe.on?.(eventType, handler);
 }
 
 function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
@@ -185,16 +200,16 @@ export function renderPieChartDisplay(
   plotChart(mainChartEl, data, layout, useReact);
 
   // Set up event handling with proper typing
-  setupPlotlyEvents(mainChartEl, 'plotly_click', (eventData: any) => {
-    if (eventData.points && eventData.points.length > 0) {
-      const point = eventData.points[0];
-      const categoryName = point.label;
-      if (pieData.recordsByCategory.has(categoryName)) {
-        showDetailPopup(categoryName, pieData.recordsByCategory.get(categoryName)!, {
-          type: 'pie',
-          value: point.value
-        });
-      }
+  setupPlotlyEvents(mainChartEl, 'plotly_click', (eventData: unknown) => {
+    const points = (eventData as { points?: Array<any> } | null)?.points;
+    const point = points?.[0];
+    if (!point) return;
+    const categoryName: string = point.label;
+    if (pieData.recordsByCategory.has(categoryName)) {
+      showDetailPopup(categoryName, pieData.recordsByCategory.get(categoryName)!, {
+        type: 'pie',
+        value: typeof point.value === 'number' ? point.value : Number(point.value) || null
+      });
     }
   });
 }
@@ -248,15 +263,15 @@ export function renderSunburstChartDisplay(
     safeEmpty(legendEl);
   }
 
-  setupPlotlyEvents(chartEl, 'plotly_sunburstclick', (eventData: any) => {
-    if (eventData.points && eventData.points.length > 0) {
-      const point = eventData.points[0];
-      if (point.id && sunburstData.recordsByLabel.has(point.id)) {
-        showDetailPopup(point.label, sunburstData.recordsByLabel.get(point.id)!, {
-          type: 'sunburst',
-          value: point.value
-        });
-      }
+  setupPlotlyEvents(chartEl, 'plotly_sunburstclick', (eventData: unknown) => {
+    const points = (eventData as { points?: Array<any> } | null)?.points;
+    const point = points?.[0];
+    if (!point || !point.id) return;
+    if (sunburstData.recordsByLabel.has(point.id)) {
+      showDetailPopup(point.label, sunburstData.recordsByLabel.get(point.id)!, {
+        type: 'sunburst',
+        value: typeof point.value === 'number' ? point.value : Number(point.value) || null
+      });
     }
   });
 }
@@ -474,7 +489,7 @@ export function renderActivityPatternChart(
     if (!plotData.length) return true;
     const firstData = plotData[0];
     if (plotType === 'bar' && firstData && 'y' in firstData && Array.isArray(firstData.y)) {
-      return firstData.y.every((val: any) => parseFloat(String(val)) === 0);
+      return firstData.y.every(val => parseFloat(String(val)) === 0);
     }
     return false;
   }
@@ -483,8 +498,8 @@ export function renderActivityPatternChart(
     if (!plotData.length) return true;
     const firstData = plotData[0];
     if (plotType === 'heatmap' && firstData && 'z' in firstData && Array.isArray(firstData.z)) {
-      const zData = firstData.z as any[][];
-      return zData.flat().every((val: string | null) => val === null);
+      const zData = firstData.z as Array<Array<string | null>>;
+      return zData.flat().every(val => val === null);
     }
     return false;
   }
@@ -495,16 +510,17 @@ export function renderActivityPatternChart(
   }
   plotChart(mainChartEl, data as Plotly.Data[], layout, useReact);
 
-  setupPlotlyEvents(mainChartEl, 'plotly_click', (eventData: any) => {
-    if (!eventData.points || eventData.points.length === 0) return;
-    const point = eventData.points[0];
+  setupPlotlyEvents(mainChartEl, 'plotly_click', (eventData: unknown) => {
+    const points = (eventData as { points?: Array<any> } | null)?.points;
+    if (!points || points.length === 0) return;
+    const point = points[0];
     let recordsForPopup: TimeRecord[] = [];
     let categoryNameForPopup = '';
     let clickedValue: number | null = null;
 
     if (plotType === 'bar') {
       const categoryClicked = point.x;
-      clickedValue = parseFloat(point.y);
+      clickedValue = typeof point.y === 'number' ? point.y : parseFloat(String(point.y));
 
       if (patternType === 'dayOfWeek') {
         const dayIndexClicked = daysOfWeekLabels.indexOf(categoryClicked);
@@ -525,7 +541,7 @@ export function renderActivityPatternChart(
     } else if (plotType === 'heatmap') {
       const clickedHour = parseInt(point.x, 10);
       const clickedDayIndex = daysOfWeekLabels.indexOf(point.y);
-      clickedValue = parseFloat(point.z);
+      clickedValue = typeof point.z === 'number' ? point.z : parseFloat(String(point.z));
 
       if (isNaN(clickedHour) || clickedDayIndex === -1 || !clickedValue || clickedValue === 0)
         return;
@@ -564,7 +580,8 @@ export function renderErrorLog(
   if (processingErrors.length === 0) {
     errorLogSummary.textContent =
       'No processing issues found. All data is sourced from the main Full Calendar cache.';
-    errorLogContainer.style.display = 'none';
+    errorLogContainer.addClass('is-hidden');
+    errorLogContainer.removeClass('is-visible');
     return;
   }
 
@@ -586,5 +603,6 @@ export function renderErrorLog(
     const reasonLabel = safeCreateEl(content, 'strong', { text: 'Reason: ' });
     content.appendChild(document.createTextNode(err.reason || 'No specific reason provided.'));
   });
-  errorLogContainer.style.display = 'block';
+  errorLogContainer.removeClass('is-hidden');
+  errorLogContainer.addClass('is-visible');
 }

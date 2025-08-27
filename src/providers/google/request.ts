@@ -19,7 +19,7 @@ export class GoogleApiError extends Error {
   constructor(
     message: string,
     public status?: number,
-    public body?: any
+    public body?: unknown
   ) {
     super(message);
     this.name = 'GoogleApiError';
@@ -36,12 +36,12 @@ export class GoogleApiError extends Error {
  * @returns The JSON response from the API.
  * @throws {GoogleApiError} If the request fails.
  */
-export async function makeAuthenticatedRequest(
+export async function makeAuthenticatedRequest<T = unknown>(
   token: string,
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
   body?: object
-): Promise<any> {
+): Promise<T> {
   try {
     const response = await requestUrl({
       url,
@@ -56,22 +56,23 @@ export async function makeAuthenticatedRequest(
     if (response.status === 204) {
       // Successful request with no content (e.g., a DELETE request).
       // Return a truthy value to indicate success without trying to parse JSON.
-      return true;
+      return true as unknown as T;
     }
 
-    return response.json;
-  } catch (e: any) {
+    return response.json as unknown as T;
+  } catch (e: unknown) {
+    const err = e as { status?: number; body?: unknown };
     console.error('Google API Request Failed:', {
       url,
-      status: e.status,
-      response: e.body
+      status: err.status,
+      response: err.body
     });
 
     let message = 'Google API request failed.';
-    if (e.status) {
-      message += ` Status: ${e.status}`;
+    if (err.status) {
+      message += ` Status: ${err.status}`;
     }
 
-    throw new GoogleApiError(message, e.status, e.body);
+    throw new GoogleApiError(message, err.status, err.body);
   }
 }

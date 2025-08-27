@@ -10,19 +10,21 @@ export function renderFooter(containerEl: HTMLElement): void {
 
   linksContainer.createEl('a', {
     text: '☕ Buy me a coffee',
-    href: 'https://ko-fi.com/youfoundjk',
+    attr: { href: 'https://ko-fi.com/youfoundjk' },
     cls: 'settings-footer-link'
   });
-
   linksContainer.createEl('a', {
     text: '💡 Suggest new feature',
-    href: 'https://github.com/YouFoundJK/plugin-full-calendar/discussions/new?category=polls',
+    attr: {
+      href: 'https://github.com/YouFoundJK/plugin-full-calendar/discussions/new?category=polls'
+    },
     cls: 'settings-footer-link'
   });
-
   linksContainer.createEl('a', {
     text: '🐛 Raise an issue',
-    href: 'https://github.com/YouFoundJK/plugin-full-calendar/issues/new?template=bug_report.yaml',
+    attr: {
+      href: 'https://github.com/YouFoundJK/plugin-full-calendar/issues/new?template=bug_report.yaml'
+    },
     cls: 'settings-footer-link'
   });
 }

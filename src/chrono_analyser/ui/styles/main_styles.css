@@ -1207,8 +1207,17 @@ body.theme-dark .chrono-analyser-view .main-chart-container .plotly .slicetext {
     margin-top: var(--size-2-1);
     max-height: 200px; /* Limit height and allow scrolling */
     overflow-y: auto;
-    display: none;      /* Start hidden */
+    display: none;      /* Start hidden; toggled via .is-visible */
 }
+
+/* Generic visibility utility classes (replaces inline style.display manipulation) */
+.is-hidden { display: none !important; }
+.is-visible { display: block !important; }
+
+/* Opacity transition utility for fade effects (replaces inline style.opacity) */
+.fade-transition { transition: opacity 0.2s ease-in-out; }
+.is-transparent { opacity: 0 !important; }
+.is-opaque { opacity: 1 !important; }
 
 /* Individual suggestion items. */
 .autocomplete-suggestion-item {

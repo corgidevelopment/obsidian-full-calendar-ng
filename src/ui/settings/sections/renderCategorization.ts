@@ -27,10 +27,8 @@ export function renderCategorizationSettings(
     href: 'https://youfoundjk.github.io/plugin-full-calendar/events/categories'
   });
   fragment.appendText('.');
-  containerEl.createEl('p', {
-    text: fragment,
-    cls: 'full-calendar-whats-new-version'
-  });
+  const learnMoreP = containerEl.createEl('p', { cls: 'full-calendar-whats-new-version' });
+  learnMoreP.appendChild(fragment);
 
   new Setting(containerEl)
     .setName('Enable advanced categorization (Title-based)')

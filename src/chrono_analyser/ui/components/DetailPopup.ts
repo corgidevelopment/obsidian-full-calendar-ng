@@ -36,7 +36,11 @@ export class DetailPopup {
     this.overlayEl.addEventListener('click', this.hide);
   }
 
-  public show = (categoryName: string, recordsList: TimeRecord[], context: any = {}) => {
+  public show = (
+    categoryName: string,
+    recordsList: TimeRecord[],
+    context: Record<string, unknown> & { value?: number | null } = {}
+  ) => {
     if (!this.popupEl || !this.overlayEl || !this.tableBodyEl) return;
 
     this.popupBodyEl.scrollTop = 0;
@@ -51,21 +55,35 @@ export class DetailPopup {
       );
 
     // --- MODIFIED: Safe, programmatic creation of the stats section ---
-    // Use .empty() for safe clearing, casting to `any` to satisfy TypeScript
-    (this.statsEl as any).empty();
+    if (typeof this.statsEl.empty === 'function') this.statsEl.empty();
+    else this.statsEl.textContent = '';
 
     const createStatCard = (value: string, label: string) => {
-      const card = this.statsEl.createDiv({ cls: 'summary-stat' });
-      card.createDiv({ cls: 'summary-stat-value', text: value });
-      card.createDiv({ cls: 'summary-stat-label', text: label });
+      if (typeof this.statsEl.createDiv !== 'function') {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'summary-stat';
+        const valEl = document.createElement('div');
+        valEl.className = 'summary-stat-value';
+        valEl.textContent = value;
+        const labelEl = document.createElement('div');
+        labelEl.className = 'summary-stat-label';
+        labelEl.textContent = label;
+        wrapper.appendChild(valEl);
+        wrapper.appendChild(labelEl);
+        this.statsEl.appendChild(wrapper);
+        return;
+      }
+      const card = this.statsEl.createDiv({ cls: 'summary-stat' })!;
+      card.createDiv?.({ cls: 'summary-stat-value', text: value });
+      card.createDiv?.({ cls: 'summary-stat-label', text: label });
     };
 
     createStatCard(String(numSourceFiles), 'Unique Files');
     createStatCard(displayTotalHours.toFixed(2), 'Total Hours');
     // --- END MODIFICATION ---
 
-    // Use .empty() for safe clearing, casting to `any` to satisfy TypeScript
-    (this.tableBodyEl as any).empty();
+    if (typeof this.tableBodyEl.empty === 'function') this.tableBodyEl.empty();
+    else this.tableBodyEl.textContent = '';
 
     recordsList.forEach(record => {
       const row = this.tableBodyEl.insertRow();
@@ -79,24 +97,26 @@ export class DetailPopup {
 
       // --- MODIFIED: Safe, programmatic creation of the file path cell ---
       const pathCell = row.insertCell();
-      // HACK: Cast to `any` to access Obsidian's augmented .createSpan() method
-      (pathCell as any).createSpan({
-        cls: 'file-path-cell',
-        text: record.path,
-        attr: { title: record.path }
-      });
+      if (typeof pathCell.createSpan === 'function')
+        pathCell.createSpan({
+          cls: 'file-path-cell',
+          text: record.path,
+          attr: { title: record.path }
+        });
+      else pathCell.textContent = record.path;
       // --- END MODIFICATION ---
     });
 
     this.overlayEl.classList.add('visible');
     this.popupEl.classList.add('visible');
-    // Use the App instance to find the correct body element for overflow prevention
-    this.app.workspace.containerEl.ownerDocument.body.style.overflow = 'hidden';
+    const body = this.app.workspace.containerEl.ownerDocument.body;
+    body.classList.add('no-scroll');
   };
 
   public hide = () => {
     this.overlayEl.classList.remove('visible');
     this.popupEl.classList.remove('visible');
-    this.app.workspace.containerEl.ownerDocument.body.style.overflow = '';
+    const body = this.app.workspace.containerEl.ownerDocument.body;
+    body.classList.remove('no-scroll');
   };
 }

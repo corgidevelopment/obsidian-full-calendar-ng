@@ -40,7 +40,8 @@ export class LazySettingsTab extends PluginSettingTab {
     const tab = await this.ensureActualTab();
     // Use the container provided by Obsidian for this (lazy) tab
     // so the heavy tab renders into the correct element.
-    (tab as any).containerEl = this.containerEl;
+    // FullCalendarSettingTab extends PluginSettingTab which provides containerEl
+    (tab as PluginSettingTab).containerEl = this.containerEl;
     return tab.display();
   }
 

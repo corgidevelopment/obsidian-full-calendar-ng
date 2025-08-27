@@ -14,7 +14,8 @@ const withCounter = <T>(f: (x: string) => T, label?: string) => {
   return () => f(c());
 };
 
-const mockFile = withCounter(path => ({ path }) as TFile, 'file');
+// Create a minimal mock implementing the TFile interface shape used (only path accessed).
+const mockFile = withCounter(path => ({ path }) as any, 'file');
 
 const mockCalendar = withCounter((id): MockCalendar => ({ id }), 'calendar');
 

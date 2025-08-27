@@ -1,4 +1,8 @@
 import { CalendarInfo } from './calendar_settings';
+// Import lazily-referenced type for chrono analyser configuration.
+// Placed inside a type-only import to avoid pulling heavy modules at runtime here.
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import type { InsightsConfig } from '../chrono_analyser/ui/ui';
 
 export interface BusinessHoursSettings {
   enabled: boolean;
@@ -51,7 +55,7 @@ export interface FullCalendarSettings {
   displayTimezone: string | null;
   lastSystemTimezone: string | null;
   enableAdvancedCategorization: boolean;
-  chrono_analyser_config: any;
+  chrono_analyser_config: InsightsConfig | null;
   categorySettings: { name: string; color: string }[];
   useCustomGoogleClient: boolean;
   googleClientId: string;
@@ -62,6 +66,7 @@ export interface FullCalendarSettings {
   enableReminders: boolean; // ADD THIS LINE
   workspaces: WorkspaceSettings[];
   activeWorkspace: string | null; // Workspace ID, null means default view
+  showEventInStatusBar: boolean; // added
 }
 
 export const DEFAULT_SETTINGS: FullCalendarSettings = {
@@ -92,7 +97,8 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   enableBackgroundEvents: true,
   enableReminders: false,
   workspaces: [],
-  activeWorkspace: null
+  activeWorkspace: null,
+  showEventInStatusBar: false // added
 };
 
 // Utility functions for workspace management

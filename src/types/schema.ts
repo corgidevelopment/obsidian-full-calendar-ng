@@ -101,6 +101,15 @@ export const EventSchema = z
       daysOfWeek: z.array(z.enum(['U', 'M', 'T', 'W', 'R', 'F', 'S'])).optional(),
       month: z.number().int().min(1).max(12).optional(),
       dayOfMonth: z.number().int().min(1).max(31).optional(),
+      // --- ADDITIONS START ---
+      repeatInterval: z.number().int().min(1).optional(),
+      repeatOn: z
+        .object({
+          week: z.number().int().min(-1).max(4), // 1-4 for first-fourth, -1 for last
+          weekday: z.number().int().min(0).max(6) // 0-6 for Sun-Sat
+        })
+        .optional(),
+      // --- ADDITIONS END ---
       startRecur: ParsedDate.optional(),
       endRecur: ParsedDate.optional(),
       isTask: z.boolean().optional(),
@@ -120,6 +129,9 @@ export const EventSchema = z
 
     const weeklyDefined = data.daysOfWeek !== undefined && data.daysOfWeek.length > 0;
     const monthlyOrYearlyDefined = data.dayOfMonth !== undefined;
+    // --- ADDITION ---
+    const positionalMonthlyDefined = data.repeatOn !== undefined;
+    // --- END ADDITION ---
 
     if (weeklyDefined && monthlyOrYearlyDefined) {
       ctx.addIssue({
@@ -130,13 +142,15 @@ export const EventSchema = z
       });
     }
 
-    if (!weeklyDefined && !monthlyOrYearlyDefined) {
+    // --- MODIFIED CHECK ---
+    if (!weeklyDefined && !monthlyOrYearlyDefined && !positionalMonthlyDefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          'A recurring event must define a recurrence rule (either daysOfWeek or dayOfMonth).'
+          'A recurring event must define a recurrence rule (either daysOfWeek, dayOfMonth, or repeatOn).'
       });
     }
+    // --- END MODIFIED CHECK ---
 
     if (data.month !== undefined && data.dayOfMonth === undefined) {
       ctx.addIssue({
@@ -145,6 +159,17 @@ export const EventSchema = z
         path: ['month']
       });
     }
+
+    // --- ADDITION: Mutual exclusivity for monthly rules ---
+    if (data.dayOfMonth !== undefined && data.repeatOn !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'A monthly recurring event can repeat on a specific day of the month OR on a numbered weekday, but not both.',
+        path: ['repeatOn']
+      });
+    }
+    // --- END ADDITION ---
   });
 
 type EventType = z.infer<typeof EventSchema>;

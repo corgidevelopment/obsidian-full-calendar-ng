@@ -35,7 +35,13 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
   const [view, setView] = useState<'account-select' | 'calendar-select'>('account-select');
   const [accounts, setAccounts] = useState<GoogleAccount[]>(plugin.settings.googleAccounts || []);
   const [selectedAccount, setSelectedAccount] = useState<GoogleAccount | null>(null);
-  const [availableCalendars, setAvailableCalendars] = useState<any[]>([]);
+  interface CalendarListDisplayItem {
+    id: string;
+    summary: string;
+    backgroundColor?: string;
+    description?: string;
+  }
+  const [availableCalendars, setAvailableCalendars] = useState<CalendarListDisplayItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<Set<string>>(new Set());
@@ -62,10 +68,15 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
       const latestAccounts = plugin.settings.googleAccounts || [];
       setAccounts([...latestAccounts]);
     };
-    // Cast workspace to any for event API
-    (plugin.app.workspace as any).on('full-calendar:google-account-added', handleAccountAdded);
+    (plugin.app.workspace as unknown as { on: (name: string, cb: () => void) => void }).on(
+      'full-calendar:google-account-added',
+      handleAccountAdded
+    );
     return () => {
-      (plugin.app.workspace as any).off('full-calendar:google-account-added', handleAccountAdded);
+      (plugin.app.workspace as unknown as { off: (name: string, cb: () => void) => void }).off(
+        'full-calendar:google-account-added',
+        handleAccountAdded
+      );
     };
   }, [plugin]);
 
@@ -77,13 +88,21 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
     try {
       // Refresh token if it's expired before we use it
       if (!account.accessToken || !account.expiryDate || Date.now() >= account.expiryDate - 60000) {
-        const newToken = await (authManager as any).refreshAccessToken(account, false);
-        if (!newToken) {
+        // Use public API (getTokenForSource) to trigger refresh logic.
+        const token = await authManager.getTokenForSource({
+          type: 'google',
+          id: `temp_${account.id}`,
+          name: account.email,
+          calendarId: 'primary',
+          googleAccountId: account.id,
+          color: ''
+        } as Extract<import('../../types').CalendarInfo, { type: 'google' }>);
+        if (!token) {
           throw new GoogleApiError(
             `Failed to refresh token for ${account.email}. Please try connecting the account again.`
           );
         }
-        account.accessToken = newToken;
+        account.accessToken = token;
       }
 
       const { fetchGoogleCalendarList } = await import('./api');
@@ -91,8 +110,11 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
       const allCalendars = await fetchGoogleCalendarList(plugin, account);
       const existingGoogleIds = new Set(
         plugin.settings.calendarSources
-          .filter(s => s.type === 'google')
-          .map(s => (s as any).calendarId)
+          .filter(
+            (s): s is Extract<typeof s, { type: 'google'; calendarId: string }> =>
+              s.type === 'google'
+          )
+          .map(s => s.calendarId)
       );
       setAvailableCalendars(allCalendars.filter(cal => !existingGoogleIds.has(cal.id)));
       setView('calendar-select');
@@ -122,7 +144,7 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
       .map(cal => ({
         id: cal.id,
         name: cal.summary,
-        color: cal.backgroundColor
+        color: cal.backgroundColor || ''
       }));
     onSave(selectedConfigs, selectedAccount.id);
     onClose();

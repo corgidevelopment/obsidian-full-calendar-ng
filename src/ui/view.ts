@@ -32,8 +32,79 @@ import { UpdateViewCallback, CachedEvent } from '../core/EventCache';
 import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from '../core/interop';
 import { ViewEnhancer } from '../core/ViewEnhancer';
 
+// Narrowed resource shape used for timeline views.
+interface ResourceItem {
+  id: string;
+  title: string;
+  parentId?: string;
+  eventColor?: string;
+  extendedProps?: Record<string, unknown>;
+}
+
 export const FULL_CALENDAR_VIEW_TYPE = 'full-calendar-view';
 export const FULL_CALENDAR_SIDEBAR_VIEW_TYPE = 'full-calendar-sidebar-view';
+
+// REMOVE OLD CONSTANTS
+/*
+const ZOOM_LEVELS = [
+  { slotDuration: '01:00:00', slotLabelInterval: '01:00' }, // Level 0: Zoomed Out
+  { slotDuration: '00:30:00', slotLabelInterval: '01:00' }, // Level 1: Default
+  { slotDuration: '00:15:00', slotLabelInterval: '00:30' }, // Level 2: Zoomed In
+  { slotDuration: '00:05:00', slotLabelInterval: '00:15' } // Level 3: Max Zoom
+];
+const DEFAULT_ZOOM_INDEX = 1;
+*/
+
+// ADD NEW CONFIGURATION OBJECT
+const VIEW_ZOOM_CONFIG: {
+  [viewPrefix: string]: {
+    defaultIndex: number;
+    levels: { slotDuration: string; slotLabelInterval: string }[];
+  };
+} = {
+  timeGrid: {
+    defaultIndex: 1,
+    levels: [
+      { slotDuration: '01:00:00', slotLabelInterval: '01:00:00' },
+      { slotDuration: '00:30:00', slotLabelInterval: '01:00:00' }, // Default
+      { slotDuration: '00:15:00', slotLabelInterval: '00:30:00' },
+      { slotDuration: '00:05:00', slotLabelInterval: '00:15:00' }
+    ]
+  },
+  resourceTimelineWeek: {
+    defaultIndex: 2, // Start more zoomed out
+    levels: [
+      { slotDuration: '06:00:00', slotLabelInterval: '06:00:00' },
+      { slotDuration: '04:00:00', slotLabelInterval: '04:00:00' },
+      { slotDuration: '02:00:00', slotLabelInterval: '02:00:00' }, // Default
+      { slotDuration: '01:00:00', slotLabelInterval: '01:00:00' }
+    ]
+  },
+  resourceTimeline: {
+    defaultIndex: 1, // Same as timeGrid, for resourceTimelineDay
+    levels: [
+      { slotDuration: '01:00:00', slotLabelInterval: '01:00:00' },
+      { slotDuration: '00:30:00', slotLabelInterval: '01:00:00' }, // Default
+      { slotDuration: '00:15:00', slotLabelInterval: '00:30:00' },
+      { slotDuration: '00:05:00', slotLabelInterval: '00:15:00' }
+    ]
+  }
+};
+// END NEW CONFIGURATION
+
+function throttle<T extends (...args: any[]) => any>(func: T, limit: number): T {
+  let inThrottle: boolean;
+  let lastResult: ReturnType<T>;
+
+  return function (this: ThisParameterType<T>, ...args: Parameters<T>): ReturnType<T> {
+    if (!inThrottle) {
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+      lastResult = func.apply(this, args);
+    }
+    return lastResult;
+  } as T;
+}
 
 export function getCalendarColors(color: string | null | undefined): {
   color: string;
@@ -65,16 +136,68 @@ export class CalendarView extends ItemView {
   fullCalendarView: Calendar | null = null;
   callback: UpdateViewCallback | null = null;
   private viewEnhancer: ViewEnhancer | null = null;
-  private timelineResources:
-    | { id: string; title: string; parentId?: string; eventColor?: string; extendedProps?: any }[]
-    | null = null;
-  private settingsListener: (() => Promise<void>) | null = null; // Added for view-config pub/sub
+  private timelineResources: ResourceItem[] | null = null;
+  // private currentZoomIndex: number = DEFAULT_ZOOM_INDEX; // REMOVE THIS LINE
+  private zoomIndexByView: { [viewType: string]: number } = {}; // ADD THIS LINE
+  private throttledZoom: (event: WheelEvent) => void;
 
   constructor(leaf: WorkspaceLeaf, plugin: FullCalendarPlugin, inSidebar = false) {
     super(leaf);
     this.plugin = plugin;
     this.inSidebar = inSidebar;
+    this.throttledZoom = throttle(this.handleWheelZoom.bind(this), 100);
   }
+
+  // ADD THIS HELPER METHOD
+  private findBestZoomConfigKey(viewType: string): string | null {
+    let bestMatchKey: string | null = null;
+    for (const key in VIEW_ZOOM_CONFIG) {
+      if (viewType.startsWith(key)) {
+        if (!bestMatchKey || key.length > bestMatchKey.length) {
+          bestMatchKey = key;
+        }
+      }
+    }
+    return bestMatchKey;
+  }
+  // END HELPER METHOD
+
+  // REPLACE the old handleWheelZoom method with this new version
+  private handleWheelZoom(event: WheelEvent): void {
+    if (!this.fullCalendarView || !(event.ctrlKey || event.metaKey)) {
+      return;
+    }
+
+    const viewType = this.fullCalendarView.view.type;
+    const configKey = this.findBestZoomConfigKey(viewType);
+
+    if (!configKey) {
+      return; // This view type doesn't support zooming.
+    }
+
+    event.preventDefault();
+
+    const config = VIEW_ZOOM_CONFIG[configKey];
+    const maxZoom = config.levels.length - 1;
+    const currentZoom = this.zoomIndexByView[configKey] ?? config.defaultIndex;
+
+    const direction = event.deltaY < 0 ? 'in' : 'out';
+
+    let newIndex = currentZoom;
+    if (direction === 'in' && currentZoom < maxZoom) {
+      newIndex++;
+    } else if (direction === 'out' && currentZoom > 0) {
+      newIndex--;
+    }
+
+    if (newIndex !== currentZoom) {
+      this.zoomIndexByView[configKey] = newIndex;
+      const newZoomLevels = config.levels[newIndex];
+      this.fullCalendarView.setOption('slotDuration', newZoomLevels.slotDuration);
+      this.fullCalendarView.setOption('slotLabelInterval', newZoomLevels.slotLabelInterval);
+    }
+  }
+  // END REPLACEMENT
 
   getIcon(): string {
     return 'calendar-glyph';
@@ -92,7 +215,7 @@ export class CalendarView extends ItemView {
    * Switch to a specific workspace by ID.
    * @param workspaceId - The workspace ID to switch to, or null for default view
    */
-  private workspaceSwitchTimeout: any = null;
+  private workspaceSwitchTimeout: ReturnType<typeof setTimeout> | null = null;
   async switchToWorkspace(workspaceId: string | null) {
     if (this.workspaceSwitchTimeout) {
       clearTimeout(this.workspaceSwitchTimeout);
@@ -246,20 +369,8 @@ export class CalendarView extends ItemView {
   /**
    * Lazily build resources for timeline views based on current settings and cache.
    */
-  private buildTimelineResources(): {
-    id: string;
-    title: string;
-    parentId?: string;
-    eventColor?: string;
-    extendedProps?: any;
-  }[] {
-    const resources: {
-      id: string;
-      title: string;
-      parentId?: string;
-      eventColor?: string;
-      extendedProps: any;
-    }[] = [];
+  private buildTimelineResources(): ResourceItem[] {
+    const resources: ResourceItem[] = [];
     if (!this.plugin.settings.enableAdvancedCategorization) {
       return resources;
     }
@@ -364,6 +475,15 @@ export class CalendarView extends ItemView {
     container.empty();
     let calendarEl = container.createEl('div');
 
+    this.registerDomEvent(
+      calendarEl,
+      'wheel',
+      (event: WheelEvent) => {
+        this.throttledZoom(event);
+      },
+      { passive: false }
+    );
+
     if (
       this.plugin.settings.calendarSources.filter((s: CalendarInfo) => s.type !== 'FOR_TEST_ONLY')
         .length === 0
@@ -405,6 +525,21 @@ export class CalendarView extends ItemView {
           this.removeShadowEventsFromView();
         }
       }
+
+      // ADD THIS BLOCK
+      // Apply the correct zoom level for the new view.
+      const configKey = this.findBestZoomConfigKey(newViewType);
+      if (configKey) {
+        const config = VIEW_ZOOM_CONFIG[configKey];
+        const zoomIndex = this.zoomIndexByView[configKey] ?? config.defaultIndex;
+        const zoomLevels = config.levels[zoomIndex];
+
+        // This ensures the view snaps to its stored/default zoom when changed.
+        this.fullCalendarView?.setOption('slotDuration', zoomLevels.slotDuration);
+        this.fullCalendarView?.setOption('slotLabelInterval', zoomLevels.slotLabelInterval);
+      }
+      // END BLOCK
+
       currentViewType = newViewType;
     };
     this.fullCalendarView = await renderCalendar(calendarEl, sources, {
@@ -567,9 +702,13 @@ export class CalendarView extends ItemView {
             );
             return !!didModify;
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
           console.error(e);
-          new Notice(e.message);
+          if (e instanceof Error) {
+            new Notice(e.message);
+          } else {
+            new Notice('Failed to modify event.');
+          }
           return false;
         }
       },
@@ -694,8 +833,7 @@ export class CalendarView extends ItemView {
       this.addShadowEventsToView();
     }
 
-    // @ts-ignore
-    window.fc = this.fullCalendarView;
+    window.fc = this.fullCalendarView ?? undefined;
 
     this.registerDomEvent(this.containerEl, 'mouseenter', () => {
       this.plugin.providerRegistry.revalidateRemoteCalendars();
@@ -706,22 +844,15 @@ export class CalendarView extends ItemView {
       this.callback = null;
     }
 
-    // Remove previous settingsListener if present
-    if (this.settingsListener) {
-      (this.plugin.app.workspace as any).off(
-        'full-calendar:view-config-changed',
-        this.settingsListener
-      );
-    }
-    // Register new settingsListener for view-config changes
-    this.settingsListener = () => this.onOpen();
-    (this.plugin.app.workspace as any).on(
-      'full-calendar:view-config-changed',
-      this.settingsListener
-    );
-
-    this.callback = this.plugin.cache.on('update', () => {
+    // MODIFY THE CALLBACK:
+    this.callback = this.plugin.cache.on('update', info => {
       if (!this.viewEnhancer || !this.fullCalendarView) {
+        return;
+      }
+
+      // ADD: handle resync event
+      if (info.type === 'resync') {
+        this.onOpen();
         return;
       }
 
@@ -763,13 +894,6 @@ export class CalendarView extends ItemView {
     if (this.callback) {
       this.plugin.cache.off('update', this.callback);
       this.callback = null;
-    }
-    if (this.settingsListener) {
-      (this.plugin.app.workspace as any).off(
-        'full-calendar:view-config-changed',
-        this.settingsListener
-      );
-      this.settingsListener = null;
     }
   }
 }

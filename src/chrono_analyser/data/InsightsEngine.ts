@@ -66,7 +66,7 @@ export class InsightsEngine {
     let totalWellnessHours = 0;
 
     for (const record of taggedRecords) {
-      const tags = (record as any)._semanticTags || [];
+      const tags = record._semanticTags || [];
       const duration = record.duration;
       if (tags.some((tag: string) => groupPersonas.get(tag) === 'productivity')) {
         productivityRecords.push(record);
@@ -178,8 +178,8 @@ export class InsightsEngine {
         }
       }
     }
-    (record as any)._semanticTags = Array.from(tags);
-    (record as any)._isMuted = isMuted;
+    record._semanticTags = Array.from(tags);
+    record._isMuted = isMuted;
     return record;
   }
 
@@ -333,7 +333,7 @@ export class InsightsEngine {
       if (recordDay < thirtyDaysAgo) continue;
 
       trueGrandTotalHours += record.duration;
-      const tags = (record as any)._semanticTags || [];
+      const tags = record._semanticTags || [];
       for (const tag of tags) {
         // Add to total group distribution
         distribution.set(tag, (distribution.get(tag) || 0) + record.duration);
@@ -684,7 +684,7 @@ export class InsightsEngine {
     const baselineProjects = new Map<string, number>();
 
     for (const record of taggedRecords) {
-      if ((record as any)._isMuted) {
+      if (record._isMuted) {
         continue;
       }
       const recordDate = record.date;

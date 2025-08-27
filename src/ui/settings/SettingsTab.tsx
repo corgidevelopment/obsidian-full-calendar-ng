@@ -88,7 +88,13 @@ export function addCalendarButton(
           new Notice(`${providerType} provider is not registered.`);
           return;
         }
-        const ConfigComponent = (providerClass as any).getConfigurationComponent();
+        // Provider classes expose a static getConfigurationComponent; keep a loose unknown cast locally.
+        const ConfigComponent = (
+          providerClass as unknown as {
+            // Providers expose a static method returning a React component.
+            getConfigurationComponent(): React.ComponentType<Record<string, unknown>>;
+          }
+        ).getConfigurationComponent();
 
         let modal = new ReactModal(plugin.app, async () => {
           await plugin.loadSettings();
@@ -115,7 +121,20 @@ export function addCalendarButton(
           const initialConfig = sourceType === 'icloud' ? { url: 'https://caldav.icloud.com' } : {};
 
           // Base props for all provider components
-          const componentProps: any = {
+          // Minimal shared config component props; provider-specific components can accept additional fields.
+          interface BaseConfigProps {
+            plugin: FullCalendarPlugin;
+            config: Record<string, unknown>;
+            context: {
+              allDirectories: string[];
+              usedDirectories: string[];
+              headings: string[];
+            };
+            onClose: () => void;
+            onConfigChange: (c: unknown) => void;
+            onSave: (finalConfigs: unknown | unknown[], accountId?: string) => void;
+          }
+          const componentProps: BaseConfigProps = {
             plugin: plugin, // Pass plugin for GoogleConfigComponent
             config: initialConfig,
             context: {
@@ -125,10 +144,15 @@ export function addCalendarButton(
             },
             onClose: () => modal.close(),
             onConfigChange: () => {},
-            onSave: (finalConfigs: any | any[], accountId?: string) => {
+            onSave: (finalConfigs: unknown | unknown[], accountId?: string) => {
               const configs = Array.isArray(finalConfigs) ? finalConfigs : [finalConfigs];
 
-              configs.forEach((finalConfig: any) => {
+              configs.forEach(finalConfigRaw => {
+                const finalConfig = finalConfigRaw as Record<string, unknown> & {
+                  id?: string;
+                  color?: string;
+                  name?: string;
+                };
                 const partialSource = makeDefaultPartialCalendarSource(
                   providerType as CalendarInfo['type'],
                   existingCalendarColors
@@ -139,17 +163,20 @@ export function addCalendarButton(
                   color: finalConfig.color || partialSource.color,
                   name: finalConfig.name,
                   ...(accountId && { googleAccountId: accountId }),
-                  calendarId: finalConfig.id
+                  calendarId: finalConfig.id as string
                 };
-                delete (finalSource as any).id;
+                delete (finalSource as { id?: string }).id;
                 submitCallback(finalSource as unknown as CalendarInfo);
-                existingCalendarColors.push(finalSource.color);
+                existingCalendarColors.push(finalSource.color as string);
               });
               modal.close();
             }
           };
 
-          return createElement(ConfigComponent, componentProps);
+          return createElement(
+            ConfigComponent,
+            componentProps as unknown as Record<string, unknown>
+          );
         });
         modal.open();
       });

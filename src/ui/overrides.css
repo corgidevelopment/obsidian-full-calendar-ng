@@ -387,6 +387,11 @@
   background: var(--interactive-accent-hover);
 }
 
+/* Utility class to prevent body scrolling when overlays/modals are open */
+.no-scroll {
+    overflow: hidden !important;
+}
+
 .workspace-calendar-filter {
   border-bottom: none !important;
 }

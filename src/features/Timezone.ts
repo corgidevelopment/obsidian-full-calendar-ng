@@ -47,118 +47,64 @@ export function convertEvent<T extends OFCEvent>(
 ): T {
   // All-day events are timezone-agnostic and returned as is.
   if (event.allDay) {
-    return { ...event };
+    return event;
   }
 
-  // Cast the event to its timed version. The `allDay` check above ensures this is safe.
-  const newEvent = { ...event } as T & { allDay: false };
+  // This type guard is essential. Inside this block, `event` is known to have
+  // `type: 'single'`, `allDay: false`, and all the necessary date/time properties.
+  if (event.type === 'single' && !event.allDay) {
+    const startTime = parseTime(event.startTime);
+    if (!startTime) {
+      return event; // Return original event if start time is invalid.
+    }
 
-  const startTime = parseTime(newEvent.startTime);
-  if (!startTime) {
-    return newEvent; // Return if start time is invalid.
+    // Phase 1: Determine Authoritative Start and End DateTimes in the sourceZone.
+    const startDateTime = DateTime.fromISO(`${event.date}T${startTime.toFormat('HH:mm')}`, {
+      zone: sourceZone
+    });
+
+    let endDateTime: DateTime;
+    if (event.endTime) {
+      const endTime = parseTime(event.endTime);
+      if (!endTime) {
+        endDateTime = startDateTime.plus({ hours: 1 });
+      } else {
+        const endDateString = event.endDate || event.date;
+        let tempEndDateTime = DateTime.fromISO(`${endDateString}T${endTime.toFormat('HH:mm')}`, {
+          zone: sourceZone
+        });
+
+        if (!event.endDate && tempEndDateTime < startDateTime) {
+          tempEndDateTime = tempEndDateTime.plus({ days: 1 });
+        }
+        endDateTime = tempEndDateTime;
+      }
+    } else {
+      endDateTime = startDateTime.plus({ hours: 1 });
+    }
+
+    // Phase 2: Convert Authoritative DateTimes to the targetZone.
+    const convertedStart = startDateTime.setZone(targetZone);
+    const convertedEnd = endDateTime.setZone(targetZone);
+
+    // Phase 3: Deconstruct into a new OFCEvent object within the return statement.
+    const finalEndDate = convertedStart.hasSame(convertedEnd, 'day')
+      ? null
+      : convertedEnd.startOf('day').equals(convertedEnd)
+        ? convertedEnd.minus({ milliseconds: 1 }).toISODate()!
+        : convertedEnd.toISODate()!;
+
+    return {
+      ...event,
+      date: convertedStart.toISODate()!,
+      startTime: convertedStart.toFormat('HH:mm'),
+      endTime: convertedEnd.toFormat('HH:mm'),
+      endDate: finalEndDate
+    };
   }
 
-  // Helper function to perform the core conversion logic on a given date string.
-  const convert = (date: string, time: DateTime) =>
-    DateTime.fromISO(`${date}T${time.toFormat('HH:mm')}`, { zone: sourceZone }).setZone(targetZone);
-
-  // Handle conversion based on the event type.
-  switch (newEvent.type) {
-    case 'single': {
-      const newStart = convert(newEvent.date, startTime);
-      newEvent.date = newStart.toISODate()!;
-      newEvent.startTime = newStart.toFormat('HH:mm');
-
-      if (newEvent.endTime) {
-        const endTime = parseTime(newEvent.endTime);
-        if (endTime) {
-          const endDateSrc = newEvent.endDate || newEvent.date;
-          const newEnd = convert(endDateSrc, endTime);
-          newEvent.endTime = newEnd.toFormat('HH:mm');
-          newEvent.endDate = newEnd.toISODate()! !== newEvent.date ? newEnd.toISODate()! : null;
-        }
-      }
-      break;
-    }
-
-    case 'recurring': {
-      if (Array.isArray(newEvent.skipDates) && newEvent.skipDates.length) {
-        newEvent.skipDates = newEvent.skipDates.map(
-          (d: string) => convert(d, startTime).toISODate()!
-        );
-      }
-
-      const dateStr = newEvent.startRecur;
-      if (!dateStr) break;
-
-      const newStart = convert(dateStr, startTime);
-      newEvent.startRecur = newStart.toISODate()!;
-      newEvent.startTime = newStart.toFormat('HH:mm');
-
-      // Handle day shifts for daysOfWeek property
-      const originalStart = DateTime.fromISO(`${dateStr}T${startTime.toFormat('HH:mm')}`, {
-        zone: sourceZone
-      });
-      const dayShift = Math.round(
-        newStart.startOf('day').diff(originalStart.startOf('day'), 'days').get('days')
-      );
-
-      if (dayShift !== 0 && newEvent.daysOfWeek) {
-        const dayMap: Record<string, number> = { U: 0, M: 1, T: 2, W: 3, R: 4, F: 5, S: 6 };
-        const reverseDayMap: string[] = ['U', 'M', 'T', 'W', 'R', 'F', 'S'];
-
-        newEvent.daysOfWeek = newEvent.daysOfWeek.map((day: string) => {
-          const originalIndex = dayMap[day];
-          if (originalIndex === undefined) return day;
-          const newIndex = (originalIndex + dayShift + 7) % 7;
-          return reverseDayMap[newIndex];
-        }) as typeof newEvent.daysOfWeek;
-      }
-
-      // Handle endTime and potential new endDate
-      if (newEvent.endTime) {
-        const endTime = parseTime(newEvent.endTime);
-        if (endTime) {
-          // Use the original endDate if it exists, otherwise use the original start date.
-          const endDateSrc = newEvent.endDate || dateStr;
-          const newEnd = convert(endDateSrc, endTime);
-          newEvent.endTime = newEnd.toFormat('HH:mm');
-          // Set endDate ONLY if it's on a different day than the new start date.
-          newEvent.endDate =
-            newEnd.toISODate()! !== newEvent.startRecur ? newEnd.toISODate()! : null;
-        }
-      }
-      break;
-    }
-
-    case 'rrule': {
-      if (Array.isArray(newEvent.skipDates) && newEvent.skipDates.length) {
-        newEvent.skipDates = newEvent.skipDates.map(
-          (d: string) => convert(d, startTime).toISODate()!
-        );
-      }
-      const dateStr = newEvent.startDate;
-      if (!dateStr) break;
-
-      const newStart = convert(dateStr, startTime);
-      newEvent.startDate = newStart.toISODate()!;
-      newEvent.startTime = newStart.toFormat('HH:mm');
-
-      if (newEvent.endTime) {
-        const endTime = parseTime(newEvent.endTime);
-        if (endTime) {
-          const endDateSrc = newEvent.endDate || newEvent.startDate;
-          const newEnd = convert(endDateSrc, endTime);
-          newEvent.endTime = newEnd.toFormat('HH:mm');
-          newEvent.endDate =
-            newEnd.toISODate()! !== newEvent.startDate ? newEnd.toISODate()! : null;
-        }
-      }
-      break;
-    }
-  }
-
-  return newEvent;
+  // For recurring events or other types, return the event unmodified for now.
+  return event;
 }
 
 /**
