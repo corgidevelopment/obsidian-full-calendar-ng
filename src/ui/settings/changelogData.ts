@@ -14,6 +14,59 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.12.2',
+    changes: [
+      {
+        type: 'new',
+        title: 'Multi-day Daily Note events',
+        description:
+          'Daily Note provider now supports explicit multi-day events via an [endDate:: YYYY-MM-DD] inline field with fallback to legacy overnight detection.'
+      },
+      {
+        type: 'new',
+        title: 'Status bar current/upcoming events',
+        description:
+          'Lightweight status bar module displays current and next events by subscribing to TimeEngine.'
+      },
+      {
+        type: 'new',
+        title: 'Interactive time-axis zoom',
+        description:
+          'Ctrl/Cmd + scroll to zoom time axis in timeGrid and resourceTimeline views for rapid focus changes (#96).'
+      },
+      {
+        type: 'new',
+        title: 'Interval & positional recurrence rules',
+        description:
+          'Adds interval repeats (e.g., every 2 weeks) and positional monthly rules (2nd Tuesday, last Friday) with iCal interoperability (#97).'
+      },
+      {
+        type: 'improvement',
+        title: 'Codebase compliance & safety',
+        description:
+          'Removed loose any casts, migrated inline styles to CSS, added instanceof guards, and simplified unload lifecycle.'
+      },
+      {
+        type: 'improvement',
+        title: 'Reactive calendar view lifecycle',
+        description:
+          'view-config-changed triggers cache repopulate; new resync event prompts focused re-render for instant settings feedback.'
+      },
+      {
+        type: 'improvement',
+        title: 'NotificationManager refactor',
+        description:
+          'Converted to passive subscriber of TimeEngine instead of maintaining its own internal interval.'
+      },
+      {
+        type: 'fix',
+        title: 'Timezone conversion for cross-day events',
+        description:
+          'convertEvent rewritten as a pure function handling explicit endDate and legacy overnight cases with stricter type guards.'
+      }
+    ]
+  },
+  {
     version: '0.12.1',
     changes: [
       {

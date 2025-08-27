@@ -4,6 +4,37 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
+## Version 0.12.2
+
+-   **New:** Multi-day Daily Note events with explicit endDate  
+    _Daily Note calendar now supports explicit multi‑day events via `[endDate:: YYYY-MM-DD]` while remaining backward compatible with legacy overnight detection._
+
+-   **New:** Central TimeEngine  
+    _Single timer maintains a sorted time-sensitive cache and publishes a `time-tick` event consumed by status bar, notifications, and other listeners._
+
+-   **New:** Status Bar current/upcoming events  
+    _Lightweight status bar UI subscribes to `TimeEngine` to surface what's happening now and next._
+
+-   **New:** Interactive time‑axis zoom (#96)  
+    _Ctrl/Cmd + scroll to dynamically zoom the vertical (timeGrid) or horizontal (resourceTimeline) axis for fast focus changes._
+
+-   **New:** Advanced recurrence intervals & positional monthly rules (#97)  
+    _Support for interval-based repeats (e.g., every 2 weeks) and positional monthly rules (2nd Tuesday, last Friday) with iCal import/export parity._
+
+-   **Improvement:** Codebase compliance & safety  
+    _Replaced loose `any` casts, moved inline styles to CSS, added `instanceof` guards for file/folder objects, removed custom leaf detaching on unload._
+
+-   **Improvement:** Reactive calendar view lifecycle  
+    _`view-config-changed` now triggers targeted cache repopulation and a new `resync` event prompts precise re-renders for snappier UI updates._
+
+-   **Improvement:** NotificationManager refactor  
+    _No internal timer; now a passive subscriber to `TimeEngine`, reducing duplicate intervals and simplifying lifecycle management._
+
+-   **Fix:** Robust timezone conversion for cross-day events  
+    _`convertEvent` rewritten as a pure function; correctly handles explicit `endDate` and legacy overnight semantics with stricter type guards._
+
+---
+
 ## Version 0.12.1
 
 -   **New:** Event Reminder System with Desktop Notifications (BETA)
