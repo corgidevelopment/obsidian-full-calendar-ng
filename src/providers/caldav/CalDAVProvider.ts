@@ -6,9 +6,64 @@ import { CalDAVProviderConfig } from './typesCalDAV';
 import FullCalendarPlugin from '../../main';
 import { CalDAVConfigComponent } from './CalDAVConfigComponent';
 import { ObsidianInterface } from '../../ObsidianAdapter';
+import * as React from 'react';
 
 // Use require for robust module loading.
 const { createAccount, getCalendarObjects, AuthMethod } = require('tsdav');
+
+// Settings row component for CalDAV Provider - handles URL, name, and username
+const CalDAVSettingRow: React.FC<{ source: Partial<import('../../types').CalendarInfo> }> = ({
+  source
+}) => {
+  // Handle both flat and nested config structures
+  const getProperty = (key: string): string => {
+    const flat = (source as Record<string, unknown>)[key];
+    const nested = (source as { config?: Record<string, unknown> }).config?.[key];
+    return typeof flat === 'string' ? flat : typeof nested === 'string' ? nested : '';
+  };
+
+  const url = getProperty('url');
+  const name = getProperty('name');
+  const username = getProperty('username');
+
+  return React.createElement(
+    React.Fragment,
+    {},
+    // URL input
+    React.createElement(
+      'div',
+      { className: 'setting-item-control' },
+      React.createElement('input', {
+        disabled: true,
+        type: 'text',
+        value: url,
+        className: 'fc-setting-input'
+      })
+    ),
+    // Name input
+    React.createElement(
+      'div',
+      { className: 'setting-item-control' },
+      React.createElement('input', {
+        disabled: true,
+        type: 'text',
+        value: name,
+        className: 'fc-setting-input'
+      })
+    ),
+    // Username input
+    React.createElement(
+      'div',
+      { className: 'setting-item-control' },
+      React.createElement('input', {
+        disabled: true,
+        type: 'text',
+        value: username,
+        className: 'fc-setting-input'
+      })
+    )
+  );
+};
 
 export class CalDAVProvider implements CalendarProvider<CalDAVProviderConfig> {
   // Static metadata for registry
@@ -104,5 +159,11 @@ export class CalDAVProvider implements CalendarProvider<CalDAVProviderConfig> {
 
   getConfigurationComponent(): FCReactComponent<any> {
     return () => null;
+  }
+
+  getSettingsRowComponent(): FCReactComponent<{
+    source: Partial<import('../../types').CalendarInfo>;
+  }> {
+    return CalDAVSettingRow;
   }
 }

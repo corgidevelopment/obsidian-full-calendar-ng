@@ -366,6 +366,112 @@ export class WorkspaceModal extends Modal {
           });
         });
     }
+
+    // Add separator
+    section.createEl('hr', { cls: 'workspace-modal-separator' });
+    section.createEl('h4', { text: 'View Clipping & Time Range' });
+
+    // Visible time range - Start time
+    new Setting(section)
+      .setName('Earliest time to display')
+      .setDesc('Override the earliest time visible in time grid views (format: HH:mm)')
+      .addText(text => {
+        text
+          .setPlaceholder('Use global default')
+          .setValue(this.workspace.slotMinTime || '')
+          .onChange(value => {
+            this.workspace.slotMinTime = value.trim() || undefined;
+          });
+      });
+
+    // Visible time range - End time
+    new Setting(section)
+      .setName('Latest time to display')
+      .setDesc('Override the latest time visible in time grid views (format: HH:mm)')
+      .addText(text => {
+        text
+          .setPlaceholder('Use global default')
+          .setValue(this.workspace.slotMaxTime || '')
+          .onChange(value => {
+            this.workspace.slotMaxTime = value.trim() || undefined;
+          });
+      });
+
+    // Weekend visibility
+    new Setting(section)
+      .setName('Weekend display')
+      .setDesc('Override whether to show weekends in the calendar')
+      .addDropdown(dropdown => {
+        dropdown.addOption('', 'Use global default');
+        dropdown.addOption('true', 'Show weekends');
+        dropdown.addOption('false', 'Hide weekends');
+
+        const currentValue = this.workspace.weekends;
+        dropdown.setValue(currentValue === undefined ? '' : currentValue.toString());
+        dropdown.onChange(value => {
+          this.workspace.weekends = value === '' ? undefined : value === 'true';
+        });
+      });
+
+    // Hidden days
+    new Setting(section)
+      .setName('Hidden days')
+      .setDesc('Override which days to hide from the calendar')
+      .addDropdown(dropdown => {
+        dropdown.addOption('', 'Use global default');
+        dropdown.addOption('[]', 'Show all days');
+        dropdown.addOption('[0,6]', 'Hide weekends (Sun, Sat)');
+        dropdown.addOption('[0]', 'Hide Sunday');
+        dropdown.addOption('[6]', 'Hide Saturday');
+        dropdown.addOption('[1]', 'Hide Monday');
+        dropdown.addOption('[5]', 'Hide Friday');
+
+        const currentValue = this.workspace.hiddenDays;
+        const dropdownValue = currentValue === undefined ? '' : JSON.stringify(currentValue);
+        dropdown.setValue(dropdownValue);
+        dropdown.onChange(value => {
+          if (value === '') {
+            this.workspace.hiddenDays = undefined;
+          } else {
+            try {
+              this.workspace.hiddenDays = JSON.parse(value);
+            } catch (e) {
+              // Invalid JSON, keep current value
+            }
+          }
+        });
+      });
+
+    // Max events per day (for month view)
+    new Setting(section)
+      .setName('Max events per day (month view)')
+      .setDesc('Override the maximum number of events to show per day in month view')
+      .addDropdown(dropdown => {
+        dropdown.addOption('', 'Use global default');
+        dropdown.addOption('false', 'Use default limit');
+        dropdown.addOption('true', 'No limit');
+        dropdown.addOption('1', '1 event');
+        dropdown.addOption('2', '2 events');
+        dropdown.addOption('3', '3 events');
+        dropdown.addOption('4', '4 events');
+        dropdown.addOption('5', '5 events');
+        dropdown.addOption('10', '10 events');
+
+        const currentValue = this.workspace.dayMaxEvents;
+        const dropdownValue = currentValue === undefined ? '' : currentValue.toString();
+        dropdown.setValue(dropdownValue);
+        dropdown.onChange(value => {
+          if (value === '') {
+            this.workspace.dayMaxEvents = undefined;
+          } else if (value === 'true') {
+            this.workspace.dayMaxEvents = true;
+          } else if (value === 'false') {
+            this.workspace.dayMaxEvents = false;
+          } else {
+            this.workspace.dayMaxEvents = parseInt(value);
+          }
+        });
+      });
   }
 
   private renderBusinessHoursDetails() {

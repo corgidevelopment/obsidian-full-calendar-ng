@@ -53,6 +53,7 @@ export class ProviderRegistry {
     this.register('ical', () => import('./ics/ICSProvider'));
     this.register('caldav', () => import('./caldav/CalDAVProvider'));
     this.register('google', () => import('./google/GoogleProvider'));
+    this.register('tasks', () => import('./tasks/TasksPluginProvider'));
   }
 
   public register(type: string, loader: ProviderLoader): void {
@@ -228,6 +229,96 @@ export class ProviderRegistry {
     return results;
   }
 
+  /**
+   * Fetch events from local providers only (non-blocking for remote calendars).
+   * Returns immediately with local events, allowing UI to display them without waiting for remote calendars.
+   */
+  public async fetchLocalEvents(): Promise<
+    { calendarId: string; event: OFCEvent; location: EventLocation | null }[]
+  > {
+    if (!this.cache) {
+      throw new Error('Cache not set on ProviderRegistry');
+    }
+
+    const results: { calendarId: string; event: OFCEvent; location: EventLocation | null }[] = [];
+    const promises = [];
+
+    // Only process local (non-remote) providers
+    for (const [settingsId, instance] of this.instances.entries()) {
+      if (!instance.isRemote) {
+        const promise = (async () => {
+          try {
+            const rawEvents = await instance.getEvents();
+            rawEvents.forEach(([rawEvent, location]) => {
+              const event = this.cache!.enhancer.enhance(rawEvent);
+              results.push({
+                calendarId: settingsId,
+                event,
+                location
+              });
+            });
+          } catch (e) {
+            const source = this.getSource(settingsId);
+            console.warn(`Full Calendar: Failed to load local calendar source`, source, e);
+          }
+        })();
+        promises.push(promise);
+      }
+    }
+
+    await Promise.allSettled(promises);
+    return results;
+  }
+
+  /**
+   * Fetch events from remote providers with priority ordering.
+   * Loads remote calendars in background without blocking UI.
+   * Priority: ICS > CalDAV > Google Calendar
+   */
+  public async fetchRemoteEventsWithPriority(
+    onProviderComplete?: (
+      calendarId: string,
+      events: { event: OFCEvent; location: EventLocation | null }[]
+    ) => void
+  ): Promise<void> {
+    if (!this.cache) {
+      throw new Error('Cache not set on ProviderRegistry');
+    }
+
+    // Group remote providers by priority
+    const remoteProviders = Array.from(this.instances.entries()).filter(
+      ([_, instance]) => instance.isRemote
+    );
+
+    // Define priority order: ical (ICS) > caldav (CalDAV) > google (Google Calendar)
+    const priorityOrder = ['ical', 'caldav', 'google'];
+    const prioritizedProviders = remoteProviders.sort(([, a], [, b]) => {
+      const aPriority = priorityOrder.indexOf(a.type);
+      const bPriority = priorityOrder.indexOf(b.type);
+      return (aPriority === -1 ? 999 : aPriority) - (bPriority === -1 ? 999 : bPriority);
+    });
+
+    // Load each remote provider sequentially to respect priority
+    for (const [settingsId, instance] of prioritizedProviders) {
+      try {
+        const rawEvents = await instance.getEvents();
+        const events = rawEvents.map(([rawEvent, location]) => ({
+          event: this.cache!.enhancer.enhance(rawEvent),
+          location
+        }));
+
+        // Notify callback immediately when this provider completes
+        if (onProviderComplete) {
+          onProviderComplete(settingsId, events);
+        }
+      } catch (e) {
+        const source = this.getSource(settingsId);
+        console.warn(`Full Calendar: Failed to load remote calendar source`, source, e);
+        // Continue with next provider even if this one fails
+      }
+    }
+  }
+
   public async createEventInProvider(
     settingsId: string,
     event: OFCEvent
@@ -296,6 +387,9 @@ export class ProviderRegistry {
         } else if (instance.type === 'dailynote') {
           const { folder } = require('obsidian-daily-notes-interface').getDailyNoteSettings();
           isRelevant = folder ? file.path.startsWith(folder + '/') : true;
+        } else if (instance.type === 'tasks') {
+          // Tasks provider is interested in all markdown files
+          isRelevant = file.extension === 'md';
         }
 
         if (isRelevant) {

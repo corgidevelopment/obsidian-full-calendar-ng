@@ -107,6 +107,103 @@ export function renderAppearanceSettings(
       .settingEl.addClass('fc-indented-setting');
   }
 
+  // New granular view configuration section
+  new Setting(containerEl).setName('View Time Range').setHeading();
+
+  new Setting(containerEl)
+    .setName('Earliest time to display')
+    .setDesc('Set the earliest time visible in time grid views (format: HH:mm)')
+    .addText(text => {
+      text.setValue(plugin.settings.slotMinTime || '00:00');
+      text.onChange(async value => {
+        // Basic validation for time format
+        if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(value)) {
+          plugin.settings.slotMinTime = value;
+          await plugin.saveSettings();
+        }
+      });
+    });
+
+  new Setting(containerEl)
+    .setName('Latest time to display')
+    .setDesc('Set the latest time visible in time grid views (format: HH:mm)')
+    .addText(text => {
+      text.setValue(plugin.settings.slotMaxTime || '24:00');
+      text.onChange(async value => {
+        // Basic validation for time format (allow 24:00)
+        if (/^([01]?[0-9]|2[0-4]):[0-5][0-9]$/.test(value)) {
+          plugin.settings.slotMaxTime = value;
+          await plugin.saveSettings();
+        }
+      });
+    });
+
+  new Setting(containerEl).setName('Day Visibility').setHeading();
+
+  new Setting(containerEl)
+    .setName('Show weekends')
+    .setDesc('Whether to display weekend days (Saturday and Sunday) in the calendar')
+    .addToggle(toggle => {
+      toggle.setValue(plugin.settings.weekends ?? true);
+      toggle.onChange(async val => {
+        plugin.settings.weekends = val;
+        await plugin.saveSettings();
+      });
+    });
+
+  new Setting(containerEl)
+    .setName('Hidden days')
+    .setDesc('Select days of the week to hide from the calendar')
+    .addDropdown(dropdown => {
+      dropdown.addOption('[]', 'Show all days');
+      dropdown.addOption('[0,6]', 'Hide weekends (Sun, Sat)');
+      dropdown.addOption('[0]', 'Hide Sunday only');
+      dropdown.addOption('[6]', 'Hide Saturday only');
+      dropdown.addOption('[1]', 'Hide Monday');
+      dropdown.addOption('[2]', 'Hide Tuesday');
+      dropdown.addOption('[3]', 'Hide Wednesday');
+      dropdown.addOption('[4]', 'Hide Thursday');
+      dropdown.addOption('[5]', 'Hide Friday');
+
+      const currentValue = JSON.stringify(plugin.settings.hiddenDays || []);
+      dropdown.setValue(currentValue);
+      dropdown.onChange(async value => {
+        try {
+          plugin.settings.hiddenDays = JSON.parse(value);
+          await plugin.saveSettings();
+        } catch (e) {
+          // Invalid JSON, keep current value
+        }
+      });
+    });
+
+  new Setting(containerEl)
+    .setName('Max events per day (month view)')
+    .setDesc('Limit the number of events shown per day in month view')
+    .addDropdown(dropdown => {
+      dropdown.addOption('false', 'Use default limit');
+      dropdown.addOption('true', 'No limit (show all)');
+      dropdown.addOption('1', '1 event maximum');
+      dropdown.addOption('2', '2 events maximum');
+      dropdown.addOption('3', '3 events maximum');
+      dropdown.addOption('4', '4 events maximum');
+      dropdown.addOption('5', '5 events maximum');
+      dropdown.addOption('10', '10 events maximum');
+
+      const currentValue = (plugin.settings.dayMaxEvents ?? false).toString();
+      dropdown.setValue(currentValue);
+      dropdown.onChange(async value => {
+        if (value === 'true') {
+          plugin.settings.dayMaxEvents = true;
+        } else if (value === 'false') {
+          plugin.settings.dayMaxEvents = false;
+        } else {
+          plugin.settings.dayMaxEvents = parseInt(value);
+        }
+        await plugin.saveSettings();
+      });
+    });
+
   new Setting(containerEl)
     .setName('Enable background events')
     .setDesc(

@@ -96,6 +96,27 @@ export class WorkspaceManager {
       workspaceSettings.businessHours = workspace.businessHours;
     }
 
+    // Apply new granular view configuration overrides
+    if (workspace.slotMinTime !== undefined) {
+      workspaceSettings.slotMinTime = workspace.slotMinTime;
+    }
+
+    if (workspace.slotMaxTime !== undefined) {
+      workspaceSettings.slotMaxTime = workspace.slotMaxTime;
+    }
+
+    if (workspace.weekends !== undefined) {
+      workspaceSettings.weekends = workspace.weekends;
+    }
+
+    if (workspace.hiddenDays !== undefined) {
+      workspaceSettings.hiddenDays = workspace.hiddenDays;
+    }
+
+    if (workspace.dayMaxEvents !== undefined) {
+      workspaceSettings.dayMaxEvents = workspace.dayMaxEvents;
+    }
+
     return workspaceSettings;
   }
 

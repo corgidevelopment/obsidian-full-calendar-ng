@@ -15,69 +15,16 @@
 import { Notice } from 'obsidian';
 import * as React from 'react';
 import { CalendarInfo } from '../../../types';
-import { SourceWith } from '../../components/forms/common';
-import { UrlInput } from '../../components/forms/UrlInput';
+import FullCalendarPlugin from '../../../main';
 
 interface BasicProps<T extends Partial<CalendarInfo>> {
   source: T;
 }
 
-function DirectorySetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
-  let sourceWithDirectory = source as SourceWith<T, { directory: undefined }>;
-  return (
-    <div className="setting-item-control">
-      <input
-        disabled
-        type="text"
-        value={sourceWithDirectory.directory}
-        className="fc-setting-input"
-      />
-    </div>
-  );
-}
-
-function HeadingSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
-  let sourceWithHeading = source as SourceWith<T, { heading: undefined }>;
-  return (
-    <div className="setting-item-control fc-heading-setting-control">
-      <span>Under heading</span>
-      <input
-        disabled
-        type="text"
-        value={sourceWithHeading.heading}
-        className="fc-setting-input is-inline"
-      />
-      <span className="fc-heading-setting-suffix">in daily notes</span>
-    </div>
-  );
-}
-
-function NameSetting<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
-  let sourceWithName = source as SourceWith<T, { name: undefined }>;
-  return (
-    <div className="setting-item-control">
-      <input disabled type="text" value={sourceWithName.name} className="fc-setting-input" />
-    </div>
-  );
-}
-
-function Username<T extends Partial<CalendarInfo>>({ source }: BasicProps<T>) {
-  let sourceWithUsername = source as SourceWith<T, { username: undefined }>;
-  return (
-    <div className="setting-item-control">
-      <input
-        disabled
-        type="text"
-        value={sourceWithUsername.username}
-        className="fc-setting-input"
-      />
-    </div>
-  );
-}
-
 interface CalendarSettingsProps {
   sources: CalendarInfo[];
   submit: (payload: CalendarInfo[]) => void;
+  plugin: FullCalendarPlugin;
 }
 
 // ✅ Expose this type in `settings.tsx`
@@ -117,10 +64,11 @@ export class CalendarSettings
     return (
       <div style={{ width: '100%' }}>
         {this.state.sources.map((s, idx) => (
-          <CalendarSettingRow
+          <ProviderAwareCalendarSettingRow
             key={idx}
             setting={s}
-            onColorChange={color =>
+            plugin={this.props.plugin}
+            onColorChange={(color: string) =>
               this.setState(state => ({
                 sources: [
                   ...state.sources.slice(0, idx),
@@ -166,34 +114,30 @@ interface CalendarSettingsRowProps {
   deleteCalendar: () => void;
 }
 
-export const CalendarSettingRow = ({
+// Provider-Aware Calendar Setting Row - the main component
+interface ProviderAwareCalendarSettingsRowProps {
+  setting: Partial<CalendarInfo>;
+  onColorChange: (s: string) => void;
+  deleteCalendar: () => void;
+  plugin: FullCalendarPlugin;
+}
+
+export const ProviderAwareCalendarSettingRow = ({
   setting,
   onColorChange,
-  deleteCalendar
-}: CalendarSettingsRowProps) => {
-  const isCalDAV = setting.type === 'caldav';
-  return (
+  deleteCalendar,
+  plugin
+}: ProviderAwareCalendarSettingsRowProps) => {
+  const registry = plugin.providerRegistry;
+  const provider = setting.id ? registry.getInstance(setting.id) : null;
+
+  // Chrome: Common parts for all calendar sources
+  const ChromeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="setting-item">
       <button type="button" onClick={deleteCalendar} className="fc-setting-delete-btn">
         ✕
       </button>
-      {setting.type === 'local' ? (
-        <DirectorySetting source={setting} />
-      ) : setting.type === 'dailynote' ? (
-        <HeadingSetting source={setting} />
-      ) : setting.type === 'google' ? (
-        <NameSetting source={setting} />
-      ) : (
-        <div className="setting-item-control">
-          <UrlInput
-            value={(setting as { url?: string }).url || ''}
-            onChange={() => {}}
-            readOnly={true}
-          />
-        </div>
-      )}
-      {isCalDAV && <NameSetting source={setting} />}
-      {isCalDAV && <Username source={setting} />}
+      {children}
       <input
         type="color"
         value={setting.color}
@@ -201,5 +145,41 @@ export const CalendarSettingRow = ({
         onChange={e => onColorChange(e.target.value)}
       />
     </div>
+  );
+
+  // All providers should implement the required method - get the provider-specific content
+  if (provider) {
+    // Defensive check: if provider doesn't have the new method, provide fallback
+    if (typeof provider.getSettingsRowComponent !== 'function') {
+      console.warn(
+        'Full Calendar: Provider instance missing getSettingsRowComponent method. Using fallback display. Please reload the plugin.'
+      );
+
+      // Fallback rendering - display basic info about the calendar source
+      const displayName = (setting as any).name || setting.type || 'Unknown';
+      return (
+        <ChromeWrapper>
+          <div className="setting-item-control">
+            <span>{displayName} calendar</span>
+          </div>
+        </ChromeWrapper>
+      );
+    }
+
+    const ProviderContent = provider.getSettingsRowComponent();
+    return (
+      <ChromeWrapper>
+        <ProviderContent source={setting} />
+      </ChromeWrapper>
+    );
+  }
+
+  // Fallback for sources without an ID or provider not found (should not happen in normal operation)
+  return (
+    <ChromeWrapper>
+      <div className="setting-item-control">
+        <span>Provider not found</span>
+      </div>
+    </ChromeWrapper>
   );
 };

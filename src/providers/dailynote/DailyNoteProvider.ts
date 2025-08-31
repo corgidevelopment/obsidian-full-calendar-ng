@@ -1,5 +1,6 @@
 import moment from 'moment';
 import { TFile } from 'obsidian';
+import * as React from 'react';
 import {
   appHasDailyNotesPluginLoaded,
   createDailyNote,
@@ -28,6 +29,31 @@ import { DailyNoteProviderConfig } from './typesDaily';
 import { DailyNoteConfigComponent } from './DailyNoteConfigComponent';
 
 export type EditableEventResponse = [OFCEvent, EventLocation | null];
+
+// Settings row component for Daily Note Provider
+const DailyNoteHeadingSetting: React.FC<{
+  source: Partial<import('../../types').CalendarInfo>;
+}> = ({ source }) => {
+  // Handle both flat and nested config structures for heading
+  const getHeading = (): string => {
+    const flat = (source as { heading?: unknown }).heading;
+    const nested = (source as { config?: { heading?: unknown } }).config?.heading;
+    return typeof flat === 'string' ? flat : typeof nested === 'string' ? nested : '';
+  };
+
+  return React.createElement(
+    'div',
+    { className: 'setting-item-control fc-heading-setting-control' },
+    React.createElement('span', {}, 'Under heading'),
+    React.createElement('input', {
+      disabled: true,
+      type: 'text',
+      value: getHeading(),
+      className: 'fc-setting-input is-inline'
+    }),
+    React.createElement('span', { className: 'fc-heading-setting-suffix' }, 'in daily notes')
+  );
+};
 
 export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConfig> {
   // Static metadata for registry
@@ -134,9 +160,9 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
     if (!file) file = await createDailyNote(m);
     const metadata = await this.app.waitForMetadata(file);
     const headingInfo = metadata.headings?.find(h => h.heading == this.source.heading);
-    if (!headingInfo) {
-      throw new Error(`Could not find heading ${this.source.heading} in daily note ${file.path}.`);
-    }
+    // if (!headingInfo) {
+    //   throw new Error(`Could not find heading ${this.source.heading} in daily note ${file.path}.`);
+    // }
     let lineNumber = await this.app.rewrite(file, (contents: string) => {
       const { page, lineNumber } = addToHeading(
         contents,
@@ -184,11 +210,11 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
       // Second, add the event to the new file and get its line number.
       const metadata = await this.app.waitForMetadata(newFile);
       const headingInfo = metadata.headings?.find(h => h.heading == this.source.heading);
-      if (!headingInfo) {
-        throw new Error(
-          `Could not find heading ${this.source.heading} in daily note ${newFile.path}.`
-        );
-      }
+      // if (!headingInfo) {
+      //   throw new Error(
+      //     `Could not find heading ${this.source.heading} in daily note ${newFile.path}.`
+      //   );
+      // }
 
       const newLn = await this.app.rewrite(newFile, newFileContents => {
         const { page, lineNumber } = addToHeading(
@@ -232,6 +258,12 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
 
   getConfigurationComponent(): FCReactComponent<any> {
     return DailyNoteConfigComponent;
+  }
+
+  getSettingsRowComponent(): FCReactComponent<{
+    source: Partial<import('../../types').CalendarInfo>;
+  }> {
+    return DailyNoteHeadingSetting;
   }
 
   async createInstanceOverride(

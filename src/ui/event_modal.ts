@@ -51,6 +51,11 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
     })
     .filter((c): c is { id: string; type: CalendarInfo['type']; name: string } => !!c);
 
+  if (calendars.length === 0) {
+    new Notice('Cannot create event: No writable calendars are available.');
+    return;
+  }
+
   // MODIFICATION: Get available categories
   const availableCategories = plugin.cache.getAllCategories();
 
@@ -62,7 +67,7 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
       availableCategories,
       enableCategory: plugin.settings.enableAdvancedCategorization,
       enableBackgroundEvents: plugin.settings.enableBackgroundEvents,
-      enableReminders: plugin.settings.enableReminders, // ADD THIS PROP
+      enableReminders: plugin.settings.enableReminders,
       submit: async (data, calendarIndex) => {
         const calendarId = calendars[calendarIndex].id;
         try {

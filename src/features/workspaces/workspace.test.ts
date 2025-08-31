@@ -88,7 +88,14 @@ describe('Workspace functionality', () => {
         startTime: '09:00',
         endTime: '17:00'
       },
-      timelineExpanded: false
+      timelineExpanded: false,
+
+      // Test new granular view settings
+      slotMinTime: '08:00',
+      slotMaxTime: '18:00',
+      weekends: false,
+      hiddenDays: [0, 6], // Hide Sunday and Saturday
+      dayMaxEvents: 5
     };
 
     expect(workspace.name).toBe('Full Workspace');
@@ -96,5 +103,10 @@ describe('Workspace functionality', () => {
     expect(workspace.visibleCalendars).toContain('cal1');
     expect(workspace.categoryFilter?.mode).toBe('show-only');
     expect(workspace.businessHours?.enabled).toBe(true);
+    expect(workspace.slotMinTime).toBe('08:00');
+    expect(workspace.slotMaxTime).toBe('18:00');
+    expect(workspace.weekends).toBe(false);
+    expect(workspace.hiddenDays).toEqual([0, 6]);
+    expect(workspace.dayMaxEvents).toBe(5);
   });
 });

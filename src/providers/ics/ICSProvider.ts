@@ -2,6 +2,7 @@ import { request } from 'obsidian';
 import { FullCalendarSettings } from '../../types/settings';
 import { OFCEvent, EventLocation } from '../../types';
 import { getEventsFromICS } from './ics';
+import * as React from 'react';
 
 import { CalendarProvider, CalendarProviderCapabilities } from '../Provider';
 import { EventHandle, FCReactComponent } from '../typesProvider';
@@ -11,6 +12,29 @@ import FullCalendarPlugin from '../../main';
 import { ObsidianInterface } from '../../ObsidianAdapter';
 
 const WEBCAL = 'webcal';
+
+// Settings row component for ICS Provider
+const ICSUrlSetting: React.FC<{ source: Partial<import('../../types').CalendarInfo> }> = ({
+  source
+}) => {
+  // Handle both flat and nested config structures for URL
+  const getUrl = (): string => {
+    const flat = (source as { url?: unknown }).url;
+    const nested = (source as { config?: { url?: unknown } }).config?.url;
+    return typeof flat === 'string' ? flat : typeof nested === 'string' ? nested : '';
+  };
+
+  return React.createElement(
+    'div',
+    { className: 'setting-item-control' },
+    React.createElement('input', {
+      disabled: true,
+      type: 'text',
+      value: getUrl(),
+      className: 'fc-setting-input'
+    })
+  );
+};
 
 export class ICSProvider implements CalendarProvider<ICSProviderConfig> {
   // Static metadata for registry
@@ -93,5 +117,11 @@ export class ICSProvider implements CalendarProvider<ICSProviderConfig> {
 
   getConfigurationComponent(): FCReactComponent<any> {
     return ICSConfigComponent;
+  }
+
+  getSettingsRowComponent(): FCReactComponent<{
+    source: Partial<import('../../types').CalendarInfo>;
+  }> {
+    return ICSUrlSetting;
   }
 }

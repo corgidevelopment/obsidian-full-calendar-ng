@@ -31,6 +31,7 @@ import { UpdateViewCallback, CachedEvent } from '../core/EventCache';
 // Lazy-import heavy modules at point of use to reduce initial load time
 import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from '../core/interop';
 import { ViewEnhancer } from '../core/ViewEnhancer';
+import { createDateNavigation, DateNavigation } from './DateNavigation';
 
 // Narrowed resource shape used for timeline views.
 interface ResourceItem {
@@ -137,6 +138,7 @@ export class CalendarView extends ItemView {
   callback: UpdateViewCallback | null = null;
   private viewEnhancer: ViewEnhancer | null = null;
   private timelineResources: ResourceItem[] | null = null;
+  private dateNavigation: DateNavigation | null = null;
   // private currentZoomIndex: number = DEFAULT_ZOOM_INDEX; // REMOVE THIS LINE
   private zoomIndexByView: { [viewType: string]: number } = {}; // ADD THIS LINE
   private throttledZoom: (event: WheelEvent) => void;
@@ -561,6 +563,14 @@ export class CalendarView extends ItemView {
             }
           : false;
       })(),
+      // Pass workspace-aware granular view settings
+      firstDay: calendarConfig.firstDay,
+      timeFormat24h: calendarConfig.timeFormat24h,
+      slotMinTime: calendarConfig.slotMinTime,
+      slotMaxTime: calendarConfig.slotMaxTime,
+      weekends: calendarConfig.weekends,
+      hiddenDays: calendarConfig.hiddenDays,
+      dayMaxEvents: calendarConfig.dayMaxEvents,
       customButtons: {
         workspace: {
           text: this.getWorkspaceSwitcherText(),
@@ -728,8 +738,6 @@ export class CalendarView extends ItemView {
           }
         } catch (e) {}
       },
-      firstDay: this.plugin.settings.firstDay,
-      timeFormat24h: this.plugin.settings.timeFormat24h,
       openContextMenuForEvent: async (e, mouseEvent) => {
         const menu = new Menu();
         if (!this.plugin.cache) {
@@ -819,6 +827,20 @@ export class CalendarView extends ItemView {
           }
           return false;
         }
+      },
+      dateRightClick: (date: Date, mouseEvent: MouseEvent) => {
+        // Set up date navigation after calendar is created if not already done
+        if (!this.dateNavigation && this.fullCalendarView) {
+          this.dateNavigation = createDateNavigation(this.fullCalendarView, calendarEl);
+        }
+        this.dateNavigation?.showDateContextMenu(mouseEvent, date);
+      },
+      viewRightClick: (mouseEvent: MouseEvent, calendar: any) => {
+        // Set up date navigation after calendar is created if not already done
+        if (!this.dateNavigation && this.fullCalendarView) {
+          this.dateNavigation = createDateNavigation(this.fullCalendarView, calendarEl);
+        }
+        this.dateNavigation?.showViewContextMenu(mouseEvent, calendar);
       }
     });
 
@@ -834,6 +856,11 @@ export class CalendarView extends ItemView {
     }
 
     window.fc = this.fullCalendarView ?? undefined;
+
+    // Initialize date navigation for the "Go To" button
+    if (this.fullCalendarView && !this.dateNavigation) {
+      this.dateNavigation = createDateNavigation(this.fullCalendarView, calendarEl);
+    }
 
     this.registerDomEvent(this.containerEl, 'mouseenter', () => {
       this.plugin.providerRegistry.revalidateRemoteCalendars();
@@ -890,6 +917,10 @@ export class CalendarView extends ItemView {
     if (this.fullCalendarView) {
       this.fullCalendarView.destroy();
       this.fullCalendarView = null;
+    }
+    if (this.dateNavigation) {
+      this.dateNavigation.destroy();
+      this.dateNavigation = null;
     }
     if (this.callback) {
       this.plugin.cache.off('update', this.callback);

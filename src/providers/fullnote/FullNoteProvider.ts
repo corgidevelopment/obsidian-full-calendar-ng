@@ -1,6 +1,7 @@
 import { rrulestr } from 'rrule';
 import { DateTime } from 'luxon';
 import { TFile, TFolder, normalizePath } from 'obsidian';
+import * as React from 'react';
 
 import { OFCEvent, EventLocation, validateEvent } from '../../types';
 import FullCalendarPlugin from '../../main';
@@ -14,6 +15,29 @@ import { FullNoteConfigComponent } from './FullNoteConfigComponent';
 import { convertEvent } from '../../features/Timezone';
 
 export type EditableEventResponse = [OFCEvent, EventLocation | null];
+
+// Settings row component for Full Note Provider
+const FullNoteDirectorySetting: React.FC<{
+  source: Partial<import('../../types').CalendarInfo>;
+}> = ({ source }) => {
+  // Handle both flat and nested config structures for directory
+  const getDirectory = (): string => {
+    const flat = (source as { directory?: unknown }).directory;
+    const nested = (source as { config?: { directory?: unknown } }).config?.directory;
+    return typeof flat === 'string' ? flat : typeof nested === 'string' ? nested : '';
+  };
+
+  return React.createElement(
+    'div',
+    { className: 'setting-item-control' },
+    React.createElement('input', {
+      disabled: true,
+      type: 'text',
+      value: getDirectory(),
+      className: 'fc-setting-input'
+    })
+  );
+};
 
 // Helper Functions (ported from FullNoteCalendar.ts)
 // =================================================================================================
@@ -201,5 +225,11 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
 
   getConfigurationComponent(): FCReactComponent<any> {
     return FullNoteConfigComponent;
+  }
+
+  getSettingsRowComponent(): FCReactComponent<{
+    source: Partial<import('../../types').CalendarInfo>;
+  }> {
+    return FullNoteDirectorySetting;
   }
 }

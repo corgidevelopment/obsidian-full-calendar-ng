@@ -60,7 +60,14 @@ export function migrateAndSanitizeSettings(settings: unknown): {
     enableReminders: raw.enableReminders ?? false,
     workspaces: raw.workspaces || [],
     activeWorkspace: raw.activeWorkspace ?? null,
-    showEventInStatusBar: (raw as Partial<FullCalendarSettings>).showEventInStatusBar ?? false
+    showEventInStatusBar: (raw as Partial<FullCalendarSettings>).showEventInStatusBar ?? false,
+
+    // New granular view configuration properties with sensible defaults
+    slotMinTime: raw.slotMinTime ?? '00:00',
+    slotMaxTime: raw.slotMaxTime ?? '24:00',
+    weekends: raw.weekends ?? true,
+    hiddenDays: raw.hiddenDays ?? [],
+    dayMaxEvents: raw.dayMaxEvents ?? false
   } as FullCalendarSettings & { calendarSources: (CalendarInfo | GoogleSourceWithAuth)[] } & {
     googleAuth?: LegacyGoogleAuth;
   };

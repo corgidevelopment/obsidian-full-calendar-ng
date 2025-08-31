@@ -32,6 +32,13 @@ export interface WorkspaceSettings {
   // Appearance Overrides
   businessHours?: BusinessHoursSettings; // Override global business hours setting
   timelineExpanded?: boolean; // Timeline categories expanded by default
+
+  // New granular view configuration overrides
+  slotMinTime?: string; // Format: 'HH:mm' - earliest time to display
+  slotMaxTime?: string; // Format: 'HH:mm' - latest time to display
+  weekends?: boolean; // Whether to display weekends
+  hiddenDays?: number[]; // Array of day numbers to hide (0=Sunday, 1=Monday, etc.)
+  dayMaxEvents?: number | boolean; // Max events per day in month view (true = no limit, false = default, number = limit)
 }
 
 export interface GoogleAccount {
@@ -67,6 +74,13 @@ export interface FullCalendarSettings {
   workspaces: WorkspaceSettings[];
   activeWorkspace: string | null; // Workspace ID, null means default view
   showEventInStatusBar: boolean; // added
+
+  // New granular view configuration options
+  slotMinTime?: string; // Format: 'HH:mm' - earliest time to display
+  slotMaxTime?: string; // Format: 'HH:mm' - latest time to display
+  weekends?: boolean; // Whether to display weekends
+  hiddenDays?: number[]; // Array of day numbers to hide (0=Sunday, 1=Monday, etc.)
+  dayMaxEvents?: number | boolean; // Max events per day in month view (true = no limit, false = default, number = limit)
 }
 
 export const DEFAULT_SETTINGS: FullCalendarSettings = {
@@ -98,7 +112,14 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   enableReminders: false,
   workspaces: [],
   activeWorkspace: null,
-  showEventInStatusBar: false // added
+  showEventInStatusBar: false, // added
+
+  // New granular view configuration defaults
+  slotMinTime: '00:00', // Show all hours by default
+  slotMaxTime: '24:00', // Show all hours by default
+  weekends: true, // Show weekends by default
+  hiddenDays: [], // Show all days by default
+  dayMaxEvents: false // Use FullCalendar default behavior
 };
 
 // Utility functions for workspace management

@@ -73,7 +73,8 @@ export function addCalendarButton(
           icloud: 'iCloud',
           caldav: 'CalDAV',
           ical: 'Remote (.ics format)',
-          google: 'Google Calendar'
+          google: 'Google Calendar',
+          tasks: 'Obsidian Tasks'
         }))
     )
     .addExtraButton(button => {

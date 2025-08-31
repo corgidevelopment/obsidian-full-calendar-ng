@@ -14,6 +14,29 @@ import * as React from 'react';
 import { ObsidianInterface } from '../../ObsidianAdapter';
 import { GoogleAuthManager } from '../../features/google_auth/GoogleAuthManager';
 
+// Settings row component for Google Provider
+const GoogleNameSetting: React.FC<{ source: Partial<import('../../types').CalendarInfo> }> = ({
+  source
+}) => {
+  // Handle both flat and nested config structures for name
+  const getName = (): string => {
+    const flat = (source as { name?: unknown }).name;
+    const nested = (source as { config?: { name?: unknown } }).config?.name;
+    return typeof flat === 'string' ? flat : typeof nested === 'string' ? nested : '';
+  };
+
+  return React.createElement(
+    'div',
+    { className: 'setting-item-control' },
+    React.createElement('input', {
+      disabled: true,
+      type: 'text',
+      value: getName(),
+      className: 'fc-setting-input'
+    })
+  );
+};
+
 export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
   // Static metadata for registry
   static readonly type = 'google';
@@ -322,6 +345,12 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
       return React.createElement(GoogleConfigComponent, componentProps);
     };
     return WrapperComponent;
+  }
+
+  getSettingsRowComponent(): FCReactComponent<{
+    source: Partial<import('../../types').CalendarInfo>;
+  }> {
+    return GoogleNameSetting;
   }
 
   async revalidate(): Promise<void> {

@@ -195,13 +195,15 @@ export default class EventCache {
   }
 
   /**
-   * Populate the cache with events.
+   * Populate the cache with events, prioritizing local providers for immediate display.
+   * Remote providers are loaded asynchronously in the background with proper priority ordering.
    */
   async populate() {
     this.reset();
 
-    const allEvents = await this.plugin.providerRegistry.fetchAllEvents();
-    allEvents.forEach(({ calendarId, event, location }) => {
+    // Step 1: Load local providers first (non-blocking for remote calendars)
+    const localEvents = await this.plugin.providerRegistry.fetchLocalEvents();
+    localEvents.forEach(({ calendarId, event, location }) => {
       const id = this.generateId();
       this._store.add({
         calendarId,
@@ -211,9 +213,25 @@ export default class EventCache {
       });
     });
 
+    // Mark as initialized so UI can render local events immediately
     this.initialized = true;
     this.plugin.providerRegistry.buildMap(this._store);
     await this.timeEngine.start(); // modified: await async start
+
+    // Step 2: Load remote providers in background with priority (ICS > CalDAV > Google Calendar)
+    // This runs asynchronously and updates the UI via syncCalendar as each provider completes
+    this.plugin.providerRegistry
+      .fetchRemoteEventsWithPriority((calendarId, events) => {
+        // Convert events to the expected format for syncCalendar
+        const eventsForSync: [OFCEvent, EventLocation | null][] = events.map(
+          ({ event, location }) => [event, location]
+        );
+        // Use syncCalendar to incrementally update the cache and notify the UI
+        this.syncCalendar(calendarId, eventsForSync);
+      })
+      .catch(error => {
+        console.error('Full Calendar: Error loading remote calendars:', error);
+      });
   }
 
   // ====================================================================

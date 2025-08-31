@@ -25,6 +25,7 @@ export function renderCalendarManagement(
     createElement(CalendarSettings, {
       ref: calendarSettingsRef as React.Ref<CalendarSettings>,
       sources: plugin.providerRegistry.getAllSources(),
+      plugin: plugin,
       submit: async (settings: CalendarInfo[]) => {
         plugin.settings.calendarSources = settings;
         await plugin.saveSettings();

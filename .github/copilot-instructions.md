@@ -2,23 +2,24 @@
 
 Full Calendar is a TypeScript-based Obsidian plugin that integrates FullCalendar.js to provide calendar views for notes and events. It supports both local calendars (Full Note and Daily Note formats) and remote calendars (ICS and CalDAV).
 
-Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
+**Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.**
 
 ## Working Effectively
 
 Bootstrap, build, and test the repository:
 
-- `npm install` -- takes 3 minutes. NEVER CANCEL. Set timeout to 5+ minutes.
+- `npm install` -- takes 45 seconds. NEVER CANCEL. Set timeout to 2+ minutes.
 - `npm run compile` -- TypeScript type checking, takes 5 seconds
 - `npm run lint` -- Prettier formatting check, takes 1.5 seconds  
-- `npm run test` -- Jest test suite (109 tests), takes 3 seconds
+- `npm run test` -- Jest test suite (154 tests), takes 3 seconds
 - `npm run build` -- esbuild production build, takes 0.5 seconds
-- `npm run prod` -- TypeScript check + production build, takes 5 seconds
+- `npm run prod` -- TypeScript check + production build, takes 5.5 seconds
 
 Development workflow:
 - `npm run dev` -- starts esbuild in watch mode for rapid iteration
 - `npm run fix-lint` -- auto-fixes Prettier formatting issues
-- `npm run coverage` -- runs tests with coverage report, takes 4 seconds
+- `npm run coverage` -- runs tests with coverage report, takes 4.5 seconds
+- `npm run test-update` -- updates Jest snapshots when tests fail due to expected changes
 
 ## Build Output and Plugin Testing
 
@@ -31,6 +32,7 @@ Development vault setup (already exists):
 - Development vault is pre-configured at `obsidian-dev-vault/`
 - Plugin directory structure is already created
 - Simply run builds and copy manifest to test in Obsidian
+- Sample test files are available for testing Full Note and Daily Note formats
 
 ## Validation
 
@@ -44,10 +46,11 @@ ALWAYS run through complete user scenarios after making changes:
 5. **Recurring Events**: Test recurring event creation and individual instance modifications
 
 **Required Validation Steps:**
-- ALWAYS run `npm run lint && npm run compile && npm run test` before committing (takes 10 seconds total)
+- ALWAYS run `npm run lint && npm run compile && npm run test` before committing (takes 9 seconds total)
+- If tests fail due to snapshot mismatches, run `npm run test-update` first to fix expected changes
 - ALWAYS test actual plugin functionality by loading in development vault
 - Test both Full Note and Daily Note calendar types when modifying core event logic
-- Run `npm run coverage` to verify test coverage stays high (current: 44% overall)
+- Run `npm run coverage` to verify test coverage stays high (current: 53% overall)
 
 **CI/CD Validation:**
 - GitHub Actions runs lint, compile, and test on every push via `.github/workflows/check.yml`
@@ -108,13 +111,14 @@ ALWAYS run through complete user scenarios after making changes:
 ## Time Expectations and Timeouts
 
 CRITICAL: NEVER CANCEL builds or long-running commands:
-- `npm install`: 3 minutes (one-time setup)
+- `npm install`: 45 seconds (one-time setup)
 - `npm run test`: 3 seconds  
 - `npm run compile`: 5 seconds
 - `npm run build`: 0.5 seconds
-- `npm run prod`: 5 seconds
-- `npm run coverage`: 4 seconds
+- `npm run prod`: 5.5 seconds
+- `npm run coverage`: 4.5 seconds
 - `npm run lint`: 1.5 seconds
+- Combined validation: `npm run lint && npm run compile && npm run test` takes 9 seconds
 
 Set timeouts to at least 2x the expected time for safety.
 
@@ -141,6 +145,8 @@ Key data flows:
 **Test Issues:**  
 - Jest tests are fast and reliable - if failing, check recent code changes
 - Use `npm run test-dev` for watch mode during development
+- Snapshot test failures: Run `npm run test-update` to update snapshots when changes are expected
+- Some date/timezone related tests may fail due to environment differences - use test-update to fix these
 
 **Plugin Loading Issues:**
 - Ensure manifest.json is copied to build directory
@@ -153,7 +159,7 @@ Key data flows:
 - Test plugin functionality in obsidian-dev-vault for real-world validation
 
 ## Important Notes
-- Keep the codebase clean, lean, modular. Follow the DRY principle.
+- Keep the codebase clean, lean, modular. Follow the SOLID and DRY principle.
 - Allows follow the Obsidian plugin development [guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Follow the minimal code changes principle - only modify what is necessary for the feature or fix.
-- Commit message should be precise and brief and should contain what changes were made and why. 
+- Try to Follow the minimal code changes principle - only modify what is necessary for the feature or fix, unless SOLID and DRY principles dictate otherwise.
+- Commit message should be precise and detailed and should contain what changes were made and why. 
