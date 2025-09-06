@@ -14,7 +14,36 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
-    version: '0.12.2',
+    version: '0.12.3',
+    changes: [
+      {
+        type: 'new',
+        title: 'Deep Tasks Integration with Backlog & Filtering',
+        description:
+          'First-class support for Obsidian Tasks, including a task backlog, drag-and-drop scheduling, and full CUD (Create, Update, Delete) operations directly within the calendar.'
+      },
+      {
+        type: 'new',
+        title: 'Advanced Date Navigation',
+        description:
+          'New "Go To" dropdown in the toolbar with a date picker and context-aware navigation. Right-click to jump to specific dates, weeks, or months.'
+      },
+      {
+        type: 'fix',
+        title: 'Notification and Reminder Reliability',
+        description:
+          'End-time reminders now fire correctly for events that are already in progress.'
+      },
+      {
+        type: 'fix',
+        title: 'Core Component Stability',
+        description:
+          'Fixed bugs related to the event creation modal, Daily Notes calendar, and new calendar creation in settings.'
+      }
+    ]
+  },
+  {
+    version: '0.12.2-beta',
     changes: [
       {
         type: 'new',
@@ -67,7 +96,7 @@ export const changelogData: Version[] = [
     ]
   },
   {
-    version: '0.12.1',
+    version: '0.12.1-beta',
     changes: [
       {
         type: 'new',

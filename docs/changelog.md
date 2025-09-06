@@ -4,7 +4,32 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
-## Version 0.12.2
+## Version 0.12.3
+
+-   **New:** Deep Tasks Integration with Backlog & Filtering (#122, #128, #136)
+    _Full Calendar now has first-class support for the Obsidian Tasks plugin. A new "Tasks" calendar source syncs your tasks directly onto the calendar. Features include a dedicated task backlog, drag-and-drop rescheduling, and in-calendar completion. Create, update, and delete tasks without leaving the calendar view._
+
+-   **New:** Advanced Date Navigation (#106)
+    _Navigate your calendar with precision using the new "Go To" dropdown in the toolbar. It features a reusable `DatePicker` and context-aware navigation. Right-click on the calendar to jump to a specific month, week, or day._
+
+-   **Improvement:** Task Management Workflow & Parsing (#132, #134, #138)
+    _The Tasks integration includes advanced parsing for dated and undated tasks, multi-day event support, and custom status detection. A new setting allows stripping tags from task titles for a cleaner display. The entire parsing logic is covered by a comprehensive test suite for maximum reliability._
+
+-   **Improvement:** Performance & Stability
+    _The plugin now performs surgical updates on file changes instead of full-vault rescans, significantly improving performance in large vaults. Remote calendars now load in a non-blocking, priority-ordered manner, and race conditions during event source removal have been fixed._
+
+-   **Improvement:** Provider Architecture
+    _The provider registry now loads calendars with priority and uses a new `isFileRelevant()` hook for cleaner file-change handling. "Manage calendar" logic has been delegated to the respective providers for better modularity._
+
+-   **Fix:** Notification and Reminder Reliability
+    _End-time reminders now fire correctly for events that are already in progress, ensuring you never miss the end of an important block of time._
+
+-   **Fix:** Core Component Stability (#100, #101, #126)
+    _Fixed numerous bugs, including a race condition when removing event sources, an issue preventing the create modal from appearing if no editable calendars exist, and a bug where the Daily Notes calendar would fail without a template. New calendars now appear instantly in settings without a "Provider not found" flash._
+
+---
+
+## Version 0.12.2 (beta)
 
 -   **New:** Multi-day Daily Note events with explicit endDate  
     _Daily Note calendar now supports explicit multi‑day events via `[endDate:: YYYY-MM-DD]` while remaining backward compatible with legacy overnight detection._
@@ -35,7 +60,7 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
-## Version 0.12.1
+## Version 0.12.1 (beta)
 
 -   **New:** Event Reminder System with Desktop Notifications (BETA)
     _Introducing the `NotificationManager` for native desktop notifications. Users can opt-in to receive reminders 10 minutes before events start and, optionally, 10 minutes before they end. Perfect for never missing important meetings or deadlines._

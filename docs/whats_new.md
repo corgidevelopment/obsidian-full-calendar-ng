@@ -5,6 +5,20 @@ For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
 ---
 
+## ✅ Integrated Obsidian Task Plugin
+
+Turn your calendar into a powerful task manager with first-class support for the **Obsidian Tasks plugin**. A new "Tasks" calendar source brings your tasks to life inside Full Calendar.
+
+- **Task Backlog:** View all your tasks in a dedicated backlog panel.
+- **Drag-and-Drop Scheduling:** Drag tasks from the backlog directly onto your calendar to schedule them.
+- **In-Calendar Actions:** Complete, edit, or delete tasks right from the calendar view.
+- **Powerful Filters:** Filter tasks by status or path to focus on what matters.
+- **Overdue Task Surfacing:** Automatically highlights overdue tasks for quick rescheduling.
+
+➡️ Learn more about [Tasks Integration](calendars/tasks-plugin-integration.md).
+
+---
+
 ## 🔔 Event Reminder System
 
 Never miss an important meeting again! The new **Event Reminder System** brings native desktop notifications to Full Calendar. Get notified 10 minutes before your events start, and optionally before they end.
