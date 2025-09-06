@@ -45,7 +45,7 @@ import EventStore, { StoredEvent } from './EventStore';
 import { OFCEvent, EventLocation } from '../types';
 import { CalendarProvider } from '../providers/Provider';
 import { EventEnhancer } from './EventEnhancer';
-import { TimeEngine, TimeState } from './TimeEngine'; // ADDED import
+import { TimeEngine, TimeState } from './TimeEngine';
 
 export type CacheEntry = { event: OFCEvent; id: string; calendarId: string };
 
@@ -201,8 +201,18 @@ export default class EventCache {
   async populate() {
     this.reset();
 
-    // Step 1: Load local providers first (non-blocking for remote calendars)
-    const localEvents = await this.plugin.providerRegistry.fetchLocalEvents();
+    // Use the unified priority-based loading approach
+    const localEvents = await this.plugin.providerRegistry.fetchAllByPriority(
+      (calendarId, events) => {
+        // Handle remote events via callback
+        const eventsForSync: [OFCEvent, EventLocation | null][] = events.map(
+          ({ event, location }) => [event, location]
+        );
+        this.syncCalendar(calendarId, eventsForSync);
+      }
+    );
+
+    // Add local events directly to store for immediate display
     localEvents.forEach(({ calendarId, event, location }) => {
       const id = this.generateId();
       this._store.add({
@@ -216,22 +226,7 @@ export default class EventCache {
     // Mark as initialized so UI can render local events immediately
     this.initialized = true;
     this.plugin.providerRegistry.buildMap(this._store);
-    await this.timeEngine.start(); // modified: await async start
-
-    // Step 2: Load remote providers in background with priority (ICS > CalDAV > Google Calendar)
-    // This runs asynchronously and updates the UI via syncCalendar as each provider completes
-    this.plugin.providerRegistry
-      .fetchRemoteEventsWithPriority((calendarId, events) => {
-        // Convert events to the expected format for syncCalendar
-        const eventsForSync: [OFCEvent, EventLocation | null][] = events.map(
-          ({ event, location }) => [event, location]
-        );
-        // Use syncCalendar to incrementally update the cache and notify the UI
-        this.syncCalendar(calendarId, eventsForSync);
-      })
-      .catch(error => {
-        console.error('Full Calendar: Error loading remote calendars:', error);
-      });
+    await this.timeEngine.start();
   }
 
   // ====================================================================
@@ -802,6 +797,32 @@ export default class EventCache {
     // This is not atomic and may have side-effects, but it's a step forward.
     await this.deleteEvent(eventId);
     await this.addEvent(newCalendarId, event);
+  }
+
+  /**
+   * Schedules an undated task by adding a due date to it.
+   * This is specifically designed for drag-and-drop from the Tasks Backlog to the calendar.
+   *
+   * @param taskId Unique identifier for the task (filePath::lineNumber)
+   * @param date Date to schedule the task for
+   */
+  public async scheduleTask(taskId: string, date: Date): Promise<void> {
+    // Find the Tasks provider instance
+    const tasksProvider = this.plugin.providerRegistry
+      .getActiveProviders()
+      .find(provider => provider.type === 'tasks') as any;
+
+    if (!tasksProvider) {
+      throw new Error('No Tasks provider found. Cannot schedule task.');
+    }
+
+    // Check if the provider has the scheduleTask method (from our implementation)
+    if (typeof tasksProvider.scheduleTask !== 'function') {
+      throw new Error('Tasks provider does not support task scheduling.');
+    }
+
+    // Delegate to the Tasks provider's schedule method
+    await tasksProvider.scheduleTask(taskId, date);
   }
 
   // ====================================================================

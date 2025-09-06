@@ -74,6 +74,7 @@ export interface FullCalendarSettings {
   workspaces: WorkspaceSettings[];
   activeWorkspace: string | null; // Workspace ID, null means default view
   showEventInStatusBar: boolean; // added
+  removeTagsFromTaskTitle: boolean; // Remove #tags from task titles for cleaner calendar display
 
   // New granular view configuration options
   slotMinTime?: string; // Format: 'HH:mm' - earliest time to display
@@ -113,6 +114,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   workspaces: [],
   activeWorkspace: null,
   showEventInStatusBar: false, // added
+  removeTagsFromTaskTitle: false, // Off by default - preserve existing behavior
 
   // New granular view configuration defaults
   slotMinTime: '00:00', // Show all hours by default

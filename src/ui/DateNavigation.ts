@@ -14,7 +14,6 @@
  * @license See LICENSE.md
  */
 
-import { DateTime } from 'luxon';
 import { Calendar } from '@fullcalendar/core';
 import { Menu } from 'obsidian';
 import { DatePicker, createHiddenDatePicker } from './components/DatePicker';

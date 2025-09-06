@@ -20,14 +20,17 @@ import { OFCEvent, validateEvent } from '../../types';
 
 /**
  * Converts an ical.js Time object into a Luxon DateTime object.
- * This version uses .toJSDate() to correctly handle VTIMEZONE definitions
- * and returns a UTC-based DateTime.
+ * This version uses .toJSDate() to get a baseline moment in time and then
+ * applies the original timezone from the iCal data.
  */
 function icalTimeToLuxon(t: ical.Time): DateTime {
   const jsDate = t.toJSDate();
-  // Create the Luxon DateTime object and explicitly set its zone to UTC.
-  // This correctly represents the moment in time without ambiguity.
-  return DateTime.fromJSDate(jsDate, { zone: 'utc' });
+  // The timezone property on ical.Time is what we need.
+  // It can be 'Z' for UTC or an IANA identifier like 'Asia/Kolkata'.
+  // We use setZone to ensure the DateTime object has the correct zone,
+  // without changing the underlying moment in time.
+  const zone = t.timezone === 'Z' ? 'utc' : t.timezone;
+  return DateTime.fromJSDate(jsDate).setZone(zone);
 }
 
 /**
@@ -69,9 +72,9 @@ function icsToOFC(input: ical.Event): OFCEvent {
   const uid = input.uid;
   const isAllDay = input.startDate.isDate;
 
-  // Since icalTimeToLuxon now returns a UTC DateTime, the source timezone for all
-  // timed events is UTC.
-  const timezone = isAllDay ? undefined : 'UTC';
+  // The Luxon DateTime object now holds the correct zone from the ICS file.
+  // Coalesce null to undefined to match the schema.
+  const timezone = isAllDay ? undefined : startDate.zoneName || undefined;
 
   if (input.isRecurring()) {
     const rrule = rrulestr(input.component.getFirstProperty('rrule').getFirstValue().toString());

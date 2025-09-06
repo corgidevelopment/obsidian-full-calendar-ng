@@ -30,25 +30,16 @@ import ReactModal from '../ReactModal';
 import * as ReactDOM from 'react-dom/client';
 import { createElement, createRef } from 'react';
 
-import { getNextColor } from '../colors';
 import { CalendarSettingsRef } from './components/CalendarSetting';
 import { getDailyNoteSettings } from 'obsidian-daily-notes-interface';
 import { CalendarInfo } from '../../types/calendar_settings';
 import { ProviderRegistry } from '../../providers/ProviderRegistry';
 import { makeDefaultPartialCalendarSource } from '../../types/calendar_settings';
 
-// Import the new section renderers
-import { renderGoogleSettings } from './sections/renderGoogle';
-import { renderGeneralSettings } from './sections/renderGeneral';
-import { renderCalendarManagement } from './sections/renderCalendars';
-import { renderCategorizationSettings } from './sections/renderCategorization';
-import { renderAppearanceSettings } from './sections/renderAppearance';
-import { renderWorkspaceSettings } from './sections/renderWorkspaces';
+import { generateCalendarId } from '../../types/calendar_settings';
 
 // Import the new React components
 import './changelog.css';
-import { renderFooter } from './components/renderFooter';
-import { renderWhatsNew } from './sections/renderWhatsNew';
 
 export function addCalendarButton(
   plugin: FullCalendarPlugin,
@@ -145,31 +136,41 @@ export function addCalendarButton(
             },
             onClose: () => modal.close(),
             onConfigChange: () => {},
-            onSave: (finalConfigs: unknown | unknown[], accountId?: string) => {
+            onSave: async (finalConfigs: unknown | unknown[], accountId?: string) => {
               const configs = Array.isArray(finalConfigs) ? finalConfigs : [finalConfigs];
+              const existingIds = plugin.settings.calendarSources.map(s => s.id);
 
-              configs.forEach(finalConfigRaw => {
-                const finalConfig = finalConfigRaw as Record<string, unknown> & {
-                  id?: string;
-                  color?: string;
-                  name?: string;
-                };
+              for (const finalConfigRaw of configs) {
+                const finalConfig = finalConfigRaw as Record<string, unknown>;
+
+                const newSettingsId = generateCalendarId(
+                  providerType as CalendarInfo['type'],
+                  existingIds
+                );
+                existingIds.push(newSettingsId);
+
                 const partialSource = makeDefaultPartialCalendarSource(
                   providerType as CalendarInfo['type'],
                   existingCalendarColors
                 );
+
+                // Create the full, valid CalendarInfo object first.
                 const finalSource = {
                   ...partialSource,
                   ...finalConfig,
-                  color: finalConfig.color || partialSource.color,
-                  name: finalConfig.name,
+                  id: newSettingsId,
                   ...(accountId && { googleAccountId: accountId }),
-                  calendarId: finalConfig.id as string
-                };
-                delete (finalSource as { id?: string }).id;
-                submitCallback(finalSource as unknown as CalendarInfo);
+                  // For Google, the config's 'id' is the calendarId for the API.
+                  ...(providerType === 'google' && { calendarId: finalConfig.id as string })
+                } as CalendarInfo;
+
+                // Add the provider instance to the registry BEFORE updating the UI.
+                await plugin.providerRegistry.addInstance(finalSource);
+
+                // Now, submit the complete source to the React component.
+                submitCallback(finalSource);
                 existingCalendarColors.push(finalSource.color as string);
-              });
+              }
               modal.close();
             }
           };

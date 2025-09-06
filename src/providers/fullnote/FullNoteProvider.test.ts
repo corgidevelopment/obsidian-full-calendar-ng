@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { TFile, TFolder, normalizePath } from 'obsidian';
+import { TFile, normalizePath } from 'obsidian';
 import { load } from 'js-yaml'; // Import 'load' from js-yaml
 
 import { ObsidianInterface } from '../../ObsidianAdapter';
@@ -13,7 +13,6 @@ import FullCalendarPlugin from '../../main';
 
 // Import the new provider and its types
 import { FullNoteProvider } from './FullNoteProvider';
-import { FullNoteProviderConfig } from './typesLocal';
 
 // Mock Obsidian module
 jest.mock(
@@ -300,5 +299,32 @@ describe('FullNoteCalendar Tests', () => {
     // The rewritten content should have the new structured data.
     expect(newContent).toContain('title: Test Event');
     expect(newContent).toContain('category: Work');
+  });
+
+  it('should correctly determine file relevance', () => {
+    const obsidian = makeApp(MockAppBuilder.make().done());
+    const calendar = new FullNoteProvider(
+      { directory: 'events', id: 'test_id' },
+      makePlugin(),
+      obsidian
+    );
+
+    // Mock TFile objects
+    const fileInDirectory = { path: 'events/test-event.md' } as any;
+    const fileInSubdirectory = { path: 'events/2023/test-event.md' } as any;
+    const fileOutsideDirectory = { path: 'notes/other.md' } as any;
+    const fileInSimilarPath = { path: 'events-archive/old.md' } as any;
+
+    // File in the configured directory should be relevant
+    expect(calendar.isFileRelevant(fileInDirectory)).toBe(true);
+
+    // File in subdirectory should be relevant
+    expect(calendar.isFileRelevant(fileInSubdirectory)).toBe(true);
+
+    // File outside directory should not be relevant
+    expect(calendar.isFileRelevant(fileOutsideDirectory)).toBe(false);
+
+    // File in similar but different path should not be relevant
+    expect(calendar.isFileRelevant(fileInSimilarPath)).toBe(false);
   });
 });

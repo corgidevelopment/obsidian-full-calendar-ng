@@ -1,5 +1,4 @@
 import { ComponentType } from 'react';
-import { OFCEvent, EventLocation } from '../types';
 
 /**
  * The persistent, source-of-truth locator for an event within its source.

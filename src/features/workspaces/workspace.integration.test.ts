@@ -2,12 +2,7 @@
  * Integration test for workspace functionality
  */
 
-import {
-  WorkspaceSettings,
-  createDefaultWorkspace,
-  FullCalendarSettings,
-  DEFAULT_SETTINGS
-} from '../../types/settings';
+import { WorkspaceSettings, createDefaultWorkspace, DEFAULT_SETTINGS } from '../../types/settings';
 
 // Mock CalendarView methods for testing
 class MockCalendarView {

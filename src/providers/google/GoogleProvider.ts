@@ -9,7 +9,6 @@ import { EventHandle, FCReactComponent } from '../typesProvider';
 import { GoogleProviderConfig } from './typesGCal';
 
 import { GoogleConfigComponent } from './GoogleConfigComponent';
-import { fetchGoogleCalendarList } from './api';
 import * as React from 'react';
 import { ObsidianInterface } from '../../ObsidianAdapter';
 import { GoogleAuthManager } from '../../features/google_auth/GoogleAuthManager';
@@ -53,6 +52,7 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
   readonly type = 'google';
   readonly displayName = 'Google Calendar';
   readonly isRemote = true;
+  readonly loadPriority = 120;
 
   constructor(source: GoogleProviderConfig, plugin: FullCalendarPlugin, app?: ObsidianInterface) {
     this.plugin = plugin;

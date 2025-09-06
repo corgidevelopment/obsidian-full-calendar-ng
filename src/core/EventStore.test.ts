@@ -1,5 +1,3 @@
-import { TFile } from 'obsidian';
-
 import EventStore from './EventStore';
 import { EventLocation, OFCEvent } from '../types';
 

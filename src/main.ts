@@ -15,11 +15,7 @@
 import { NotificationManager } from './features/NotificationManager';
 import { StatusBarManager } from './features/statusbar/StatusBarManager'; // added
 import { LazySettingsTab } from './ui/settings/LazySettingsTab';
-import {
-  ensureCalendarIds,
-  sanitizeInitialView,
-  migrateAndSanitizeSettings
-} from './ui/settings/utilsSettings';
+import { ensureCalendarIds, migrateAndSanitizeSettings } from './ui/settings/utilsSettings';
 import { PLUGIN_SLUG } from './types';
 import EventCache from './core/EventCache';
 import { toEventInput } from './core/interop';
@@ -101,6 +97,9 @@ export default class FullCalendarPlugin extends Plugin {
 
     await this.loadSettings(); // This now handles setting and syncing
     await this.providerRegistry.initializeInstances();
+
+    // Ensure Tasks Backlog view is available immediately if a Tasks calendar exists
+    this.providerRegistry.syncBacklogManagerLifecycle();
 
     await manageTimezone(this);
 

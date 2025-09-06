@@ -6,8 +6,7 @@
 
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
-import { Notice, Setting } from 'obsidian';
-import { GoogleProviderConfig } from './typesGCal';
+import { Setting } from 'obsidian';
 import { GoogleAccount } from '../../types/settings';
 import { startGoogleLogin } from './auth';
 import FullCalendarPlugin from '../../main';

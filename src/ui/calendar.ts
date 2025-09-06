@@ -24,7 +24,7 @@ import type {
 
 import { Menu } from 'obsidian';
 import type { PluginDef } from '@fullcalendar/core';
-import { createDateNavigation, DateNavigation } from './DateNavigation';
+import { createDateNavigation } from './DateNavigation';
 
 let didPatchRRule = false;
 
@@ -56,6 +56,7 @@ interface ExtraRenderProps {
   resources?: { id: string; title: string; eventColor?: string }[];
   onViewChange?: () => void; // Add view change callback
   businessHours?: boolean | object; // Support for business hours
+  drop?: (taskId: string, date: Date) => Promise<void>; // Drag-and-drop from backlog
   // timeZone?: string;
 
   // New granular view configuration properties
@@ -124,7 +125,8 @@ export async function renderCalendar(
     customButtons,
     resources,
     onViewChange,
-    businessHours
+    businessHours,
+    drop
   } = settings || {};
 
   // Wrap eventClick to ignore shadow events
@@ -438,6 +440,18 @@ export async function renderCalendar(
     },
 
     viewDidMount: onViewChange,
+
+    // Enable drag-and-drop from external sources (e.g., Tasks Backlog)
+    droppable: drop && true,
+    drop:
+      drop &&
+      (info => {
+        // Get the task ID from the dragged element's data transfer
+        const taskId = info.draggedEl.getAttribute('data-task-id');
+        if (taskId) {
+          drop(taskId, info.date);
+        }
+      }),
 
     longPressDelay: 250
   });

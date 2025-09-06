@@ -4,7 +4,7 @@ import { OFCEvent } from '../types';
 import { FullCalendarSettings } from '../types/settings';
 import { openFileForEvent } from '../utils/eventActions';
 import FullCalendarPlugin from '../main';
-import { TimeState } from '../core/TimeEngine';
+import { TimeState, EnrichedOFCEvent } from '../core/TimeEngine';
 
 export class NotificationManager {
   private plugin: FullCalendarPlugin;
@@ -38,14 +38,15 @@ export class NotificationManager {
     }
   }
 
-  private async handleTimeTick(state: TimeState) {
+  private handleTimeTick(state: TimeState) {
     if (!this.plugin.cache.initialized) return;
 
     const now = DateTime.now();
     const reminderLeadTime = { minutes: 10 };
     const recencyCutoff = { hours: 1 };
 
-    for (const occurrence of state.upcoming) {
+    // Helper function to check and trigger notifications for a single event occurrence.
+    const checkAndNotify = (occurrence: EnrichedOFCEvent) => {
       const { id: sessionId, event, start, end } = occurrence;
 
       const startNotificationTime = start.minus(reminderLeadTime);
@@ -67,6 +68,16 @@ export class NotificationManager {
           this.notifiedEvents.add(endNotificationId);
         }
       }
+    };
+
+    // Process the current event
+    if (state.current) {
+      checkAndNotify(state.current);
+    }
+
+    // Process all upcoming events
+    for (const occurrence of state.upcoming) {
+      checkAndNotify(occurrence);
     }
   }
 

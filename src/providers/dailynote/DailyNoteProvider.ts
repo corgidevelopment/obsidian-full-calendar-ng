@@ -70,6 +70,7 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
   readonly type = 'dailynote';
   readonly displayName = 'Daily Note';
   readonly isRemote = false;
+  readonly loadPriority = 20;
 
   constructor(
     source: DailyNoteProviderConfig,
@@ -99,6 +100,12 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
       return { persistentId, location: { path: file.path } };
     }
     return null;
+  }
+
+  public isFileRelevant(file: TFile): boolean {
+    // Encapsulates the logic of checking the daily note folder.
+    const { folder } = getDailyNoteSettings();
+    return folder ? file.path.startsWith(folder + '/') : true;
   }
 
   private async _findEventLineNumber(file: TFile, persistentId: string): Promise<number> {

@@ -49,6 +49,7 @@ const makeCache = (events: OFCEvent[]) => {
     type: 'FOR_TEST_ONLY',
     displayName: 'Test Provider',
     isRemote: false,
+    loadPriority: 50,
     getEvents: async () => events.map(e => [e, null] as [OFCEvent, null]),
     getCapabilities: () => ({ canCreate: false, canEdit: false, canDelete: false }),
     getEventHandle: (e: OFCEvent) => ({ persistentId: e.title }),
@@ -86,6 +87,21 @@ const makeCache = (events: OFCEvent[]) => {
         })),
       fetchRemoteEventsWithPriority: async () => {
         // No-op for tests since our mock provider is not remote
+      },
+      fetchAllByPriority: async (
+        onProviderComplete?: (
+          calendarId: string,
+          events: { event: OFCEvent; location: EventLocation | null }[]
+        ) => void
+      ) => {
+        // Return local events, don't call callback for them
+        const localEvents = events.map(e => ({
+          event: e,
+          location: null as EventLocation | null,
+          calendarId: 'test'
+        }));
+        // No callback for local providers - they're handled directly
+        return localEvents;
       },
       getAllSources: () => [calendarInfo],
       getInstance: () => mockProvider,
@@ -140,6 +156,7 @@ describe('event cache with readonly calendar', () => {
       type: 'FOR_TEST_ONLY',
       displayName: 'Test Provider',
       isRemote: false,
+      loadPriority: 50,
       getEvents: async () => events1.map(e => [e, null]),
       getCapabilities: () => ({ canCreate: false, canEdit: false, canDelete: false }),
       getEventHandle: (e: OFCEvent) => ({ persistentId: e.title }),
@@ -181,6 +198,28 @@ describe('event cache with readonly calendar', () => {
         ],
         fetchRemoteEventsWithPriority: async () => {
           // No-op for tests since our mock providers are not remote
+        },
+        fetchAllByPriority: async (
+          onProviderComplete?: (
+            calendarId: string,
+            events: { event: OFCEvent; location: EventLocation | null }[]
+          ) => void
+        ) => {
+          // Return local events immediately, no callback for them
+          const localResults = [
+            ...events1.map(e => ({
+              event: e,
+              location: null as EventLocation | null,
+              calendarId: 'cal1'
+            })),
+            ...events2.map(e => ({
+              event: e,
+              location: null as EventLocation | null,
+              calendarId: 'cal2'
+            }))
+          ];
+          // No callback for local providers - they're handled directly
+          return localResults;
         },
         getSource: (id: string) => calendarSources.find(source => source.id === id),
         getInstance: () => mockProvider,
@@ -262,6 +301,7 @@ const makeEditableCache = (events: EditableEventResponse[]) => {
     type: 'FOR_TEST_ONLY',
     displayName: 'Editable Test Provider',
     isRemote: false,
+    loadPriority: 50,
     getEvents: jest.fn(async () => events),
     getEventsInFile: jest.fn(async () => []),
     getCapabilities: jest.fn(() => ({
@@ -303,6 +343,21 @@ const makeEditableCache = (events: EditableEventResponse[]) => {
         })),
       fetchRemoteEventsWithPriority: async () => {
         // No-op for tests since our mock providers are not remote
+      },
+      fetchAllByPriority: async (
+        onProviderComplete?: (
+          calendarId: string,
+          events: { event: OFCEvent; location: EventLocation | null }[]
+        ) => void
+      ) => {
+        // Return local events, no callback for them
+        const localResults = events.map(([event, location]) => ({
+          event,
+          location,
+          calendarId: 'test'
+        }));
+        // No callback for local providers - they're handled directly
+        return localResults;
       },
       getAllSources: () => [calendarInfo],
       getInstance: () => calendar,
@@ -698,6 +753,7 @@ describe('editable calendars', () => {
         type: 'local',
         displayName: 'Local Provider',
         isRemote: false,
+        loadPriority: 10,
         getEvents: jest.fn().mockResolvedValue([[localEvent, null]]),
         getCapabilities: () => ({ canCreate: false, canEdit: false, canDelete: false }),
         getEventHandle: (e: OFCEvent) => ({ persistentId: e.title }),
@@ -713,6 +769,7 @@ describe('editable calendars', () => {
         type: 'ical',
         displayName: 'Remote ICS Provider',
         isRemote: true,
+        loadPriority: 100,
         getEvents: jest
           .fn()
           .mockImplementation(
@@ -751,6 +808,19 @@ describe('editable calendars', () => {
               }
             }, 50);
           }),
+          fetchAllByPriority: jest.fn().mockImplementation(async onProviderComplete => {
+            // Return local events immediately, simulate remote async
+            const localResults = [{ event: localEvent, location: null, calendarId: 'local1' }];
+
+            // Simulate async loading of remote provider
+            setTimeout(() => {
+              if (onProviderComplete) {
+                onProviderComplete('remote1', [{ event: remoteEvent, location: null }]);
+              }
+            }, 50);
+
+            return localResults;
+          }),
           generateId: withCounter(x => x, 'test-id'),
           buildMap: jest.fn(),
           addMapping: jest.fn(),
@@ -766,9 +836,8 @@ describe('editable calendars', () => {
       // Act: Call populate
       await cache.populate();
 
-      // Assert: Local events should be loaded immediately
-      expect(mockPlugin.providerRegistry.fetchLocalEvents).toHaveBeenCalled();
-      expect(mockPlugin.providerRegistry.fetchRemoteEventsWithPriority).toHaveBeenCalled();
+      // Assert: Unified loading should be called
+      expect(mockPlugin.providerRegistry.fetchAllByPriority).toHaveBeenCalled();
       expect(cache.initialized).toBe(true);
 
       // Local events should be in cache immediately
@@ -802,6 +871,7 @@ describe('editable calendars', () => {
         type,
         displayName: `${type} Provider`,
         isRemote: true,
+        loadPriority: type === 'ical' ? 100 : type === 'caldav' ? 110 : 120,
         getEvents: jest.fn().mockImplementation(async () => {
           loadOrder.push(type);
           return [[event, null]];
@@ -842,7 +912,7 @@ describe('editable calendars', () => {
             ]);
 
             const remoteProviders = Array.from(instances.entries()).filter(
-              ([_, instance]) => instance.isRemote
+              ([_, instance]) => instance.loadPriority >= 100
             );
 
             const priorityOrder = ['ical', 'caldav', 'google'];
@@ -867,6 +937,44 @@ describe('editable calendars', () => {
                 // Continue with next provider
               }
             }
+          }),
+          fetchAllByPriority: jest.fn().mockImplementation(async onProviderComplete => {
+            // Return empty for local (these are all remote providers in this test)
+            const localResults: {
+              event: OFCEvent;
+              location: EventLocation | null;
+              calendarId: string;
+            }[] = [];
+
+            // Simulate unified priority-based loading using the new loadPriority values
+            const instances = new Map([
+              ['google1', createRemoteProvider('google', googleEvent)],
+              ['ics1', createRemoteProvider('ical', icsEvent)],
+              ['caldav1', createRemoteProvider('caldav', caldavEvent)]
+            ]);
+
+            // Sort by loadPriority (lower = higher priority)
+            const prioritizedProviders = Array.from(instances.entries()).sort(
+              ([, a], [, b]) => a.loadPriority - b.loadPriority
+            );
+
+            for (const [settingsId, instance] of prioritizedProviders) {
+              try {
+                const rawEvents = await instance.getEvents();
+                const events = rawEvents.map(([rawEvent, location]) => ({
+                  event: rawEvent,
+                  location
+                }));
+
+                if (onProviderComplete) {
+                  onProviderComplete(settingsId, events);
+                }
+              } catch (e) {
+                // Continue with next provider
+              }
+            }
+
+            return localResults;
           }),
           generateId: withCounter(x => x, 'test-id'),
           buildMap: jest.fn(),

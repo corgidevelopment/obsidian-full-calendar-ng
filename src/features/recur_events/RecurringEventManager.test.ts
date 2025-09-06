@@ -7,7 +7,6 @@ import { OFCEvent } from '../../types';
 import { RecurringEventManager } from './RecurringEventManager';
 import EventCache from '../../core/EventCache';
 import { CalendarProvider } from '../../providers/Provider';
-import { CalendarInfo } from '../../types';
 import { DEFAULT_SETTINGS } from '../../types/settings';
 import FullCalendarPlugin from '../../main';
 

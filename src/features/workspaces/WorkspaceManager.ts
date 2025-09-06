@@ -18,6 +18,7 @@ import { FullCalendarSettings, WorkspaceSettings } from '../../types/settings';
 import { EventInput, EventSourceInput } from '@fullcalendar/core';
 import { OFCEventSource, CachedEvent } from '../../core/EventCache';
 import { toEventInput } from '../../core/interop';
+import { Notice } from 'obsidian'; // Add this import
 
 // Copied from view.ts to break circular dependency.
 function getCalendarColors(color: string | null | undefined): {
@@ -141,10 +142,11 @@ export class WorkspaceManager {
     const filtered = sources.filter(source => selectedSet.has(String(source.id)));
 
     if (filtered.length === 0 && selected.length > 0) {
-      console.warn(
-        'Full Calendar: No sources matched visibleCalendars. Falling back to all sources.'
+      new Notice(
+        'The active workspace is filtering for calendars that are not available. Check workspace settings.',
+        5000 // 5-second notice
       );
-      return sources;
+      // Do NOT fall back. An empty filter result means an empty calendar.
     }
     return filtered;
   }

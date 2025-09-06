@@ -12,7 +12,6 @@ import { EventHandle, FCReactComponent } from '../typesProvider';
 import { FullNoteProviderConfig } from './typesLocal';
 import { ObsidianInterface } from '../../ObsidianAdapter';
 import { FullNoteConfigComponent } from './FullNoteConfigComponent';
-import { convertEvent } from '../../features/Timezone';
 
 export type EditableEventResponse = [OFCEvent, EventLocation | null];
 
@@ -100,6 +99,7 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
   readonly type = 'local';
   readonly displayName = 'Local Notes';
   readonly isRemote = false;
+  readonly loadPriority = 10;
 
   constructor(source: FullNoteProviderConfig, plugin: FullCalendarPlugin, app?: ObsidianInterface) {
     if (!app) {
@@ -118,6 +118,11 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
     const filename = filenameForEvent(event, this.plugin.settings);
     const path = normalizePath(`${this.source.directory}/${filename}`);
     return { persistentId: path };
+  }
+
+  public isFileRelevant(file: TFile): boolean {
+    const directory = this.source.directory;
+    return !!directory && file.path.startsWith(directory + '/');
   }
 
   public async getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {

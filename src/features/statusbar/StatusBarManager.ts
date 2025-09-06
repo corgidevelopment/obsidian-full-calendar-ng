@@ -10,11 +10,11 @@
  * @license See LICENSE.md
  */
 
-import { Menu, Notice, TFile, WorkspaceLeaf } from 'obsidian';
+import { Menu } from 'obsidian';
 import { DateTime, Duration } from 'luxon'; // Added DateTime & Duration
 import FullCalendarPlugin from '../../main';
 import { FullCalendarSettings } from '../../types/settings';
-import { TimeState, EnrichedOFCEvent } from '../../core/TimeEngine';
+import { TimeState } from '../../core/TimeEngine';
 import { openFileForEvent } from '../../utils/eventActions';
 
 // Helper for relative time display

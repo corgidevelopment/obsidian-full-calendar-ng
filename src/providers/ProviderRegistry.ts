@@ -4,6 +4,7 @@ import { CalendarInfo, EventLocation, OFCEvent } from '../types';
 import EventCache from '../core/EventCache';
 import FullCalendarPlugin from '../main';
 import { ObsidianIO, ObsidianInterface } from '../ObsidianAdapter';
+import { TasksBacklogManager } from './tasks/TasksBacklogManager';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -30,6 +31,15 @@ export type CalendarProviderClass = new (
 type ProviderLoader = () => Promise<{ [key: string]: CalendarProviderClass }>;
 
 export class ProviderRegistry {
+  /**
+   * Triggers a refresh of any open Tasks Backlog views.
+   * This is called by the Tasks provider when its internal data changes.
+   */
+  public refreshBacklogViews(): void {
+    if (this.tasksBacklogManager.getIsLoaded()) {
+      this.tasksBacklogManager.refreshViews();
+    }
+  }
   private providers = new Map<string, ProviderLoader>();
   private instances = new Map<string, CalendarProvider<unknown>>();
   private sources: CalendarInfo[] = [];
@@ -41,8 +51,12 @@ export class ProviderRegistry {
   private identifierToSessionIdMap: Map<string, string> = new Map();
   private identifierMapPromise: Promise<void> | null = null;
 
+  // Tasks backlog manager for lifecycle management
+  private tasksBacklogManager: TasksBacklogManager;
+
   constructor(plugin: FullCalendarPlugin) {
     this.plugin = plugin;
+    this.tasksBacklogManager = new TasksBacklogManager(plugin);
     // initializeInstances is now called from main.ts after settings are loaded.
   }
 
@@ -110,6 +124,22 @@ export class ProviderRegistry {
     } catch (err) {
       console.error(`Full Calendar: Error loading provider for type "${type}".`, err);
       return undefined;
+    }
+  }
+
+  public async addInstance(source: CalendarInfo): Promise<void> {
+    const settingsId = source.id;
+    if (!settingsId || this.instances.has(settingsId)) {
+      return; // Do nothing if ID is missing or instance already exists.
+    }
+
+    const ProviderClass = await this.getProviderForType(source.type);
+    if (ProviderClass) {
+      const app = new ObsidianIO(this.plugin.app);
+      const instance = new ProviderClass(source, this.plugin, app);
+      this.instances.set(settingsId, instance);
+      // Also update the internal sources list to keep it in sync.
+      this.sources.push(source);
     }
   }
 
@@ -230,76 +260,37 @@ export class ProviderRegistry {
   }
 
   /**
-   * Fetch events from local providers only (non-blocking for remote calendars).
-   * Returns immediately with local events, allowing UI to display them without waiting for remote calendars.
+   * Fetch events from all providers using priority-based ordering.
+   * Local providers (loadPriority < 100) load synchronously for immediate display.
+   * Remote providers (loadPriority >= 100) load asynchronously and call onProviderComplete.
    */
-  public async fetchLocalEvents(): Promise<
-    { calendarId: string; event: OFCEvent; location: EventLocation | null }[]
-  > {
-    if (!this.cache) {
-      throw new Error('Cache not set on ProviderRegistry');
-    }
-
-    const results: { calendarId: string; event: OFCEvent; location: EventLocation | null }[] = [];
-    const promises = [];
-
-    // Only process local (non-remote) providers
-    for (const [settingsId, instance] of this.instances.entries()) {
-      if (!instance.isRemote) {
-        const promise = (async () => {
-          try {
-            const rawEvents = await instance.getEvents();
-            rawEvents.forEach(([rawEvent, location]) => {
-              const event = this.cache!.enhancer.enhance(rawEvent);
-              results.push({
-                calendarId: settingsId,
-                event,
-                location
-              });
-            });
-          } catch (e) {
-            const source = this.getSource(settingsId);
-            console.warn(`Full Calendar: Failed to load local calendar source`, source, e);
-          }
-        })();
-        promises.push(promise);
-      }
-    }
-
-    await Promise.allSettled(promises);
-    return results;
-  }
-
-  /**
-   * Fetch events from remote providers with priority ordering.
-   * Loads remote calendars in background without blocking UI.
-   * Priority: ICS > CalDAV > Google Calendar
-   */
-  public async fetchRemoteEventsWithPriority(
+  public async fetchAllByPriority(
     onProviderComplete?: (
       calendarId: string,
       events: { event: OFCEvent; location: EventLocation | null }[]
     ) => void
-  ): Promise<void> {
+  ): Promise<{ event: OFCEvent; location: EventLocation | null; calendarId: string }[]> {
     if (!this.cache) {
       throw new Error('Cache not set on ProviderRegistry');
     }
 
-    // Group remote providers by priority
-    const remoteProviders = Array.from(this.instances.entries()).filter(
-      ([_, instance]) => instance.isRemote
+    const results: { event: OFCEvent; location: EventLocation | null; calendarId: string }[] = [];
+
+    // Sort all providers by loadPriority (lower number = higher priority)
+    const prioritizedProviders = Array.from(this.instances.entries()).sort(
+      ([, a], [, b]) => a.loadPriority - b.loadPriority
     );
 
-    // Define priority order: ical (ICS) > caldav (CalDAV) > google (Google Calendar)
-    const priorityOrder = ['ical', 'caldav', 'google'];
-    const prioritizedProviders = remoteProviders.sort(([, a], [, b]) => {
-      const aPriority = priorityOrder.indexOf(a.type);
-      const bPriority = priorityOrder.indexOf(b.type);
-      return (aPriority === -1 ? 999 : aPriority) - (bPriority === -1 ? 999 : bPriority);
-    });
+    // Split providers into local (priority < 100) and remote (priority >= 100)
+    const localProviders = prioritizedProviders.filter(
+      ([, provider]) => provider.loadPriority < 100
+    );
+    const remoteProviders = prioritizedProviders.filter(
+      ([, provider]) => provider.loadPriority >= 100
+    );
 
-    // Load each remote provider sequentially to respect priority
-    for (const [settingsId, instance] of prioritizedProviders) {
+    // Load local providers synchronously for immediate display
+    for (const [settingsId, instance] of localProviders) {
       try {
         const rawEvents = await instance.getEvents();
         const events = rawEvents.map(([rawEvent, location]) => ({
@@ -307,16 +298,44 @@ export class ProviderRegistry {
           location
         }));
 
-        // Notify callback immediately when this provider completes
-        if (onProviderComplete) {
-          onProviderComplete(settingsId, events);
-        }
+        // Add to results for immediate return
+        events.forEach(({ event, location }) => {
+          results.push({ event, location, calendarId: settingsId });
+        });
+
+        // Don't call callback for local providers - they are handled directly by EventCache
       } catch (e) {
         const source = this.getSource(settingsId);
-        console.warn(`Full Calendar: Failed to load remote calendar source`, source, e);
-        // Continue with next provider even if this one fails
+        console.warn(`Full Calendar: Failed to load local calendar source`, source, e);
       }
     }
+
+    // Load remote providers asynchronously in background
+    if (remoteProviders.length > 0) {
+      (async () => {
+        for (const [settingsId, instance] of remoteProviders) {
+          try {
+            const rawEvents = await instance.getEvents();
+            const events = rawEvents.map(([rawEvent, location]) => ({
+              event: this.cache!.enhancer.enhance(rawEvent),
+              location
+            }));
+
+            // Call callback when this provider completes
+            if (onProviderComplete) {
+              onProviderComplete(settingsId, events);
+            }
+          } catch (e) {
+            const source = this.getSource(settingsId);
+            console.warn(`Full Calendar: Failed to load remote calendar source`, source, e);
+          }
+        }
+      })().catch(error => {
+        console.error('Full Calendar: Error loading remote calendars:', error);
+      });
+    }
+
+    return results;
   }
 
   public async createEventInProvider(
@@ -378,19 +397,8 @@ export class ProviderRegistry {
         const sourceInfo = this.getSource(settingsId);
         if (!sourceInfo) continue;
 
-        let isRelevant = false;
-        if (instance.type === 'local') {
-          if (sourceInfo.type === 'local') {
-            const directory = sourceInfo.directory;
-            isRelevant = !!directory && file.path.startsWith(directory + '/');
-          }
-        } else if (instance.type === 'dailynote') {
-          const { folder } = require('obsidian-daily-notes-interface').getDailyNoteSettings();
-          isRelevant = folder ? file.path.startsWith(folder + '/') : true;
-        } else if (instance.type === 'tasks') {
-          // Tasks provider is interested in all markdown files
-          isRelevant = file.extension === 'md';
-        }
+        // Delegate file relevance check to the provider itself
+        const isRelevant = instance.isFileRelevant ? instance.isFileRelevant(file) : false;
 
         if (isRelevant) {
           interestedInstances.push({ instance, config: sourceInfo, settingsId });
@@ -513,11 +521,38 @@ export class ProviderRegistry {
 
     // This is the "nuclear reset" logic moved from main.ts
     await this.initializeInstances();
+
+    // Use the centralized backlog lifecycle management
+    this.syncBacklogManagerLifecycle();
+
     this.cache.reset();
     await this.cache.populate();
     this.revalidateRemoteCalendars();
     this.cache.resync();
+
+    // Refresh backlog views if they exist
+    if (this.tasksBacklogManager.getIsLoaded()) {
+      this.tasksBacklogManager.refreshViews();
+    }
   };
+
+  /**
+   * Synchronizes the Tasks Backlog Manager lifecycle based on provider availability.
+   * This method centralizes the logic for loading/unloading the backlog based on
+   * whether any Tasks providers are currently configured.
+   */
+  public syncBacklogManagerLifecycle(): void {
+    // Manage Tasks Backlog view lifecycle based on provider availability
+    if (this.hasProviderOfType('tasks')) {
+      if (!this.tasksBacklogManager.getIsLoaded()) {
+        this.tasksBacklogManager.onload();
+      }
+    } else {
+      if (this.tasksBacklogManager.getIsLoaded()) {
+        this.tasksBacklogManager.onunload();
+      }
+    }
+  }
 
   public listenForSourceChanges(): void {
     // Obsidian's Workspace interface doesn't declare custom events; cast only the event emitter portion
@@ -534,5 +569,18 @@ export class ProviderRegistry {
         off: (name: string, cb: () => void) => void;
       }
     ).off('full-calendar:sources-changed', this.onSourcesChanged);
+  }
+
+  public getActiveProviders(): CalendarProvider<unknown>[] {
+    return Array.from(this.instances.values());
+  }
+
+  public hasProviderOfType(type: string): boolean {
+    for (const instance of this.instances.values()) {
+      if (instance.type === type) {
+        return true;
+      }
+    }
+    return false;
   }
 }

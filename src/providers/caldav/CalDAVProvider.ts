@@ -79,6 +79,7 @@ export class CalDAVProvider implements CalendarProvider<CalDAVProviderConfig> {
   readonly type = 'caldav';
   readonly displayName = 'CalDAV';
   readonly isRemote = true;
+  readonly loadPriority = 110;
 
   // Standardized constructor signature
   constructor(source: CalDAVProviderConfig, plugin: FullCalendarPlugin, app?: ObsidianInterface) {
