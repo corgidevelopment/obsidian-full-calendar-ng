@@ -5,15 +5,14 @@ For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
 ---
 
-## ✅ Integrated Obsidian Task Plugin
+## ✅ Tasks Integration Reimagined
 
-Turn your calendar into a powerful task manager with first-class support for the **Obsidian Tasks plugin**. A new "Tasks" calendar source brings your tasks to life inside Full Calendar.
+The integration with the **Obsidian Tasks plugin** has been completely overhauled for maximum performance and reliability. It's now faster, safer, and more intuitive than ever.
 
-- **Task Backlog:** View all your tasks in a dedicated backlog panel.
-- **Drag-and-Drop Scheduling:** Drag tasks from the backlog directly onto your calendar to schedule them.
-- **In-Calendar Actions:** Complete, edit, or delete tasks right from the calendar view.
-- **Powerful Filters:** Filter tasks by status or path to focus on what matters.
-- **Overdue Task Surfacing:** Automatically highlights overdue tasks for quick rescheduling.
+- **Live Sync with Tasks Cache:** No more slow vault scans. The calendar now syncs directly with the Tasks plugin's live cache for instant updates.
+- **Surgical Edits:** Modifying a task (e.g., scheduling or completing it) no longer rewrites the entire line. The plugin surgically updates only the necessary parts, preserving your custom metadata like links, tags, and comments.
+- **Robust Drag-and-Drop:** Drag tasks from the backlog or between dates with confidence. The new provider ensures that scheduling is reliable and predictable.
+- **Seamless Experience:** Create, update, and complete tasks directly from the calendar. All changes are powered by the Tasks plugin's own engine for data integrity.
 
 ➡️ Learn more about [Tasks Integration](calendars/tasks-plugin-integration.md).
 

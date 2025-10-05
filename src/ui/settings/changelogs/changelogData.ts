@@ -1,7 +1,7 @@
-// src/ui/changelogData.ts
+// src/ui/changelogs/changelogData.ts
 
 export interface Change {
-  type: 'new' | 'fix' | 'improvement';
+  type: 'new' | 'fix' | 'improvement' | 'overhaul';
   title: string;
   description: string;
 }
@@ -13,6 +13,35 @@ export interface Version {
 
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
+  {
+    version: '0.12.3.1-beta',
+    changes: [
+      {
+        type: 'new',
+        title: 'Tasks Provider Rearchitected for Performance and Precision',
+        description:
+          "The Tasks provider now uses the official Tasks plugin's live cache for instant updates and performs surgical edits to preserve user metadata like links and tags. (#151, #155)"
+      },
+      {
+        type: 'improvement',
+        title: 'Robust and Stable Settings UI',
+        description:
+          'The settings panel has been refactored for stability, with a more reliable color picker and a consistent layout for all calendar sources. (#141)'
+      },
+      {
+        type: 'improvement',
+        title: 'Provider-Specific Task Completion',
+        description:
+          'Calendar providers can now implement their own custom logic for completing tasks, allowing for more flexible integrations. (#143, #144)'
+      },
+      {
+        type: 'fix',
+        title: 'ICS Timezone Fallback',
+        description:
+          'Remote ICS calendars with unrecognized timezones will now safely fall back to UTC instead of failing to load. (#91)'
+      }
+    ]
+  },
   {
     version: '0.12.3',
     changes: [

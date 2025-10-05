@@ -4,6 +4,22 @@ This page provides a detailed breakdown of every version of the Full Calendar pl
 
 ---
 
+## Version 0.12.3.1-beta
+
+-   **New:** Tasks Provider Rearchitected for Performance and Precision (#151, #155)
+    _The Tasks provider is now powered by the official Tasks plugin's live cache, eliminating manual vault scans and delivering instant updates. Edits are now "surgical," preserving user metadata like links, tags, and comments when scheduling or completing tasks._
+
+-   **Improvement:** Robust and Stable Settings UI (#141)
+    _The settings panel has been refactored for stability. The color picker no longer loses focus on changes, and a new `CalendarSettingRow` component ensures a consistent and reliable layout for all calendar sources._
+
+-   **Improvement:** Provider-Specific Task Completion (#143, #144)
+    _The `toggleComplete` logic is now abstracted, allowing calendar providers to implement their own custom behavior for completing tasks._
+
+-   **Fix:** ICS Timezone Fallback (#91)
+    _Remote ICS calendars with unrecognized timezones will now safely fall back to UTC instead of failing to load._
+
+---
+
 ## Version 0.12.3
 
 -   **New:** Deep Tasks Integration with Backlog & Filtering (#122, #128, #136)
