@@ -14,7 +14,7 @@ import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { Draggable } from '@fullcalendar/interaction';
 import FullCalendarPlugin from '../../main';
 import { TasksPluginProvider } from './TasksPluginProvider';
-import { ParsedUndatedTask } from './TasksParser';
+import { ParsedUndatedTask } from './typesTask';
 import './backlog-styles.css';
 
 export const TASKS_BACKLOG_VIEW_TYPE = 'tasks-backlog-view';
@@ -72,7 +72,7 @@ export class TasksBacklogView extends ItemView {
   private findTasksProvider(): TasksPluginProvider | null {
     for (const provider of this.plugin.providerRegistry.getActiveProviders()) {
       if (provider.type === 'tasks') {
-        return provider as TasksPluginProvider;
+        return provider as unknown as TasksPluginProvider;
       }
     }
     return null;

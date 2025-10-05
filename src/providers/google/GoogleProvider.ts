@@ -1,17 +1,17 @@
 import { DateTime } from 'luxon';
 import { OFCEvent, EventLocation, validateEvent, CalendarInfo } from '../../types';
 import FullCalendarPlugin from '../../main';
-import { fromGoogleEvent, toGoogleEvent, GoogleEventLike } from './parser_gcal';
-import { makeAuthenticatedRequest, GoogleApiError } from './request';
+import { fromGoogleEvent, toGoogleEvent, GoogleEventLike } from './parser/parser_gcal';
+import { makeAuthenticatedRequest, GoogleApiError } from './auth/request';
 
 import { CalendarProvider, CalendarProviderCapabilities } from '../Provider';
 import { EventHandle, FCReactComponent } from '../typesProvider';
 import { GoogleProviderConfig } from './typesGCal';
 
-import { GoogleConfigComponent } from './GoogleConfigComponent';
+import { GoogleConfigComponent } from './ui/GoogleConfigComponent';
 import * as React from 'react';
 import { ObsidianInterface } from '../../ObsidianAdapter';
-import { GoogleAuthManager } from '../../features/google_auth/GoogleAuthManager';
+import { GoogleAuthManager } from './auth/GoogleAuthManager';
 
 // Settings row component for Google Provider
 const GoogleNameSetting: React.FC<{ source: Partial<import('../../types').CalendarInfo> }> = ({

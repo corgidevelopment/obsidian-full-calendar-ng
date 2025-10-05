@@ -571,6 +571,55 @@ export class ProviderRegistry {
     ).off('full-calendar:sources-changed', this.onSourcesChanged);
   }
 
+  /**
+   * The provider-facing entry point for syncing state.
+   * Accepts a payload with persistent IDs, translates them to session IDs,
+   * and forwards the commands to the EventCache for execution.
+   */
+  public async processProviderUpdates(
+    calendarId: string,
+    updates: {
+      additions: { event: OFCEvent; location: EventLocation | null }[];
+      updates: { persistentId: string; event: OFCEvent; location: EventLocation | null }[];
+      deletions: string[];
+    }
+  ): Promise<void> {
+    if (!this.cache) return;
+
+    const { additions, updates: updateArr, deletions } = updates;
+
+    const cachePayload = {
+      additions: additions, // Additions don't need translation.
+      updates: [] as { sessionId: string; event: OFCEvent; location: EventLocation | null }[],
+      deletions: [] as string[]
+    };
+
+    // Translate Update persistent IDs to session IDs
+    for (const update of updateArr) {
+      const globalIdentifier = `${calendarId}::${update.persistentId}`;
+      const sessionId = await this.getSessionId(globalIdentifier);
+      if (sessionId) {
+        cachePayload.updates.push({
+          sessionId: sessionId,
+          event: update.event,
+          location: update.location
+        });
+      }
+    }
+
+    // Translate Deletion persistent IDs to session IDs
+    for (const persistentId of deletions) {
+      const globalIdentifier = `${calendarId}::${persistentId}`;
+      const sessionId = await this.getSessionId(globalIdentifier);
+      if (sessionId) {
+        cachePayload.deletions.push(sessionId);
+      }
+    }
+
+    // Forward the translated payload to the EventCache for execution.
+    await this.cache.processProviderUpdates(calendarId, cachePayload);
+  }
+
   public getActiveProviders(): CalendarProvider<unknown>[] {
     return Array.from(this.instances.values());
   }

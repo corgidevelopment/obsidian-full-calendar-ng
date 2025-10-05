@@ -825,6 +825,40 @@ export default class EventCache {
     await tasksProvider.scheduleTask(taskId, date);
   }
 
+  /**
+   * Asks the appropriate provider if a task can be scheduled on a given date.
+   * This is used to enforce provider-specific rules (e.g., not scheduling after a due date).
+   * @param taskId The persistent ID of the task.
+   * @param date The target date for scheduling.
+   * @returns A validation result from the provider.
+   */
+  public async validateTaskSchedule(
+    taskId: string,
+    date: Date
+  ): Promise<{ isValid: boolean; reason?: string }> {
+    // Find the Tasks provider instance. This assumes a single tasks provider for now.
+    const tasksProvider = this.plugin.providerRegistry
+      .getActiveProviders()
+      .find(provider => provider.type === 'tasks');
+
+    if (tasksProvider && typeof tasksProvider.canBeScheduledAt === 'function') {
+      // Create a minimal event stub containing the UID, which is all the provider needs
+      // to look up the full task details in its own cache.
+      const eventStub: OFCEvent = {
+        uid: taskId,
+        title: '',
+        type: 'single',
+        allDay: true,
+        date: '',
+        endDate: null
+      };
+      return tasksProvider.canBeScheduledAt(eventStub, date);
+    }
+
+    // If no provider is found or the method isn't implemented, default to allowing the action.
+    return { isValid: true };
+  }
+
   // ====================================================================
   //                         VIEW SYNCHRONIZATION
   // ====================================================================
@@ -1003,6 +1037,68 @@ export default class EventCache {
     }));
     this.flushUpdateQueue(idsToRemove, cacheEntriesToAdd);
     this.timeEngine.scheduleCacheRebuild(); // ADDED
+  }
+
+  /**
+   * Processes a pre-computed set of updates from a provider.
+   * This is the primary method for providers to sync their state with the cache
+   * in a granular, flicker-free way.
+   * @param calendarId The ID of the calendar source these updates belong to.
+   * @param updates A payload containing arrays of additions, updates, and deletions.
+   */
+  public async processProviderUpdates(
+    calendarId: string,
+    updates: {
+      additions: { event: OFCEvent; location: EventLocation | null }[];
+      updates: { sessionId: string; event: OFCEvent; location: EventLocation | null }[];
+      deletions: string[];
+    }
+  ): Promise<void> {
+    const { additions, updates: updateArr, deletions } = updates;
+
+    // If there are no changes, exit early.
+    if (additions.length === 0 && updateArr.length === 0 && deletions.length === 0) {
+      return;
+    }
+
+    this.isBulkUpdating = true;
+    try {
+      // 1. Handle Deletions
+      for (const sessionId of deletions) {
+        const event = this.store.getEventById(sessionId);
+        if (event) {
+          this.plugin.providerRegistry.removeMapping(event, calendarId);
+          this.store.delete(sessionId);
+          this.updateQueue.toRemove.add(sessionId);
+        }
+      }
+
+      // 2. Handle Additions
+      for (const { event, location } of additions) {
+        const newSessionId = this.generateId();
+        this.store.add({ calendarId, location, id: newSessionId, event });
+        this.plugin.providerRegistry.addMapping(event, calendarId, newSessionId);
+        this.updateQueue.toAdd.set(newSessionId, { event, id: newSessionId, calendarId });
+      }
+
+      // 3. Handle Updates
+      for (const { sessionId, event, location } of updateArr) {
+        const oldEvent = this.store.getEventById(sessionId);
+        if (oldEvent) {
+          this.plugin.providerRegistry.removeMapping(oldEvent, calendarId);
+        }
+        this.store.delete(sessionId);
+        this.store.add({ calendarId, location, id: sessionId, event });
+        this.plugin.providerRegistry.addMapping(event, calendarId, sessionId);
+        // For FullCalendar's view, an update is a remove + add.
+        this.updateQueue.toRemove.add(sessionId);
+        this.updateQueue.toAdd.set(sessionId, { event, id: sessionId, calendarId });
+      }
+    } finally {
+      this.isBulkUpdating = false;
+      this.flushUpdateQueue([], []); // This processes the .toAdd and .toRemove queues.
+      this.timeEngine.scheduleCacheRebuild();
+    }
   }
 
   // ====================================================================

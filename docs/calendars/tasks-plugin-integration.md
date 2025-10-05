@@ -29,7 +29,7 @@ The Tasks calendar is more than just a read-only view; it's a fully interactive 
 
 ### Task Backlog
 
-A **Backlog** panel will appear in your calendar view, listing all unscheduled tasks. From here, you can drag and drop tasks directly onto the calendar to schedule them.
+Once a Tasks Calendar is active, a new **Tasks Backlog** panel will be registered in sidebar (access it using Command Pallette), listing all unscheduled tasks. From here, you can drag and drop tasks directly onto the calendar to schedule them.
 
 -   **Drag-and-Drop Scheduling:** Quickly schedule tasks by dragging them from the backlog to a specific date and time.
 -   **Filtering:** Use the filter bar to narrow down tasks by status (`todo`, `done`) or by the file path they belong to.

@@ -30,7 +30,7 @@ import ReactModal from '../ReactModal';
 import * as ReactDOM from 'react-dom/client';
 import { createElement, createRef } from 'react';
 
-import { CalendarSettingsRef } from './components/CalendarSetting';
+import { CalendarSettingsRef } from './sections/calendars/CalendarSetting';
 import { getDailyNoteSettings } from 'obsidian-daily-notes-interface';
 import { CalendarInfo } from '../../types/calendar_settings';
 import { ProviderRegistry } from '../../providers/ProviderRegistry';
@@ -39,7 +39,7 @@ import { makeDefaultPartialCalendarSource } from '../../types/calendar_settings'
 import { generateCalendarId } from '../../types/calendar_settings';
 
 // Import the new React components
-import './changelog.css';
+import './changelogs/changelog.css';
 
 export function addCalendarButton(
   plugin: FullCalendarPlugin,
@@ -209,7 +209,7 @@ export class FullCalendarSettingTab extends PluginSettingTab {
 
   private async _renderFullChangelog(): Promise<void> {
     const root = ReactDOM.createRoot(this.containerEl);
-    const { Changelog } = await import('./components/Changelog');
+    const { Changelog } = await import('./changelogs/Changelog');
     root.render(
       createElement(Changelog, {
         onBack: () => {
@@ -234,12 +234,14 @@ export class FullCalendarSettingTab extends PluginSettingTab {
     ] = await Promise.all([
       import('./sections/renderGeneral').then(m => m.renderGeneralSettings),
       import('./sections/renderAppearance').then(m => m.renderAppearanceSettings),
-      import('./sections/renderWorkspaces').then(m => m.renderWorkspaceSettings),
-      import('./sections/renderCategorization').then(m => m.renderCategorizationSettings),
-      import('./sections/renderWhatsNew').then(m => m.renderWhatsNew),
+      import('../../features/workspaces/ui/renderWorkspaces').then(m => m.renderWorkspaceSettings),
+      import('../../features/category/ui/renderCategorization').then(
+        m => m.renderCategorizationSettings
+      ),
+      import('./changelogs/renderWhatsNew').then(m => m.renderWhatsNew),
       import('./sections/renderCalendars').then(m => m.renderCalendarManagement),
-      import('./sections/renderGoogle').then(m => m.renderGoogleSettings),
-      import('./components/renderFooter').then(m => m.renderFooter)
+      import('../../providers/google/ui/renderGoogle').then(m => m.renderGoogleSettings),
+      import('./sections/calendars/renderFooter').then(m => m.renderFooter)
     ]);
 
     renderGeneralSettings(this.containerEl, this.plugin, () => this.display());

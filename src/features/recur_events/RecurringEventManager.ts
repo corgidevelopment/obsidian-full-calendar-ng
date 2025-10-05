@@ -17,7 +17,7 @@ import { Notice } from 'obsidian';
 import { OFCEvent } from '../../types';
 import EventCache from '../../core/EventCache';
 import { StoredEvent } from '../../core/EventStore';
-import { toggleTask } from '../../utils/tasks';
+import { toggleTask } from '../../types/tasks';
 import FullCalendarPlugin from '../../main';
 
 /**

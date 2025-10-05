@@ -100,18 +100,4 @@ export function renderGeneralSettings(
         rerender();
       });
     });
-
-  new Setting(containerEl)
-    .setName('Remove tags from task titles')
-    .setDesc(
-      'Remove #tags from task titles when displayed on the calendar for cleaner appearance. ' +
-        'The original task notes are not modified - this only affects calendar display.'
-    )
-    .addToggle(toggle => {
-      toggle.setValue(plugin.settings.removeTagsFromTaskTitle).onChange(async value => {
-        plugin.settings.removeTagsFromTaskTitle = value;
-        await plugin.saveSettings();
-        rerender();
-      });
-    });
 }

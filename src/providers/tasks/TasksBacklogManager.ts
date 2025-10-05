@@ -52,8 +52,6 @@ export class TasksBacklogManager {
     this.plugin.addRibbonIcon('list-todo', 'Tasks Backlog', () => {
       this.openBacklogView();
     });
-
-    console.log('Tasks Backlog view loaded');
   }
 
   /**
@@ -69,8 +67,6 @@ export class TasksBacklogManager {
 
     // Close any existing backlog views
     this.closeAllBacklogViews();
-
-    console.log('Tasks Backlog view unloaded');
   }
 
   /**

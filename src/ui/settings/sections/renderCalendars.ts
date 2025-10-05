@@ -9,7 +9,7 @@ import * as ReactDOM from 'react-dom/client';
 import { createElement, RefObject } from 'react';
 import FullCalendarPlugin from '../../../main';
 import { addCalendarButton } from '../SettingsTab';
-import { CalendarSettings, CalendarSettingsRef } from '../components/CalendarSetting';
+import { CalendarSettings, CalendarSettingsRef } from './calendars/CalendarSetting';
 import { CalendarInfo } from '../../../types/calendar_settings';
 
 export function renderCalendarManagement(

@@ -22,7 +22,7 @@ import { ItemView, Menu, Notice, WorkspaceLeaf } from 'obsidian';
 
 import type { Calendar, EventInput } from '@fullcalendar/core';
 
-import './overrides.css';
+import './settings/sections/calendars/styles/overrides.css';
 import FullCalendarPlugin from '../main';
 import { renderOnboarding } from './onboard';
 import { PLUGIN_SLUG, CalendarInfo } from '../types';
@@ -32,7 +32,7 @@ import { TasksBacklogView, TASKS_BACKLOG_VIEW_TYPE } from '../providers/tasks/Ta
 // Lazy-import heavy modules at point of use to reduce initial load time
 import { dateEndpointsToFrontmatter, fromEventApi, toEventInput } from '../core/interop';
 import { ViewEnhancer } from '../core/ViewEnhancer';
-import { createDateNavigation, DateNavigation } from './DateNavigation';
+import { createDateNavigation, DateNavigation } from '../features/navigation/DateNavigation';
 
 // Narrowed resource shape used for timeline views.
 interface ResourceItem {
@@ -509,7 +509,7 @@ export class CalendarView extends ItemView {
     }
 
     // LAZY LOAD THE CALENDAR RENDERER HERE
-    const { renderCalendar } = await import('./calendar');
+    const { renderCalendar } = await import('./settings/sections/calendars/calendar');
     let currentViewType = '';
     const handleViewChange = () => {
       const newViewType = this.fullCalendarView?.view?.type || '';
@@ -596,16 +596,47 @@ export class CalendarView extends ItemView {
       },
       eventClick: async info => {
         try {
+          // Ctrl/Cmd + Click still opens the note directly.
           if (info.jsEvent.getModifierState('Control') || info.jsEvent.getModifierState('Meta')) {
             const { openFileForEvent } = await import('../utils/eventActions');
             await openFileForEvent(this.plugin.cache, this.app, info.event.id);
-          } else {
-            if (!this.plugin.cache.isEventEditable(info.event.id)) {
-              new Notice('This event belongs to a read-only calendar.');
-              return;
-            }
+            return;
+          }
 
-            const { launchEditModal } = await import('./event_modal');
+          if (!this.plugin.cache.isEventEditable(info.event.id)) {
+            new Notice('This event belongs to a read-only calendar.');
+            return;
+          }
+
+          // THE NEW DISPATCHING LOGIC
+          const eventDetails = this.plugin.cache.store.getEventDetails(info.event.id);
+          if (!eventDetails) return;
+
+          const { calendarId } = eventDetails;
+          const capabilities = this.plugin.providerRegistry.getCapabilities(calendarId);
+
+          // Check the new capability flag.
+          if (capabilities?.hasCustomEditUI) {
+            const provider = this.plugin.providerRegistry.getInstance(calendarId);
+            if (
+              provider &&
+              'editInProviderUI' in provider &&
+              typeof provider.editInProviderUI === 'function'
+            ) {
+              // Delegate to the provider's own UI.
+              await provider.editInProviderUI(info.event.id);
+            } else {
+              // This case indicates a developer error (capability is true but method is missing).
+              console.error(
+                `Provider for ${calendarId} claims hasCustomEditUI but method is not implemented.`
+              );
+              // Fallback to default modal as a safety measure.
+              const { launchEditModal } = await import('./modals/event_modal');
+              launchEditModal(this.plugin, info.event.id);
+            }
+          } else {
+            // Fallback to the default Full Calendar modal for all other providers.
+            const { launchEditModal } = await import('./modals/event_modal');
             launchEditModal(this.plugin, info.event.id);
           }
         } catch (e) {
@@ -627,7 +658,7 @@ export class CalendarView extends ItemView {
         const partialEvent = dateEndpointsToFrontmatter(start, end, allDay);
         try {
           if (this.plugin.settings.clickToCreateEventFromMonthView || viewType !== 'dayGridMonth') {
-            const { launchCreateModal } = await import('./event_modal');
+            const { launchCreateModal } = await import('./modals/event_modal');
             launchCreateModal(this.plugin, partialEvent);
           } else {
             this.fullCalendarView?.changeView('timeGridDay');
@@ -748,7 +779,7 @@ export class CalendarView extends ItemView {
         }
 
         if (this.plugin.cache.isEventEditable(e.id)) {
-          const tasks = await import('../utils/tasks');
+          const tasks = await import('../types/tasks');
           if (!tasks.isTask(event)) {
             menu.addItem(item =>
               item.setTitle('Turn into task').onClick(async () => {
@@ -800,14 +831,23 @@ export class CalendarView extends ItemView {
       },
       toggleTask: async (eventApi, isDone) => {
         const eventId = eventApi.id;
-        const event = this.plugin.cache.getEventById(eventId);
-        if (!event) return false;
+        const eventDetails = this.plugin.cache.store.getEventDetails(eventId);
+        if (!eventDetails) return false;
 
+        const { event, calendarId } = eventDetails;
+        const provider = this.plugin.providerRegistry.getInstance(calendarId);
+
+        if (provider && provider.toggleComplete) {
+          // Provider has its own logic for toggling tasks.
+          return await provider.toggleComplete(eventId, isDone);
+        }
+
+        // Fallback to default logic for providers without a custom implementation.
         const isRecurringSystem =
           event.type === 'recurring' || event.type === 'rrule' || event.recurringEventId;
 
         if (!isRecurringSystem) {
-          const { toggleTask } = await import('../utils/tasks');
+          const { toggleTask } = await import('../types/tasks');
           await this.plugin.cache.updateEventWithId(eventId, toggleTask(event, isDone));
           return true;
         }
@@ -848,6 +888,13 @@ export class CalendarView extends ItemView {
             throw new Error('Event cache not available');
           }
 
+          // Guardrail: Validate before scheduling
+          const validation = await this.plugin.cache.validateTaskSchedule(taskId, date);
+          if (!validation.isValid) {
+            new Notice(validation.reason || 'This task cannot be scheduled on this date.');
+            return;
+          }
+
           await this.plugin.cache.scheduleTask(taskId, date);
           new Notice('Task scheduled successfully');
 
@@ -860,7 +907,6 @@ export class CalendarView extends ItemView {
           }
 
           // Re-fetch events for the main calendar to show the new event
-          // A full `onOpen()` is a robust way to ensure all filters are reapplied
           this.onOpen();
         } catch (error) {
           console.error('Failed to schedule task:', error);

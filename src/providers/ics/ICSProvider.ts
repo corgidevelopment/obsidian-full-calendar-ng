@@ -6,7 +6,7 @@ import * as React from 'react';
 import { CalendarProvider, CalendarProviderCapabilities } from '../Provider';
 import { EventHandle, FCReactComponent } from '../typesProvider';
 import { ICSProviderConfig } from './typesICS';
-import { ICSConfigComponent } from './ICSConfigComponent';
+import { ICSConfigComponent } from './ui/ICSConfigComponent';
 import FullCalendarPlugin from '../../main';
 import { ObsidianInterface } from '../../ObsidianAdapter';
 

@@ -1,3 +1,11 @@
+export interface ParsedUndatedTask {
+  title: string;
+  isDone: boolean;
+  location: {
+    path: string;
+    lineNumber: number;
+  };
+}
 /**
  * @file typesTask.ts
  * @brief Type definitions for the Tasks provider.

@@ -30,7 +30,20 @@ function icalTimeToLuxon(t: ical.Time): DateTime {
   // We use setZone to ensure the DateTime object has the correct zone,
   // without changing the underlying moment in time.
   const zone = t.timezone === 'Z' ? 'utc' : t.timezone;
-  return DateTime.fromJSDate(jsDate).setZone(zone);
+
+  // Attempt to set the zone from the ICS file.
+  const zonedDt = DateTime.fromJSDate(jsDate).setZone(zone);
+
+  // Check if setting the zone resulted in an invalid DateTime.
+  // If so, fall back to UTC, which is the old behavior.
+  if (!zonedDt.isValid) {
+    console.warn(
+      `Full Calendar ICS Parser: Invalid timezone identifier "${zone}". Falling back to UTC.`
+    );
+    return DateTime.fromJSDate(jsDate, { zone: 'utc' });
+  }
+
+  return zonedDt;
 }
 
 /**
@@ -144,9 +157,9 @@ export function getEventsFromICS(text: string): OFCEvent[] {
 
   const jCalData = ical.parse(correctedText); // Use the corrected text
   const component = new ical.Component(jCalData);
+  const vevents = component.getAllSubcomponents('vevent');
 
-  const events: ical.Event[] = component
-    .getAllSubcomponents('vevent')
+  const events: ical.Event[] = vevents
     .map(vevent => new ical.Event(vevent))
     .filter(evt => {
       try {
@@ -155,6 +168,12 @@ export function getEventsFromICS(text: string): OFCEvent[] {
         evt.endDate.toJSDate();
         return true;
       } catch (err) {
+        let startDateJs;
+        try {
+          startDateJs = evt.startDate?.toJSDate();
+        } catch (e) {
+          startDateJs = `Error: ${e}`;
+        }
         // skipping events with invalid time
         return false;
       }
