@@ -12,6 +12,7 @@ import {
   BusinessHoursSettings
 } from '../../../types/settings';
 import { CalendarInfo } from '../../../types/calendar_settings';
+import { t } from '../../i18n/i18n';
 
 export class WorkspaceModal extends Modal {
   plugin: FullCalendarPlugin;
@@ -48,7 +49,9 @@ export class WorkspaceModal extends Modal {
     contentEl.empty();
 
     // Modal title
-    contentEl.createEl('h2', { text: this.isNew ? 'Create Workspace' : 'Edit Workspace' });
+    contentEl.createEl('h2', {
+      text: this.isNew ? t('modals.workspace.title.create') : t('modals.workspace.title.edit')
+    });
 
     this.renderGeneralSection(contentEl);
     this.renderViewSection(contentEl);
@@ -65,16 +68,16 @@ export class WorkspaceModal extends Modal {
 
   private renderGeneralSection(containerEl: HTMLElement) {
     const section = containerEl.createEl('div', { cls: 'workspace-modal-section' });
-    section.createEl('h3', { text: 'General' });
+    section.createEl('h3', { text: t('modals.workspace.sections.general') });
 
     // Workspace name
     new Setting(section)
-      .setName('Name')
-      .setDesc('A unique name for this workspace')
+      .setName(t('modals.workspace.fields.name.label'))
+      .setDesc(t('modals.workspace.fields.name.description'))
       .addText(text => {
         this.nameInput = text;
         text
-          .setPlaceholder('e.g., Work Focus, Family Planning')
+          .setPlaceholder(t('modals.workspace.fields.name.placeholder'))
           .setValue(this.workspace.name || '')
           .onChange(value => {
             this.workspace.name = value;
@@ -84,25 +87,25 @@ export class WorkspaceModal extends Modal {
 
   private renderViewSection(containerEl: HTMLElement) {
     const section = containerEl.createEl('div', { cls: 'workspace-modal-section' });
-    section.createEl('h3', { text: 'View Configuration' });
+    section.createEl('h3', { text: t('modals.workspace.sections.viewConfiguration') });
 
     // Desktop view
     const desktopViewOptions: { [key: string]: string } = {
-      '': 'Use default',
-      timeGridDay: 'Day',
-      timeGridWeek: 'Week',
-      dayGridMonth: 'Month',
-      listWeek: 'List'
+      '': t('modals.workspace.fields.desktopView.label'),
+      timeGridDay: t('settings.viewOptions.day'),
+      timeGridWeek: t('settings.viewOptions.week'),
+      dayGridMonth: t('settings.viewOptions.month'),
+      listWeek: t('settings.viewOptions.list')
     };
 
     if (this.plugin.settings.enableAdvancedCategorization) {
-      desktopViewOptions['resourceTimelineWeek'] = 'Timeline Week';
-      desktopViewOptions['resourceTimelineDay'] = 'Timeline Day';
+      desktopViewOptions['resourceTimelineWeek'] = t('settings.viewOptions.timelineWeek');
+      desktopViewOptions['resourceTimelineDay'] = t('settings.viewOptions.timelineDay');
     }
 
     new Setting(section)
-      .setName('Desktop view')
-      .setDesc('Default view for desktop devices')
+      .setName(t('modals.workspace.fields.desktopView.label'))
+      .setDesc(t('modals.workspace.fields.desktopView.description'))
       .addDropdown(dropdown => {
         this.desktopViewDropdown = dropdown;
         Object.entries(desktopViewOptions).forEach(([value, display]) => {
@@ -117,15 +120,15 @@ export class WorkspaceModal extends Modal {
 
     // Mobile view
     const mobileViewOptions: { [key: string]: string } = {
-      '': 'Use default',
-      timeGrid3Days: '3 Days',
-      timeGridDay: 'Day',
-      listWeek: 'List'
+      '': t('modals.workspace.fields.desktopView.label'),
+      timeGrid3Days: t('settings.viewOptions.threeDays'),
+      timeGridDay: t('settings.viewOptions.day'),
+      listWeek: t('settings.viewOptions.list')
     };
 
     new Setting(section)
-      .setName('Mobile view')
-      .setDesc('Default view for mobile devices')
+      .setName(t('modals.workspace.fields.mobileView.label'))
+      .setDesc(t('modals.workspace.fields.mobileView.description'))
       .addDropdown(dropdown => {
         this.mobileViewDropdown = dropdown;
         Object.entries(mobileViewOptions).forEach(([value, display]) => {
@@ -140,12 +143,12 @@ export class WorkspaceModal extends Modal {
 
     // Default date
     new Setting(section)
-      .setName('Default date (optional)')
-      .setDesc('Date to jump to when activating workspace (e.g., "today", "2024-01-01")')
+      .setName(t('modals.workspace.fields.defaultDate.label'))
+      .setDesc(t('modals.workspace.fields.defaultDate.description'))
       .addText(text => {
         this.defaultDateInput = text;
         text
-          .setPlaceholder('today, next-week, 2024-01-01')
+          .setPlaceholder(t('modals.workspace.fields.defaultDate.placeholder'))
           .setValue(this.workspace.defaultDate || '')
           .onChange(value => {
             this.workspace.defaultDate = value || undefined;
@@ -155,22 +158,22 @@ export class WorkspaceModal extends Modal {
 
   private renderCalendarFilterSection(containerEl: HTMLElement) {
     const section = containerEl.createEl('div', { cls: 'workspace-modal-section' });
-    section.createEl('h3', { text: 'Calendar Filters' });
+    section.createEl('h3', { text: t('modals.workspace.sections.calendarFilters') });
 
     // Get available calendars
     const calendars = this.plugin.providerRegistry.getAllSources();
 
     if (calendars.length === 0) {
       section.createEl('p', {
-        text: 'No calendars configured. Configure calendars in the main settings first.'
+        text: t('modals.workspace.fields.visibleCalendars.noCalendars')
       });
       return;
     }
 
     // Visible calendars
     new Setting(section)
-      .setName('Visible calendars')
-      .setDesc('Select which calendars to show (leave empty to show all)')
+      .setName(t('modals.workspace.fields.visibleCalendars.label'))
+      .setDesc(t('modals.workspace.fields.visibleCalendars.description'))
       .setClass('workspace-calendar-filter');
 
     this.visibleCalendarsContainer = section.createEl('div', {
@@ -189,26 +192,26 @@ export class WorkspaceModal extends Modal {
       let displayName: string;
       switch (calendar.type) {
         case 'local':
-          displayName = `Local: ${calendar.directory}`;
+          displayName = `${t('modals.workspace.calendarTypes.local')} ${calendar.directory}`;
           break;
         case 'dailynote':
-          displayName = `Daily Notes: ${calendar.heading}`;
+          displayName = `${t('modals.workspace.calendarTypes.dailyNotes')} ${calendar.heading}`;
           break;
         case 'ical':
           try {
-            displayName = `ICS: ${new URL(calendar.url).hostname}`;
+            displayName = `${t('modals.workspace.calendarTypes.ics')} ${new URL(calendar.url).hostname}`;
           } catch (_) {
-            displayName = 'ICS Calendar';
+            displayName = t('modals.workspace.calendarTypes.ics').replace(':', '');
           }
           break;
         case 'caldav':
-          displayName = `CalDAV: ${calendar.name}`;
+          displayName = `${t('modals.workspace.calendarTypes.caldav')} ${calendar.name}`;
           break;
         case 'google':
-          displayName = `Google: ${calendar.name}`;
+          displayName = `${t('modals.workspace.calendarTypes.google')} ${calendar.name}`;
           break;
         default:
-          displayName = `${calendar.type} Calendar`;
+          displayName = t('modals.workspace.calendarTypes.generic', { type: calendar.type });
       }
 
       new Setting(checkboxContainer).setName(displayName).addToggle(toggle => {
@@ -231,11 +234,11 @@ export class WorkspaceModal extends Modal {
 
   private renderCategoryFilterSection(containerEl: HTMLElement) {
     const section = containerEl.createEl('div', { cls: 'workspace-modal-section' });
-    section.createEl('h3', { text: 'Category Filters' });
+    section.createEl('h3', { text: t('modals.workspace.sections.categoryFilters') });
 
     if (!this.plugin.settings.enableAdvancedCategorization) {
       section.createEl('p', {
-        text: 'Category filtering requires Advanced Categorization to be enabled in the main settings.'
+        text: t('modals.workspace.fields.categories.requiresAdvanced')
       });
       return;
     }
@@ -247,11 +250,14 @@ export class WorkspaceModal extends Modal {
 
     // Category filter mode
     new Setting(section)
-      .setName('Category filter mode')
-      .setDesc('Choose how to filter categories')
+      .setName(t('modals.workspace.fields.categoryFilterMode.label'))
+      .setDesc(t('modals.workspace.fields.categoryFilterMode.description'))
       .addDropdown(dropdown => {
-        dropdown.addOption('show-only', 'Show only selected categories');
-        dropdown.addOption('hide', 'Hide selected categories');
+        dropdown.addOption(
+          'show-only',
+          t('modals.workspace.fields.categoryFilterMode.options.showOnly')
+        );
+        dropdown.addOption('hide', t('modals.workspace.fields.categoryFilterMode.options.hide'));
 
         dropdown.setValue(this.workspace.categoryFilter?.mode ?? 'show-only');
         dropdown.onChange(value => {
@@ -267,8 +273,8 @@ export class WorkspaceModal extends Modal {
 
     // Hint for selection semantics
     new Setting(section)
-      .setName('Categories')
-      .setDesc('Select categories to include/exclude (leave empty to show all)');
+      .setName(t('modals.workspace.fields.categories.label'))
+      .setDesc(t('modals.workspace.fields.categories.description'));
 
     this.categoryFilterContainer = section.createEl('div', {
       cls: 'workspace-category-checkboxes'
@@ -286,7 +292,7 @@ export class WorkspaceModal extends Modal {
     const categories = this.plugin.settings.categorySettings;
     if (categories.length === 0) {
       this.categoryFilterContainer.createEl('p', {
-        text: 'No categories configured. Configure categories in the Categorization settings.'
+        text: t('modals.workspace.fields.categories.noCategories')
       });
       return;
     }
@@ -318,12 +324,12 @@ export class WorkspaceModal extends Modal {
 
   private renderAppearanceSection(containerEl: HTMLElement) {
     const section = containerEl.createEl('div', { cls: 'workspace-modal-section' });
-    section.createEl('h3', { text: 'Appearance Overrides' });
+    section.createEl('h3', { text: t('modals.workspace.sections.appearanceOverrides') });
 
     // Business hours override
     new Setting(section)
-      .setName('Override business hours')
-      .setDesc('Enable custom business hours for this workspace')
+      .setName(t('modals.workspace.fields.overrideBusinessHours.label'))
+      .setDesc(t('modals.workspace.fields.overrideBusinessHours.description'))
       .addToggle(toggle => {
         this.businessHoursToggle = toggle;
         const hasOverride = !!this.workspace.businessHours;
@@ -352,12 +358,21 @@ export class WorkspaceModal extends Modal {
     // Timeline expanded
     if (this.plugin.settings.enableAdvancedCategorization) {
       new Setting(section)
-        .setName('Timeline categories')
-        .setDesc('Default state for timeline category groups')
+        .setName(t('modals.workspace.fields.timelineCategories.label'))
+        .setDesc(t('modals.workspace.fields.timelineCategories.description'))
         .addDropdown(dropdown => {
-          dropdown.addOption('', 'Use default setting');
-          dropdown.addOption('true', 'Expanded by default');
-          dropdown.addOption('false', 'Collapsed by default');
+          dropdown.addOption(
+            '',
+            t('modals.workspace.fields.timelineCategories.options.useDefault')
+          );
+          dropdown.addOption(
+            'true',
+            t('modals.workspace.fields.timelineCategories.options.expanded')
+          );
+          dropdown.addOption(
+            'false',
+            t('modals.workspace.fields.timelineCategories.options.collapsed')
+          );
 
           const currentValue = this.workspace.timelineExpanded;
           dropdown.setValue(currentValue === undefined ? '' : currentValue.toString());
@@ -369,15 +384,15 @@ export class WorkspaceModal extends Modal {
 
     // Add separator
     section.createEl('hr', { cls: 'workspace-modal-separator' });
-    section.createEl('h4', { text: 'View Clipping & Time Range' });
+    section.createEl('h4', { text: t('modals.workspace.sections.viewClipping') });
 
     // Visible time range - Start time
     new Setting(section)
-      .setName('Earliest time to display')
-      .setDesc('Override the earliest time visible in time grid views (format: HH:mm)')
+      .setName(t('modals.workspace.fields.slotMinTime.label'))
+      .setDesc(t('modals.workspace.fields.slotMinTime.description'))
       .addText(text => {
         text
-          .setPlaceholder('Use global default')
+          .setPlaceholder(t('modals.workspace.fields.slotMinTime.placeholder'))
           .setValue(this.workspace.slotMinTime || '')
           .onChange(value => {
             this.workspace.slotMinTime = value.trim() || undefined;
@@ -386,11 +401,11 @@ export class WorkspaceModal extends Modal {
 
     // Visible time range - End time
     new Setting(section)
-      .setName('Latest time to display')
-      .setDesc('Override the latest time visible in time grid views (format: HH:mm)')
+      .setName(t('modals.workspace.fields.slotMaxTime.label'))
+      .setDesc(t('modals.workspace.fields.slotMaxTime.description'))
       .addText(text => {
         text
-          .setPlaceholder('Use global default')
+          .setPlaceholder(t('modals.workspace.fields.slotMinTime.placeholder'))
           .setValue(this.workspace.slotMaxTime || '')
           .onChange(value => {
             this.workspace.slotMaxTime = value.trim() || undefined;
@@ -399,12 +414,12 @@ export class WorkspaceModal extends Modal {
 
     // Weekend visibility
     new Setting(section)
-      .setName('Weekend display')
-      .setDesc('Override whether to show weekends in the calendar')
+      .setName(t('modals.workspace.fields.weekendDisplay.label'))
+      .setDesc(t('modals.workspace.fields.weekendDisplay.description'))
       .addDropdown(dropdown => {
-        dropdown.addOption('', 'Use global default');
-        dropdown.addOption('true', 'Show weekends');
-        dropdown.addOption('false', 'Hide weekends');
+        dropdown.addOption('', t('modals.workspace.fields.slotMinTime.placeholder'));
+        dropdown.addOption('true', t('modals.workspace.fields.weekendDisplay.options.show'));
+        dropdown.addOption('false', t('modals.workspace.fields.weekendDisplay.options.hide'));
 
         const currentValue = this.workspace.weekends;
         dropdown.setValue(currentValue === undefined ? '' : currentValue.toString());
@@ -415,16 +430,16 @@ export class WorkspaceModal extends Modal {
 
     // Hidden days
     new Setting(section)
-      .setName('Hidden days')
-      .setDesc('Override which days to hide from the calendar')
+      .setName(t('modals.workspace.fields.hiddenDays.label'))
+      .setDesc(t('modals.workspace.fields.hiddenDays.description'))
       .addDropdown(dropdown => {
-        dropdown.addOption('', 'Use global default');
-        dropdown.addOption('[]', 'Show all days');
-        dropdown.addOption('[0,6]', 'Hide weekends (Sun, Sat)');
-        dropdown.addOption('[0]', 'Hide Sunday');
-        dropdown.addOption('[6]', 'Hide Saturday');
-        dropdown.addOption('[1]', 'Hide Monday');
-        dropdown.addOption('[5]', 'Hide Friday');
+        dropdown.addOption('', t('modals.workspace.fields.slotMinTime.placeholder'));
+        dropdown.addOption('[]', t('modals.workspace.fields.hiddenDays.options.showAll'));
+        dropdown.addOption('[0,6]', t('modals.workspace.fields.hiddenDays.options.hideWeekends'));
+        dropdown.addOption('[0]', t('modals.workspace.fields.hiddenDays.options.hideSunday'));
+        dropdown.addOption('[6]', t('modals.workspace.fields.hiddenDays.options.hideSaturday'));
+        dropdown.addOption('[1]', t('modals.workspace.fields.hiddenDays.options.hideMonday'));
+        dropdown.addOption('[5]', t('modals.workspace.fields.hiddenDays.options.hideFriday'));
 
         const currentValue = this.workspace.hiddenDays;
         const dropdownValue = currentValue === undefined ? '' : JSON.stringify(currentValue);
@@ -444,18 +459,18 @@ export class WorkspaceModal extends Modal {
 
     // Max events per day (for month view)
     new Setting(section)
-      .setName('Max events per day (month view)')
-      .setDesc('Override the maximum number of events to show per day in month view')
+      .setName(t('modals.workspace.fields.dayMaxEvents.label'))
+      .setDesc(t('modals.workspace.fields.dayMaxEvents.description'))
       .addDropdown(dropdown => {
-        dropdown.addOption('', 'Use global default');
-        dropdown.addOption('false', 'Use default limit');
-        dropdown.addOption('true', 'No limit');
-        dropdown.addOption('1', '1 event');
-        dropdown.addOption('2', '2 events');
-        dropdown.addOption('3', '3 events');
-        dropdown.addOption('4', '4 events');
-        dropdown.addOption('5', '5 events');
-        dropdown.addOption('10', '10 events');
+        dropdown.addOption('', t('modals.workspace.fields.slotMinTime.placeholder'));
+        dropdown.addOption('false', t('modals.workspace.fields.dayMaxEvents.options.useDefault'));
+        dropdown.addOption('true', t('modals.workspace.fields.dayMaxEvents.options.noLimit'));
+        dropdown.addOption('1', t('modals.workspace.fields.dayMaxEvents.options.one'));
+        dropdown.addOption('2', t('modals.workspace.fields.dayMaxEvents.options.two'));
+        dropdown.addOption('3', t('modals.workspace.fields.dayMaxEvents.options.three'));
+        dropdown.addOption('4', t('modals.workspace.fields.dayMaxEvents.options.four'));
+        dropdown.addOption('5', t('modals.workspace.fields.dayMaxEvents.options.five'));
+        dropdown.addOption('10', t('modals.workspace.fields.dayMaxEvents.options.ten'));
 
         const currentValue = this.workspace.dayMaxEvents;
         const dropdownValue = currentValue === undefined ? '' : currentValue.toString();
@@ -481,8 +496,8 @@ export class WorkspaceModal extends Modal {
 
     // Enabled toggle
     new Setting(this.businessHoursContainer)
-      .setName('Enable business hours')
-      .setDesc('Show business hours highlighting in this workspace')
+      .setName(t('modals.workspace.fields.enableBusinessHours.label'))
+      .setDesc(t('modals.workspace.fields.enableBusinessHours.description'))
       .addToggle(toggle => {
         toggle.setValue(this.workspace.businessHours?.enabled || false);
         toggle.onChange(value => {
@@ -497,14 +512,14 @@ export class WorkspaceModal extends Modal {
     if (this.workspace.businessHours.enabled) {
       // Business days
       new Setting(this.businessHoursContainer)
-        .setName('Business days')
-        .setDesc('Select which days of the week are business days')
+        .setName(t('modals.workspace.fields.businessDays.label'))
+        .setDesc(t('modals.workspace.fields.businessDays.description'))
         .addDropdown(dropdown => {
           dropdown
-            .addOption('1,2,3,4,5', 'Monday - Friday')
-            .addOption('0,1,2,3,4,5,6', 'Every day')
-            .addOption('1,2,3,4', 'Monday - Thursday')
-            .addOption('2,3,4,5,6', 'Tuesday - Saturday');
+            .addOption('1,2,3,4,5', t('settings.appearance.businessHours.options.mondayFriday'))
+            .addOption('0,1,2,3,4,5,6', t('settings.appearance.businessHours.options.everyDay'))
+            .addOption('1,2,3,4', t('settings.appearance.businessHours.options.mondayThursday'))
+            .addOption('2,3,4,5,6', t('settings.appearance.businessHours.options.tuesdaySaturday'));
 
           const currentDays = this.workspace.businessHours?.daysOfWeek.join(',') || '1,2,3,4,5';
           dropdown.setValue(currentDays);
@@ -518,8 +533,8 @@ export class WorkspaceModal extends Modal {
 
       // Start time
       new Setting(this.businessHoursContainer)
-        .setName('Business hours start time')
-        .setDesc('When your working day begins (format: HH:mm)')
+        .setName(t('modals.workspace.fields.businessHoursStart.label'))
+        .setDesc(t('modals.workspace.fields.businessHoursStart.description'))
         .addText(text => {
           text.setValue(this.workspace.businessHours?.startTime || '09:00');
           text.onChange(value => {
@@ -532,8 +547,8 @@ export class WorkspaceModal extends Modal {
 
       // End time
       new Setting(this.businessHoursContainer)
-        .setName('Business hours end time')
-        .setDesc('When your working day ends (format: HH:mm)')
+        .setName(t('modals.workspace.fields.businessHoursEnd.label'))
+        .setDesc(t('modals.workspace.fields.businessHoursEnd.description'))
         .addText(text => {
           text.setValue(this.workspace.businessHours?.endTime || '17:00');
           text.onChange(value => {
@@ -550,7 +565,7 @@ export class WorkspaceModal extends Modal {
     const buttonContainer = containerEl.createEl('div', { cls: 'workspace-modal-buttons' });
 
     // Cancel button
-    buttonContainer.createEl('button', { text: 'Cancel' }, button => {
+    buttonContainer.createEl('button', { text: t('modals.workspace.buttons.cancel') }, button => {
       button.addEventListener('click', () => {
         this.close();
       });
@@ -559,7 +574,12 @@ export class WorkspaceModal extends Modal {
     // Save button
     buttonContainer.createEl(
       'button',
-      { text: this.isNew ? 'Create' : 'Save', cls: 'mod-cta' },
+      {
+        text: this.isNew
+          ? t('modals.workspace.buttons.create')
+          : t('modals.workspace.buttons.save'),
+        cls: 'mod-cta'
+      },
       button => {
         button.addEventListener('click', () => {
           if (this.validateWorkspace()) {

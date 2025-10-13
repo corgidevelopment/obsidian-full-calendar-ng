@@ -72,6 +72,27 @@ export function migrateAndSanitizeSettings(settings: unknown): {
     googleAuth?: LegacyGoogleAuth;
   };
 
+  // MIGRATION 0: Ensure all sources have a `name`.
+  newSettings.calendarSources.forEach(source => {
+    if (!('name' in source) || !source.name) {
+      needsSave = true;
+      switch (source.type) {
+        case 'local':
+          source.name = (source as Extract<CalendarInfo, { type: 'local' }>).directory;
+          break;
+        case 'dailynote':
+          source.name = 'Daily Note';
+          break;
+        case 'ical':
+          source.name = (source as Extract<CalendarInfo, { type: 'ical' }>).url;
+          break;
+        default:
+          source.name = 'Unnamed Calendar';
+          break;
+      }
+    }
+  });
+
   // Ensure googleAccounts array exists for the migration
   // googleAccounts already defaulted above
 

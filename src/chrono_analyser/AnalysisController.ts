@@ -14,6 +14,7 @@ import { DataService } from './data/DataService';
 import { PieData, TimeRecord } from './data/types';
 import { InsightsEngine } from './data/InsightsEngine';
 import { InsightConfigModal, InsightsConfig } from './ui/ui'; // Import necessary types
+import { t } from '../features/i18n/i18n';
 
 interface IChartStrategy {
   analysisName: string;
@@ -70,13 +71,11 @@ export class AnalysisController {
   private async handleGenerateInsights() {
     const config = this.uiService.insightsConfig;
     if (!config || Object.keys(config.insightGroups).length === 0) {
-      new Notice('Please configure your Insight Groups first using the ⚙️ icon.', 5000);
+      new Notice(t('notices.chronoAnalyserConfigureFirst'), 5000);
       return;
     }
 
-    new Notice(
-      `Using insights rules last updated on ${new Date(config.lastUpdated).toLocaleString()}.`
-    );
+    new Notice(t('notices.chronoAnalyserGeneratingInsights'));
     this.uiService.setInsightsLoading(true);
 
     const allRecords = this.dataManager.getAllRecords();
@@ -85,7 +84,7 @@ export class AnalysisController {
       this.uiService.renderInsights(insights);
     } catch (error) {
       console.error('Error generating insights:', error);
-      new Notice('Failed to generate insights. Check the developer console for errors.');
+      new Notice(t('notices.chronoAnalyserInsightsFailed'));
     } finally {
       this.uiService.setInsightsLoading(false);
     }
@@ -101,7 +100,7 @@ export class AnalysisController {
         this.plugin.settings.chrono_analyser_config = newConfig;
         this.plugin.saveSettings();
         this.uiService.insightsConfig = newConfig;
-        new Notice('Insights configuration saved!');
+        new Notice(t('notices.chronoAnalyserInsightsSaved'));
       }
     ).open();
   }
@@ -110,7 +109,7 @@ export class AnalysisController {
     await this.uiService.initialize();
 
     if (!this.plugin.cache.initialized) {
-      new Notice('Chrono Analyser: Initializing event cache...', 2000);
+      new Notice(t('notices.chronoAnalyserInitializing'), 2000);
       await this.plugin.cache.populate();
     }
 

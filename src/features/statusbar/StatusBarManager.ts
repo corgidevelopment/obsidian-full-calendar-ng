@@ -11,7 +11,7 @@
  */
 
 import { Menu } from 'obsidian';
-import { DateTime, Duration } from 'luxon'; // Added DateTime & Duration
+import { DateTime, Duration } from 'luxon';
 import FullCalendarPlugin from '../../main';
 import { FullCalendarSettings } from '../../types/settings';
 import { TimeState } from '../../core/TimeEngine';

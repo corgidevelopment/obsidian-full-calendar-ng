@@ -60,28 +60,36 @@ export class TasksPluginProvider implements CalendarProvider<TasksProviderConfig
    */
   private setDoneState(originalMarkdown: string, isDone: boolean): string {
     const doneDateRegex = /\s*✅\s*\d{4}-\d{2}-\d{2}/;
-    const hasDoneDate = doneDateRegex.test(originalMarkdown);
+    const blockLinkRegex = /(\s*\^[a-zA-Z0-9-]+)$/;
+    let updated = originalMarkdown;
 
-    if (isDone && !hasDoneDate) {
-      // Add done date
-      const doneDate = DateTime.now().toFormat('yyyy-MM-dd'); // MODIFIED
-      const doneComponent = ` ✅ ${doneDate}`;
-
-      // Append it, being careful to preserve any block links (^uuid).
-      const blockLinkRegex = /(\s*\^[a-zA-Z0-9-]+)$/;
-      const blockLinkMatch = originalMarkdown.match(blockLinkRegex);
-      if (blockLinkMatch) {
-        const contentWithoutBlockLink = originalMarkdown.replace(blockLinkRegex, '');
-        return `${contentWithoutBlockLink.trim()}${doneComponent}${blockLinkMatch[1]}`;
-      } else {
-        return `${originalMarkdown.trim()}${doneComponent}`;
+    if (isDone) {
+      // Change '- [ ]' to '- [x]'
+      updated = updated.replace(/^- \[ \]/, '- [x]');
+      // Add done date if not present
+      if (!doneDateRegex.test(updated)) {
+        const doneDate = DateTime.now().toFormat('yyyy-MM-dd');
+        const doneComponent = ` ✅ ${doneDate}`;
+        const blockLinkMatch = updated.match(blockLinkRegex);
+        if (blockLinkMatch) {
+          const contentWithoutBlockLink = updated.replace(blockLinkRegex, '');
+          updated = `${contentWithoutBlockLink.trim()}${doneComponent}${blockLinkMatch[1]}`;
+        } else {
+          updated = `${updated.trim()}${doneComponent}`;
+        }
       }
-    } else if (!isDone && hasDoneDate) {
-      // Remove done date
-      return originalMarkdown.replace(doneDateRegex, '').trim();
+    } else {
+      // Change '- [x]' to '- [ ]'
+      updated = updated.replace(/^- \[x\]/, '- [ ]');
+      // Remove done date if present
+      updated = updated.replace(doneDateRegex, '').trim();
+      // Preserve block link if present
+      const blockLinkMatch = originalMarkdown.match(blockLinkRegex);
+      if (blockLinkMatch && !updated.endsWith(blockLinkMatch[1])) {
+        updated += blockLinkMatch[1];
+      }
     }
-    // Return original if state is already correct
-    return originalMarkdown;
+    return updated;
   }
 
   public async toggleComplete(eventId: string, isDone: boolean): Promise<boolean> {

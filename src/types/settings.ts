@@ -70,10 +70,10 @@ export interface FullCalendarSettings {
   googleAccounts: GoogleAccount[];
   businessHours: BusinessHoursSettings;
   enableBackgroundEvents: boolean;
-  enableReminders: boolean; // ADD THIS LINE
+  enableReminders: boolean;
   workspaces: WorkspaceSettings[];
   activeWorkspace: string | null; // Workspace ID, null means default view
-  showEventInStatusBar: boolean; // added
+  showEventInStatusBar: boolean;
 
   // New granular view configuration options
   slotMinTime?: string; // Format: 'HH:mm' - earliest time to display
@@ -112,7 +112,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   enableReminders: false,
   workspaces: [],
   activeWorkspace: null,
-  showEventInStatusBar: false, // added
+  showEventInStatusBar: false,
 
   // New granular view configuration defaults
   slotMinTime: '00:00', // Show all hours by default

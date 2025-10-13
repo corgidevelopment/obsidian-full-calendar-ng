@@ -6,22 +6,31 @@
 
 import { Setting } from 'obsidian';
 import FullCalendarPlugin from '../../../main';
+import { t } from '../../../features/i18n/i18n';
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WEEKDAYS_KEYS = [
+  'settings.weekdays.sunday',
+  'settings.weekdays.monday',
+  'settings.weekdays.tuesday',
+  'settings.weekdays.wednesday',
+  'settings.weekdays.thursday',
+  'settings.weekdays.friday',
+  'settings.weekdays.saturday'
+];
 
 export function renderAppearanceSettings(
   containerEl: HTMLElement,
   plugin: FullCalendarPlugin,
   rerender: () => void
 ): void {
-  new Setting(containerEl).setName('Appearance').setHeading();
+  new Setting(containerEl).setName(t('settings.appearance.title')).setHeading();
 
   new Setting(containerEl)
-    .setName('Starting day of the week')
-    .setDesc('Choose what day of the week to start.')
+    .setName(t('settings.appearance.firstDay.label'))
+    .setDesc(t('settings.appearance.firstDay.description'))
     .addDropdown(dropdown => {
-      WEEKDAYS.forEach((day, code) => {
-        dropdown.addOption(code.toString(), day);
+      WEEKDAYS_KEYS.forEach((dayKey, code) => {
+        dropdown.addOption(code.toString(), t(dayKey));
       });
       dropdown.setValue(plugin.settings.firstDay.toString());
       dropdown.onChange(async codeAsString => {
@@ -31,8 +40,8 @@ export function renderAppearanceSettings(
     });
 
   new Setting(containerEl)
-    .setName('24-hour format')
-    .setDesc('Display the time in a 24-hour format.')
+    .setName(t('settings.appearance.timeFormat24h.label'))
+    .setDesc(t('settings.appearance.timeFormat24h.description'))
     .addToggle(toggle => {
       toggle.setValue(plugin.settings.timeFormat24h);
       toggle.onChange(async val => {
@@ -43,10 +52,8 @@ export function renderAppearanceSettings(
 
   // Business Hours Settings
   new Setting(containerEl)
-    .setName('Enable business hours')
-    .setDesc(
-      'Highlight your working hours in time-grid views to distinguish work time from personal time.'
-    )
+    .setName(t('settings.appearance.businessHours.enable.label'))
+    .setDesc(t('settings.appearance.businessHours.enable.description'))
     .addToggle(toggle => {
       toggle.setValue(plugin.settings.businessHours.enabled);
       toggle.onChange(async val => {
@@ -58,14 +65,14 @@ export function renderAppearanceSettings(
 
   if (plugin.settings.businessHours.enabled) {
     new Setting(containerEl)
-      .setName('Business days')
-      .setDesc('Select which days of the week are business days.')
+      .setName(t('settings.appearance.businessHours.days.label'))
+      .setDesc(t('settings.appearance.businessHours.days.description'))
       .addDropdown(dropdown => {
         dropdown
-          .addOption('1,2,3,4,5', 'Monday - Friday')
-          .addOption('0,1,2,3,4,5,6', 'Every day')
-          .addOption('1,2,3,4', 'Monday - Thursday')
-          .addOption('2,3,4,5,6', 'Tuesday - Saturday');
+          .addOption('1,2,3,4,5', t('settings.appearance.businessHours.options.mondayFriday'))
+          .addOption('0,1,2,3,4,5,6', t('settings.appearance.businessHours.options.everyDay'))
+          .addOption('1,2,3,4', t('settings.appearance.businessHours.options.mondayThursday'))
+          .addOption('2,3,4,5,6', t('settings.appearance.businessHours.options.tuesdaySaturday'));
 
         const currentDays = plugin.settings.businessHours.daysOfWeek.join(',');
         dropdown.setValue(currentDays);
@@ -77,8 +84,8 @@ export function renderAppearanceSettings(
       .settingEl.addClass('fc-indented-setting');
 
     new Setting(containerEl)
-      .setName('Business hours start time')
-      .setDesc('When your working day begins (format: HH:mm)')
+      .setName(t('settings.appearance.businessHours.startTime.label'))
+      .setDesc(t('settings.appearance.businessHours.startTime.description'))
       .addText(text => {
         text.setValue(plugin.settings.businessHours.startTime);
         text.onChange(async value => {
@@ -92,8 +99,8 @@ export function renderAppearanceSettings(
       .settingEl.addClass('fc-indented-setting');
 
     new Setting(containerEl)
-      .setName('Business hours end time')
-      .setDesc('When your working day ends (format: HH:mm)')
+      .setName(t('settings.appearance.businessHours.endTime.label'))
+      .setDesc(t('settings.appearance.businessHours.endTime.description'))
       .addText(text => {
         text.setValue(plugin.settings.businessHours.endTime);
         text.onChange(async value => {
@@ -108,11 +115,11 @@ export function renderAppearanceSettings(
   }
 
   // New granular view configuration section
-  new Setting(containerEl).setName('View Time Range').setHeading();
+  new Setting(containerEl).setName(t('settings.appearance.viewTimeRange.title')).setHeading();
 
   new Setting(containerEl)
-    .setName('Earliest time to display')
-    .setDesc('Set the earliest time visible in time grid views (format: HH:mm)')
+    .setName(t('settings.appearance.viewTimeRange.slotMinTime.label'))
+    .setDesc(t('settings.appearance.viewTimeRange.slotMinTime.description'))
     .addText(text => {
       text.setValue(plugin.settings.slotMinTime || '00:00');
       text.onChange(async value => {
@@ -125,8 +132,8 @@ export function renderAppearanceSettings(
     });
 
   new Setting(containerEl)
-    .setName('Latest time to display')
-    .setDesc('Set the latest time visible in time grid views (format: HH:mm)')
+    .setName(t('settings.appearance.viewTimeRange.slotMaxTime.label'))
+    .setDesc(t('settings.appearance.viewTimeRange.slotMaxTime.description'))
     .addText(text => {
       text.setValue(plugin.settings.slotMaxTime || '24:00');
       text.onChange(async value => {
@@ -138,11 +145,11 @@ export function renderAppearanceSettings(
       });
     });
 
-  new Setting(containerEl).setName('Day Visibility').setHeading();
+  new Setting(containerEl).setName(t('settings.appearance.dayVisibility.title')).setHeading();
 
   new Setting(containerEl)
-    .setName('Show weekends')
-    .setDesc('Whether to display weekend days (Saturday and Sunday) in the calendar')
+    .setName(t('settings.appearance.dayVisibility.weekends.label'))
+    .setDesc(t('settings.appearance.dayVisibility.weekends.description'))
     .addToggle(toggle => {
       toggle.setValue(plugin.settings.weekends ?? true);
       toggle.onChange(async val => {
@@ -152,18 +159,42 @@ export function renderAppearanceSettings(
     });
 
   new Setting(containerEl)
-    .setName('Hidden days')
-    .setDesc('Select days of the week to hide from the calendar')
+    .setName(t('settings.appearance.dayVisibility.hiddenDays.label'))
+    .setDesc(t('settings.appearance.dayVisibility.hiddenDays.description'))
     .addDropdown(dropdown => {
-      dropdown.addOption('[]', 'Show all days');
-      dropdown.addOption('[0,6]', 'Hide weekends (Sun, Sat)');
-      dropdown.addOption('[0]', 'Hide Sunday only');
-      dropdown.addOption('[6]', 'Hide Saturday only');
-      dropdown.addOption('[1]', 'Hide Monday');
-      dropdown.addOption('[2]', 'Hide Tuesday');
-      dropdown.addOption('[3]', 'Hide Wednesday');
-      dropdown.addOption('[4]', 'Hide Thursday');
-      dropdown.addOption('[5]', 'Hide Friday');
+      dropdown.addOption('[]', t('settings.appearance.dayVisibility.hiddenDays.options.showAll'));
+      dropdown.addOption(
+        '[0,6]',
+        t('settings.appearance.dayVisibility.hiddenDays.options.hideWeekends')
+      );
+      dropdown.addOption(
+        '[0]',
+        t('settings.appearance.dayVisibility.hiddenDays.options.hideSunday')
+      );
+      dropdown.addOption(
+        '[6]',
+        t('settings.appearance.dayVisibility.hiddenDays.options.hideSaturday')
+      );
+      dropdown.addOption(
+        '[1]',
+        t('settings.appearance.dayVisibility.hiddenDays.options.hideMonday')
+      );
+      dropdown.addOption(
+        '[2]',
+        t('settings.appearance.dayVisibility.hiddenDays.options.hideTuesday')
+      );
+      dropdown.addOption(
+        '[3]',
+        t('settings.appearance.dayVisibility.hiddenDays.options.hideWednesday')
+      );
+      dropdown.addOption(
+        '[4]',
+        t('settings.appearance.dayVisibility.hiddenDays.options.hideThursday')
+      );
+      dropdown.addOption(
+        '[5]',
+        t('settings.appearance.dayVisibility.hiddenDays.options.hideFriday')
+      );
 
       const currentValue = JSON.stringify(plugin.settings.hiddenDays || []);
       dropdown.setValue(currentValue);
@@ -178,17 +209,17 @@ export function renderAppearanceSettings(
     });
 
   new Setting(containerEl)
-    .setName('Max events per day (month view)')
-    .setDesc('Limit the number of events shown per day in month view')
+    .setName(t('settings.appearance.dayMaxEvents.label'))
+    .setDesc(t('settings.appearance.dayMaxEvents.description'))
     .addDropdown(dropdown => {
-      dropdown.addOption('false', 'Use default limit');
-      dropdown.addOption('true', 'No limit (show all)');
-      dropdown.addOption('1', '1 event maximum');
-      dropdown.addOption('2', '2 events maximum');
-      dropdown.addOption('3', '3 events maximum');
-      dropdown.addOption('4', '4 events maximum');
-      dropdown.addOption('5', '5 events maximum');
-      dropdown.addOption('10', '10 events maximum');
+      dropdown.addOption('false', t('settings.appearance.dayMaxEvents.options.default'));
+      dropdown.addOption('true', t('settings.appearance.dayMaxEvents.options.unlimited'));
+      dropdown.addOption('1', t('settings.appearance.dayMaxEvents.options.one'));
+      dropdown.addOption('2', t('settings.appearance.dayMaxEvents.options.two'));
+      dropdown.addOption('3', t('settings.appearance.dayMaxEvents.options.three'));
+      dropdown.addOption('4', t('settings.appearance.dayMaxEvents.options.four'));
+      dropdown.addOption('5', t('settings.appearance.dayMaxEvents.options.five'));
+      dropdown.addOption('10', t('settings.appearance.dayMaxEvents.options.ten'));
 
       const currentValue = (plugin.settings.dayMaxEvents ?? false).toString();
       dropdown.setValue(currentValue);
@@ -205,10 +236,8 @@ export function renderAppearanceSettings(
     });
 
   new Setting(containerEl)
-    .setName('Enable background events')
-    .setDesc(
-      'Allow events to be displayed as background elements for things like vacations, focus time, or class schedules.'
-    )
+    .setName(t('settings.appearance.enableBackgroundEvents.label'))
+    .setDesc(t('settings.appearance.enableBackgroundEvents.description'))
     .addToggle(toggle => {
       toggle.setValue(plugin.settings.enableBackgroundEvents);
       toggle.onChange(async val => {
@@ -219,8 +248,8 @@ export function renderAppearanceSettings(
 
   // Show current event in status bar toggle
   new Setting(containerEl)
-    .setName('Show current event in status bar')
-    .setDesc('Display the title of the currently running event in the Obsidian status bar.')
+    .setName(t('settings.appearance.showEventInStatusBar.label'))
+    .setDesc(t('settings.appearance.showEventInStatusBar.description'))
     .addToggle(toggle => {
       toggle.setValue(plugin.settings.showEventInStatusBar);
       toggle.onChange(async val => {

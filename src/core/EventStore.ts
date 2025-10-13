@@ -249,13 +249,10 @@ export default class EventStore {
       );
     }
 
-    // console.debug('adding event', { id, event, location });
-
     this.store.set(id, event);
     this.calendarIndex.add(new StringIdentifier(calendarId), new EventID(id));
     if (location) {
       const { file, lineNumber } = location;
-      // console.debug('adding event in file:', file.path);
       this.pathIndex.add(new Path(file), new EventID(id));
       if (lineNumber !== undefined && lineNumber !== null) {
         this.lineNumbers.set(id, lineNumber);
@@ -274,7 +271,6 @@ export default class EventStore {
     if (!event) {
       return null;
     }
-    // console.debug('deleting event', { id, event });
 
     this.calendarIndex.delete(new EventID(id));
     this.pathIndex.delete(new EventID(id));

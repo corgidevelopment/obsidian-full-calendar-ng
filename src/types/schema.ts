@@ -76,7 +76,7 @@ export const TimeSchema = z.discriminatedUnion('allDay', [
 export const CommonSchema = z.object({
   title: z.string(), // This will now store the CLEAN title.
   id: z.string().optional(),
-  uid: z.string().optional(), // Added line
+  uid: z.string().optional(),
   timezone: z.string().optional(),
   category: z.string().optional(), // This will store the parsed category.
   subCategory: z.string().optional(),
@@ -197,10 +197,6 @@ export function validateEvent(obj: unknown): OFCEvent | null {
     return parseEvent(obj);
   } catch (e) {
     if (e instanceof ZodError) {
-      // console.debug('Parsing failed with errors', {
-      //   obj,
-      //   message: e.message
-      // });
     }
     return null;
   }

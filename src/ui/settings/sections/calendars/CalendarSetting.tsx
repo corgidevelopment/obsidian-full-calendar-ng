@@ -22,6 +22,7 @@ interface CalendarSettingRowProps {
   children: React.ReactNode;
   setting: Partial<CalendarInfo>;
   onColorChange: (s: string) => void;
+  onNameChange: (s: string) => void;
   deleteCalendar: () => void;
 }
 
@@ -30,6 +31,7 @@ const CalendarSettingRow = ({
   children,
   setting,
   onColorChange,
+  onNameChange,
   deleteCalendar
 }: CalendarSettingRowProps) => {
   return (
@@ -37,6 +39,14 @@ const CalendarSettingRow = ({
       <button type="button" onClick={deleteCalendar} className="fc-setting-delete-btn">
         ✕
       </button>
+      <div className="setting-item-control" style={{ flex: '1' }}>
+        <input
+          type="text"
+          value={setting.name || ''}
+          className="fc-setting-input"
+          onChange={e => onNameChange(e.target.value)}
+        />
+      </div>
       {children}
       <input
         type="color"
@@ -91,6 +101,17 @@ export class CalendarSettings
       .filter((s): s is string => !!s);
   };
 
+  updateSourceName = (index: number, name: string) => {
+    this.setState(state => {
+      const newSources = [...state.sources];
+      newSources[index] = { ...newSources[index], name };
+      return {
+        sources: newSources,
+        dirty: true
+      };
+    });
+  };
+
   render() {
     return (
       <div style={{ width: '100%' }}>
@@ -99,6 +120,7 @@ export class CalendarSettings
             key={idx}
             setting={s}
             plugin={this.props.plugin}
+            onNameChange={(name: string) => this.updateSourceName(idx, name)}
             onColorChange={(color: string) =>
               this.setState(state => ({
                 sources: [
@@ -149,6 +171,7 @@ interface CalendarSettingsRowProps {
 interface ProviderAwareCalendarSettingsRowProps {
   setting: Partial<CalendarInfo>;
   onColorChange: (s: string) => void;
+  onNameChange: (s: string) => void;
   deleteCalendar: () => void;
   plugin: FullCalendarPlugin;
 }
@@ -156,16 +179,17 @@ interface ProviderAwareCalendarSettingsRowProps {
 export const ProviderAwareCalendarSettingRow = ({
   setting,
   onColorChange,
+  onNameChange,
   deleteCalendar,
   plugin
 }: ProviderAwareCalendarSettingsRowProps) => {
   const registry = plugin.providerRegistry;
   const provider = setting.id ? registry.getInstance(setting.id) : null;
 
-  // The common props for our new stable row component
   const rowProps = {
     setting,
     onColorChange,
+    onNameChange,
     deleteCalendar
   };
 

@@ -1,6 +1,7 @@
 // src/ui/modals/DeleteRecurringModal.ts
 
 import { App, ButtonComponent, Modal, Setting } from 'obsidian';
+import { t } from '../../features/i18n/i18n';
 
 export class DeleteRecurringModal extends Modal {
   constructor(
@@ -17,20 +18,20 @@ export class DeleteRecurringModal extends Modal {
   onOpen() {
     this.modalEl.addClass('full-calendar-confirm-modal');
     const { contentEl } = this;
-    contentEl.createEl('h2', { text: 'Delete Recurring Event' });
+    contentEl.createEl('h2', { text: t('modals.deleteRecurring.title') });
     contentEl.createEl('p', {
-      text: 'This is a recurring event. What would you like to do with all of its future "override" instances (i.e., events that you have dragged or modified)?'
+      text: t('modals.deleteRecurring.description')
     });
 
     if (this.onDeleteInstance && this.instanceDate) {
       new Setting(contentEl)
-        .setName('Delete only this instance')
+        .setName(t('modals.deleteRecurring.deleteInstance.name'))
         .setDesc(
-          `Delete only the instance on ${this.instanceDate}. This will skip this date in the recurrence.`
+          t('modals.deleteRecurring.deleteInstance.description', { date: this.instanceDate })
         )
         .addButton((btn: ButtonComponent) =>
           btn
-            .setButtonText('Delete This Instance')
+            .setButtonText(t('modals.deleteRecurring.deleteInstance.button'))
             .setCta()
             .onClick(() => {
               this.close();
@@ -42,13 +43,11 @@ export class DeleteRecurringModal extends Modal {
     // Wrap the "Promote" setting in a condition
     if (!this.isGoogle) {
       new Setting(contentEl)
-        .setName('Promote child events')
-        .setDesc(
-          'Turn all overriden events (if any) into standalone, single events. They will no longer be linked to this recurring series.'
-        )
+        .setName(t('modals.deleteRecurring.promoteChildren.name'))
+        .setDesc(t('modals.deleteRecurring.promoteChildren.description'))
         .addButton((btn: ButtonComponent) =>
           btn
-            .setButtonText('Promote Children')
+            .setButtonText(t('modals.deleteRecurring.promoteChildren.button'))
             .setCta()
             .onClick(() => {
               this.close();
@@ -58,13 +57,11 @@ export class DeleteRecurringModal extends Modal {
     }
 
     new Setting(contentEl)
-      .setName('Delete child events')
-      .setDesc(
-        'Delete all future override events associated with this recurring series. This cannot be undone.'
-      )
+      .setName(t('modals.deleteRecurring.deleteAll.name'))
+      .setDesc(t('modals.deleteRecurring.deleteAll.description'))
       .addButton((btn: ButtonComponent) =>
         btn
-          .setButtonText('Delete Everything')
+          .setButtonText(t('modals.deleteRecurring.deleteAll.button'))
           .setCta()
           .onClick(() => {
             this.close();
@@ -73,7 +70,7 @@ export class DeleteRecurringModal extends Modal {
       );
 
     new Setting(contentEl).addButton((btn: ButtonComponent) =>
-      btn.setButtonText('Cancel').onClick(() => this.close())
+      btn.setButtonText(t('modals.deleteRecurring.cancel')).onClick(() => this.close())
     );
   }
 

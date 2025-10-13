@@ -8,6 +8,7 @@ import { Setting, ButtonComponent } from 'obsidian';
 import FullCalendarPlugin from '../../../main';
 import { WorkspaceSettings, createDefaultWorkspace } from '../../../types/settings';
 import { WorkspaceModal } from './WorkspaceModal';
+import { t } from '../../i18n/i18n';
 
 export function renderWorkspaceSettings(
   containerEl: HTMLElement,
@@ -18,22 +19,20 @@ export function renderWorkspaceSettings(
   const workspaceSection = containerEl.createEl('div');
 
   new Setting(workspaceSection)
-    .setName('Workspaces')
-    .setDesc(
-      'Create and manage calendar workspaces. Each workspace can have its own view settings, visible calendars, and filters.'
-    )
+    .setName(t('settings.workspaces.title'))
+    .setDesc(t('settings.workspaces.description'))
     .setHeading();
 
   // Add workspace button
   new Setting(workspaceSection)
-    .setName('Add new workspace')
-    .setDesc('Create a new calendar workspace')
+    .setName(t('settings.workspaces.addNew.label'))
+    .setDesc(t('settings.workspaces.addNew.description'))
     .addButton(button => {
       button
-        .setButtonText('New Workspace')
+        .setButtonText(t('settings.workspaces.buttons.new'))
         .setIcon('plus')
         .onClick(() => {
-          const newWorkspace = createDefaultWorkspace('New Workspace');
+          const newWorkspace = createDefaultWorkspace(t('settings.workspaces.defaultName'));
           new WorkspaceModal(plugin, newWorkspace, true, workspace => {
             plugin.settings.workspaces.push(workspace);
             plugin.saveSettings();
@@ -54,7 +53,7 @@ export function renderWorkspaceSettings(
         .setDesc(getWorkspaceDescription(workspace))
         .addButton(button => {
           button
-            .setButtonText('Edit')
+            .setButtonText(t('settings.workspaces.buttons.edit'))
             .setIcon('pencil')
             .onClick(() => {
               new WorkspaceModal(plugin, workspace, false, updatedWorkspace => {
@@ -66,10 +65,12 @@ export function renderWorkspaceSettings(
         })
         .addButton(button => {
           button
-            .setButtonText('Duplicate')
+            .setButtonText(t('settings.workspaces.buttons.duplicate'))
             .setIcon('copy')
             .onClick(() => {
-              const duplicatedWorkspace = createDefaultWorkspace(workspace.name + ' Copy');
+              const duplicatedWorkspace = createDefaultWorkspace(
+                t('settings.workspaces.copyName', { name: workspace.name })
+              );
               // Copy all settings from original workspace
               Object.assign(duplicatedWorkspace, {
                 ...workspace,
@@ -87,7 +88,11 @@ export function renderWorkspaceSettings(
         .addButton(button => {
           const isActive = plugin.settings.activeWorkspace === workspace.id;
           button
-            .setButtonText(isActive ? 'Active' : 'Activate')
+            .setButtonText(
+              isActive
+                ? t('settings.workspaces.buttons.active')
+                : t('settings.workspaces.buttons.activate')
+            )
             .setIcon(isActive ? 'check' : 'play')
             .setDisabled(isActive)
             .onClick(async () => {
@@ -98,7 +103,7 @@ export function renderWorkspaceSettings(
         })
         .addButton(button => {
           button
-            .setButtonText('Delete')
+            .setButtonText(t('settings.workspaces.buttons.delete'))
             .setIcon('trash-2')
             .setWarning()
             .onClick(async () => {

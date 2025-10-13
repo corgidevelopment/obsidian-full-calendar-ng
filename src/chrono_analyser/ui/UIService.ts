@@ -228,7 +228,6 @@ export class UIService {
     const dates = this.flatpickrInstance?.selectedDates;
     const filterStartDate = dates && dates.length === 2 ? dates[0] : null;
     const filterEndDate = dates && dates.length === 2 ? dates[1] : null;
-    // ADDED: Pattern is now a global filter
     const pattern = this.rootEl.querySelector<HTMLInputElement>('#patternInput')?.value ?? '';
 
     const filters: AnalysisFilters = {

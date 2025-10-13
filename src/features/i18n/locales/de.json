@@ -1,0 +1,590 @@
+{
+  "commands": {
+    "newEvent": "Neues Ereignis",
+    "resetCache": "Ereignis-Cache zurücksetzen",
+    "revalidateRemote": "Remote-Kalender neu validieren",
+    "openCalendar": "Kalender öffnen",
+    "openChronoAnalyser": "Chrono-Analyser öffnen (nur Desktop)",
+    "openSidebar": "Im Seitenbereich öffnen"
+  },
+  "notices": {
+    "settingsUpdated": "Full Calendar hat Ihre Kalendereinstellungen auf ein neues Format aktualisiert.",
+    "cacheReset": "Full Calendar wurde zurückgesetzt.",
+    "chronoAnalyserMobileDisabled": "Die Chrono-Analyser-Funktion ist nur in der Desktop-Version von Obsidian verfügbar.",
+    "chronoAnalyserInitializing": "Chrono-Analyser: Ereignis-Cache wird initialisiert...",
+    "chronoAnalyserLoadFailed": "Chrono-Analyser konnte nicht geladen werden. Bitte überprüfen Sie die Konsole.",
+    "chronoAnalyserConfigureFirst": "Bitte konfigurieren Sie zuerst Ihre Insight-Gruppen mit dem ⚙️ Symbol.",
+    "chronoAnalyserGeneratingInsights": "Erkenntnisse werden generiert (dies kann einen Moment dauern)...",
+    "chronoAnalyserInsightsFailed": "Erkenntnisse konnten nicht generiert werden. Überprüfen Sie die Entwicklerkonsole auf Fehler.",
+    "chronoAnalyserInsightsSaved": "Konfiguration der Erkenntnisse gespeichert!",
+    "googleAuthFailed": "Google-Authentifizierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "bulkUpdateError": "Fehler bei der Massenaktualisierung. Details in der Konsole.",
+    "providerNotRegistered": "{{providerType}}-Provider ist nicht registriert.",
+    "timezoneChanged": "Systemzeitzone geändert zu {{timezone}}. Kalenderansicht wurde angepasst.",
+    "revalidatingRemotes": "Remote-Kalender werden neu validiert...",
+    "revalidationFailed": "Ein oder mehrere Remote-Kalender konnten nicht geladen werden. Details in der Konsole.",
+    "revalidationSuccess": "Remote-Kalender wurden neu validiert.",
+    "cannotOpenRemote": "Notiz für ein Remote-Ereignis kann nicht geöffnet werden.",
+    "bulkCategorization": {
+      "noNotesFound": "Keine lokalen Ereignisnotizen zum Kategorisieren gefunden.",
+      "progress": "Ereignisnotizen werden kategorisiert: {{index}}/{{total}}",
+      "complete": "Massenkategorisierung abgeschlossen."
+    },
+    "bulkDecategorization": {
+      "noNotesFound": "Keine lokalen Ereignisnotizen zum Dekategorisieren gefunden.",
+      "progress": "Ereignisnotizen werden dekategorisiert: {{index}}/{{total}}",
+      "complete": "Massen-Dekategorisierung abgeschlossen."
+    }
+  },
+  "ribbon": {
+    "openCalendar": "Full Calendar öffnen"
+  },
+  "settings": {
+    "general": {
+      "desktopInitialView": {
+        "label": "Desktop-Startansicht",
+        "description": "Wählen Sie den anfänglichen Ansichtsbereich auf Desktop-Geräten."
+      },
+      "mobileInitialView": {
+        "label": "Mobile Startansicht",
+        "description": "Wählen Sie den anfänglichen Ansichtsbereich auf Mobilgeräten."
+      },
+      "displayTimezone": {
+        "label": "Zeitzone anzeigen",
+        "description": "Wählen Sie die Zeitzone für die Anzeige von Ereignissen. Standardmäßig Ihre Systemzeitzone. Eine Änderung lädt den Kalender neu."
+      },
+      "clickToCreateEvent": {
+        "label": "Klicken Sie auf einen Tag in der Monatsansicht, um ein Ereignis zu erstellen",
+        "description": "Deaktivieren, um stattdessen die Tagesansicht zu öffnen."
+      },
+      "enableReminders": {
+        "label": "Ereignis-Erinnerungen aktivieren",
+        "description": "Zeigt 10 Minuten vor Beginn eines Ereignisses eine Desktop-Benachrichtigung an."
+      }
+    },
+    "appearance": {
+      "title": "Aussehen",
+      "firstDay": {
+        "label": "Erster Tag der Woche",
+        "description": "Wählen Sie den Starttag der Woche."
+      },
+      "timeFormat24h": {
+        "label": "24-Stunden-Format",
+        "description": "Zeigt die Zeit im 24-Stunden-Format an."
+      },
+      "businessHours": {
+        "enable": {
+          "label": "Geschäftszeiten aktivieren",
+          "description": "Hebt Ihre Arbeitszeiten in Zeitrasteransichten hervor, um Arbeitszeit von Freizeit zu unterscheiden."
+        },
+        "days": {
+          "label": "Arbeitstage",
+          "description": "Wählen Sie die Arbeitstage aus."
+        },
+        "startTime": {
+          "label": "Beginn der Geschäftszeiten",
+          "description": "Wann Ihr Arbeitstag beginnt (Format: HH:mm)"
+        },
+        "endTime": {
+          "label": "Ende der Geschäftszeiten",
+          "description": "Wann Ihr Arbeitstag endet (Format: HH:mm)"
+        },
+        "options": {
+          "mondayFriday": "Montag - Freitag",
+          "everyDay": "Jeden Tag",
+          "mondayThursday": "Montag - Donnerstag",
+          "tuesdaySaturday": "Dienstag - Samstag"
+        }
+      },
+      "viewTimeRange": {
+        "title": "Ansichtszeitbereich",
+        "slotMinTime": {
+          "label": "Früheste angezeigte Zeit",
+          "description": "Setzen Sie die früheste Zeit in Zeitrasteransichten (Format: HH:mm)"
+        },
+        "slotMaxTime": {
+          "label": "Späteste angezeigte Zeit",
+          "description": "Setzen Sie die späteste Zeit in Zeitrasteransichten (Format: HH:mm)"
+        }
+      },
+      "dayVisibility": {
+        "title": "Tagesanzeige",
+        "weekends": {
+          "label": "Wochenenden anzeigen",
+          "description": "Ob Wochenendtage (Samstag und Sonntag) im Kalender angezeigt werden"
+        },
+        "hiddenDays": {
+          "label": "Versteckte Tage",
+          "description": "Wählen Sie die Tage der Woche aus, die im Kalender ausgeblendet werden sollen",
+          "options": {
+            "showAll": "Alle Tage anzeigen",
+            "hideWeekends": "Wochenenden ausblenden (So, Sa)",
+            "hideSunday": "Nur Sonntag ausblenden",
+            "hideSaturday": "Nur Samstag ausblenden",
+            "hideMonday": "Montag ausblenden",
+            "hideTuesday": "Dienstag ausblenden",
+            "hideWednesday": "Mittwoch ausblenden",
+            "hideThursday": "Donnerstag ausblenden",
+            "hideFriday": "Freitag ausblenden"
+          }
+        }
+      },
+      "dayMaxEvents": {
+        "label": "Maximale Ereignisse pro Tag (Monatsansicht)",
+        "description": "Begrenzen Sie die Anzahl der angezeigten Ereignisse pro Tag in der Monatsansicht",
+        "options": {
+          "default": "Standardlimit verwenden",
+          "unlimited": "Kein Limit (alle anzeigen)",
+          "one": "1 Ereignis maximal",
+          "two": "2 Ereignisse maximal",
+          "three": "3 Ereignisse maximal",
+          "four": "4 Ereignisse maximal",
+          "five": "5 Ereignisse maximal",
+          "ten": "10 Ereignisse maximal"
+        }
+      },
+      "enableBackgroundEvents": {
+        "label": "Hintergrundereignisse aktivieren",
+        "description": "Erlaubt die Anzeige von Ereignissen als Hintergrundelemente für z.B. Urlaub, Fokuszeit oder Stundenpläne."
+      },
+      "showEventInStatusBar": {
+        "label": "Aktuelles Ereignis in der Statusleiste anzeigen",
+        "description": "Zeigt den Titel des aktuell laufenden Ereignisses in der Obsidian-Statusleiste an."
+      }
+    },
+    "calendars": {
+      "title": "Kalender verwalten",
+      "addCalendar": "Kalender hinzufügen",
+      "addCalendarTooltip": "Kalender hinzufügen",
+      "defaults": {
+        "iCloud": "iCloud-Kalender",
+        "new": "Neuer {{type}} Kalender"
+      },
+      "types": {
+        "local": "Vollständige Notiz",
+        "dailynote": "Tagesnotiz",
+        "icloud": "iCloud",
+        "caldav": "CalDAV",
+        "ical": "Remote (.ics Format)",
+        "google": "Google Kalender",
+        "tasks": "Obsidian Tasks"
+      },
+      "fullNote": {
+        "directory": {
+          "label": "Verzeichnis",
+          "description": "Verzeichnis zum Speichern von Ereignisnotizen"
+        }
+      },
+      "dailyNote": {
+        "heading": {
+          "label": "Überschrift",
+          "description": "Überschrift zum Speichern von Ereignissen in der Tagesnotiz."
+        }
+      },
+      "ics": {
+        "url": {
+          "label": "URL",
+          "description": "URL der .ics-Datei"
+        }
+      },
+      "caldav": {
+        "url": {
+          "label": "Sammlungs-URL",
+          "description": "Fügen Sie Ihre Kalender-Sammlungs-URL ein (z.B. https://calendar.zoho.in/caldav/<id>/events/)"
+        },
+        "username": {
+          "label": "Benutzername",
+          "description": "Benutzername für das Konto"
+        },
+        "password": {
+          "label": "Passwort",
+          "description": "Passwort für das Konto"
+        },
+        "importButton": "Kalender importieren",
+        "importing": "Importiere..."
+      },
+      "tasks": {
+        "zeroConfig": {
+          "label": "Keine Konfiguration erforderlich",
+          "description": "Dieser Provider liest automatisch Ihre bestehenden Einstellungen des Obsidian Tasks-Plugins. Alle Aufgaben mit Fälligkeitsdatum werden als schreibgeschützte Ereignisse im Kalender angezeigt."
+        },
+        "calendarName": {
+          "label": "Kalendername",
+          "description": "Anzeigename für diesen Kalender"
+        },
+        "readOnly": {
+          "label": "Schreibgeschützter Kalender",
+          "description": "Aufgaben können angezeigt, aber nicht über die Kalenderoberfläche bearbeitet werden. Zum Bearbeiten verwenden Sie das Tasks-Plugin oder ändern Sie Ihre Notizen direkt."
+        },
+        "adding": "Wird hinzugefügt...",
+        "cancel": "Abbrechen"
+      }
+    },
+    "categorization": {
+      "title": "Erweiterte Kategorisierung und Zeitachse",
+      "learnMore": "Mehr erfahren",
+      "learnMoreLink": "hier",
+      "enable": {
+        "label": "Erweiterte Kategorisierung aktivieren (titelbasiert)",
+        "description": "Aktivieren Sie die kategoriebasierte Farbgebung und schalten Sie Zeitachsenansichten frei. Dies ändert die Titel der Ereignisnotizen und ermöglicht die Zeitachsenvisualisierung nach Kategorie."
+      },
+      "disable": {
+        "modalTitle": "⚠️ Deaktivieren und bereinigen",
+        "modalDescription": "Durch das Deaktivieren dieser Funktion werden bekannte Kategorie-Präfixe aus Ihren Ereignistiteln entfernt und alle gespeicherten Kategorie-Farbeinstellungen dauerhaft gelöscht.",
+        "buttonDisable": "Deaktivieren und Notizen bereinigen",
+        "buttonCancel": "Abbrechen"
+      }
+    },
+    "workspaces": {
+      "title": "Arbeitsbereiche",
+      "description": "Erstellen und verwalten Sie Kalender-Arbeitsbereiche. Jeder Arbeitsbereich kann eigene Ansichtseinstellungen, sichtbare Kalender und Filter haben.",
+      "addNew": {
+        "label": "Neuen Arbeitsbereich hinzufügen",
+        "description": "Neuen Kalender-Arbeitsbereich erstellen"
+      },
+      "buttons": {
+        "new": "Neuer Arbeitsbereich",
+        "edit": "Bearbeiten",
+        "duplicate": "Duplizieren",
+        "activate": "Aktivieren",
+        "active": "Aktiv",
+        "delete": "Löschen"
+      },
+      "defaultName": "Neuer Arbeitsbereich",
+      "copyName": "{{name}} Kopie"
+    },
+    "quickStart": {
+      "title": "Schnellstart: Fügen Sie Ihren ersten Kalender hinzu",
+  "description": "Fügen Sie eine Kalenderquelle mit der \"+\"-Schaltfläche im Bereich 'Kalender verwalten' hinzu."
+    },
+    "viewOptions": {
+      "day": "Tag",
+      "week": "Woche",
+      "month": "Monat",
+      "list": "Liste",
+      "threeDays": "3 Tage",
+      "timelineWeek": "Zeitachsen-Woche",
+      "timelineDay": "Zeitachsen-Tag"
+    },
+    "weekdays": {
+      "sunday": "Sonntag",
+      "monday": "Montag",
+      "tuesday": "Dienstag",
+      "wednesday": "Mittwoch",
+      "thursday": "Donnerstag",
+      "friday": "Freitag",
+      "saturday": "Samstag"
+    }
+  },
+  "modals": {
+    "editEvent": {
+      "title": {
+        "new": "Neues Ereignis",
+        "edit": "Ereignis bearbeiten"
+      },
+      "buttons": {
+        "openNote": "Notiz öffnen",
+        "delete": "Löschen",
+        "save": "Ereignis speichern"
+      },
+      "fields": {
+        "title": {
+          "label": "Titel",
+          "placeholder": "Ereignistitel"
+        },
+        "category": {
+          "label": "Kategorie",
+          "placeholder": "Kategorie (optional)"
+        },
+        "display": {
+          "label": "Anzeige",
+          "options": {
+            "auto": "Normales Ereignis",
+            "background": "Hintergrundereignis",
+            "inverseBackground": "Invertierter Hintergrund",
+            "none": "Versteckt"
+          }
+        },
+        "inCalendar": {
+          "label": "Im Kalender"
+        },
+        "date": {
+          "label": "Datum"
+        },
+        "time": {
+          "label": "Zeit"
+        },
+        "options": {
+          "label": "Optionen",
+          "allDay": "Ganztägig",
+          "isTask": "Ist eine Aufgabe",
+          "completed": "Abgeschlossen",
+          "endReminder": "10 Min. vor Ende erinnern",
+          "endReminderTooltip": "Eine End-Erinnerung erfordert eine bestimmte Endzeit."
+        },
+        "repeats": {
+          "label": "Wiederholt sich",
+          "options": {
+            "none": "Keine",
+            "weekly": "Wöchentlich",
+            "monthly": "Monatlich",
+            "yearly": "Jährlich"
+          },
+          "repeatEvery": "Wiederhole alle",
+          "week": "Woche",
+          "weeks": "Wochen",
+          "month": "Monat",
+          "months": "Monate",
+          "year": "Jahr",
+          "years": "Jahre",
+          "repeatOn": "Wiederhole am",
+          "onDay": "Am Tag {{day}}",
+          "onThe": "Am",
+          "ordinal": {
+            "first": "ersten",
+            "second": "zweiten",
+            "third": "dritten",
+            "fourth": "vierten",
+            "last": "letzten"
+          },
+          "yearlyText": "Wiederholt sich jedes Jahr am {{date}}.",
+          "endRepeat": "Wiederholung beenden"
+        }
+      },
+      "tooltips": {
+        "recurringTaskCompletion": "Die Fertigstellung für wiederkehrende Aufgaben kann für einzelne Instanzen in der Kalenderansicht umgeschaltet werden.",
+        "dailyNoteRecurring": "Wiederkehrende Ereignisse werden in Tagesnotizen nicht unterstützt. Bitte verwenden Sie stattdessen einen 'Vollständige Notiz'-Kalender.",
+        "inheritedEvent": "Dieses Ereignis stammt aus einer wiederkehrenden Serie. Um es zu bearbeiten, öffnen Sie zuerst die Seriennotiz."
+      }
+    },
+    "deleteRecurring": {
+      "title": "Wiederkehrendes Ereignis löschen",
+  "description": "Dies ist ein wiederkehrendes Ereignis. Was möchten Sie mit allen zukünftigen \"Override\"-Instanzen tun (d.h. Ereignisse, die Sie verschoben oder bearbeitet haben)?",
+      "deleteInstance": {
+        "name": "Nur diese Instanz löschen",
+        "description": "Nur die Instanz am {{date}} löschen. Dieses Datum wird in der Wiederholung übersprungen.",
+        "button": "Diese Instanz löschen"
+      },
+      "promoteChildren": {
+        "name": "Untergeordnete Ereignisse fördern",
+        "description": "Alle überschriebenen Ereignisse (falls vorhanden) in eigenständige Einzelereignisse umwandeln. Sie sind dann nicht mehr mit dieser Serie verknüpft.",
+        "button": "Kinder fördern"
+      },
+      "deleteAll": {
+        "name": "Untergeordnete Ereignisse löschen",
+        "description": "Alle zukünftigen Override-Ereignisse dieser Serie löschen. Dies kann nicht rückgängig gemacht werden.",
+        "button": "Alles löschen"
+      },
+      "cancel": "Abbrechen"
+    },
+    "workspace": {
+      "title": {
+        "create": "Arbeitsbereich erstellen",
+        "edit": "Arbeitsbereich bearbeiten"
+      },
+      "sections": {
+        "general": "Allgemein",
+        "viewConfiguration": "Ansichtskonfiguration",
+        "calendarFilters": "Kalenderfilter",
+        "categoryFilters": "Kategoriefilter",
+        "appearanceOverrides": "Aussehen überschreiben",
+        "viewClipping": "Ansichtsausschnitt & Zeitbereich"
+      },
+      "fields": {
+        "name": {
+          "label": "Name",
+          "description": "Ein eindeutiger Name für diesen Arbeitsbereich",
+          "placeholder": "z.B. Arbeitsfokus, Familienplanung"
+        },
+        "desktopView": {
+          "label": "Desktop-Ansicht",
+          "description": "Standardansicht für Desktop-Geräte"
+        },
+        "mobileView": {
+          "label": "Mobile Ansicht",
+          "description": "Standardansicht für Mobilgeräte"
+        },
+        "defaultDate": {
+          "label": "Standarddatum (optional)",
+          "description": "Datum, zu dem beim Aktivieren des Arbeitsbereichs gesprungen wird (z.B. \"heute\", \"2024-01-01\")",
+          "placeholder": "heute, nächste-Woche, 2024-01-01"
+        },
+        "visibleCalendars": {
+          "label": "Sichtbare Kalender",
+          "description": "Wählen Sie aus, welche Kalender angezeigt werden sollen (leer lassen, um alle anzuzeigen)",
+          "noCalendars": "Keine Kalender konfiguriert. Konfigurieren Sie zuerst Kalender in den Haupteinstellungen."
+        },
+        "categoryFilterMode": {
+          "label": "Kategorie-Filtermodus",
+          "description": "Wählen Sie, wie Kategorien gefiltert werden",
+          "options": {
+            "showOnly": "Nur ausgewählte Kategorien anzeigen",
+            "hide": "Ausgewählte Kategorien ausblenden"
+          }
+        },
+        "categories": {
+          "label": "Kategorien",
+          "description": "Wählen Sie Kategorien zum Ein-/Ausschließen (leer lassen, um alle anzuzeigen)",
+          "noCategories": "Keine Kategorien konfiguriert. Konfigurieren Sie Kategorien in den Kategorisierungseinstellungen.",
+          "requiresAdvanced": "Kategoriefilterung erfordert die Aktivierung der erweiterten Kategorisierung in den Haupteinstellungen."
+        },
+        "overrideBusinessHours": {
+          "label": "Geschäftszeiten überschreiben",
+          "description": "Aktivieren Sie benutzerdefinierte Geschäftszeiten für diesen Arbeitsbereich"
+        },
+        "enableBusinessHours": {
+          "label": "Geschäftszeiten aktivieren",
+          "description": "Geschäftszeiten-Hervorhebung in diesem Arbeitsbereich anzeigen"
+        },
+        "businessDays": {
+          "label": "Arbeitstage",
+          "description": "Wählen Sie die Arbeitstage der Woche aus"
+        },
+        "businessHoursStart": {
+          "label": "Beginn der Geschäftszeiten",
+          "description": "Wann Ihr Arbeitstag beginnt (Format: HH:mm)"
+        },
+        "businessHoursEnd": {
+          "label": "Ende der Geschäftszeiten",
+          "description": "Wann Ihr Arbeitstag endet (Format: HH:mm)"
+        },
+        "timelineCategories": {
+          "label": "Zeitachsen-Kategorien",
+          "description": "Standardzustand für Zeitachsen-Kategoriegruppen",
+          "options": {
+            "useDefault": "Standardeinstellung verwenden",
+            "expanded": "Standardmäßig erweitert",
+            "collapsed": "Standardmäßig reduziert"
+          }
+        },
+        "slotMinTime": {
+          "label": "Früheste angezeigte Zeit",
+          "description": "Überschreibt die früheste Zeit in Zeitrasteransichten (Format: HH:mm)",
+          "placeholder": "Globalen Standard verwenden"
+        },
+        "slotMaxTime": {
+          "label": "Späteste angezeigte Zeit",
+          "description": "Überschreibt die späteste Zeit in Zeitrasteransichten (Format: HH:mm)",
+          "placeholder": "Globalen Standard verwenden"
+        },
+        "weekendDisplay": {
+          "label": "Wochenendanzeige",
+          "description": "Überschreibt, ob Wochenenden im Kalender angezeigt werden",
+          "options": {
+            "useDefault": "Globalen Standard verwenden",
+            "show": "Wochenenden anzeigen",
+            "hide": "Wochenenden ausblenden"
+          }
+        },
+        "hiddenDays": {
+          "label": "Versteckte Tage",
+          "description": "Überschreibt, welche Tage im Kalender ausgeblendet werden",
+          "options": {
+            "useDefault": "Globalen Standard verwenden",
+            "showAll": "Alle Tage anzeigen",
+            "hideWeekends": "Wochenenden ausblenden (So, Sa)",
+            "hideSunday": "Sonntag ausblenden",
+            "hideSaturday": "Samstag ausblenden",
+            "hideMonday": "Montag ausblenden",
+            "hideFriday": "Freitag ausblenden"
+          }
+        },
+        "dayMaxEvents": {
+          "label": "Maximale Ereignisse pro Tag (Monatsansicht)",
+          "description": "Überschreibt die maximale Anzahl von Ereignissen pro Tag in der Monatsansicht",
+          "options": {
+            "useGlobal": "Globalen Standard verwenden",
+            "useDefault": "Standardlimit verwenden",
+            "noLimit": "Kein Limit",
+            "one": "1 Ereignis",
+            "two": "2 Ereignisse",
+            "three": "3 Ereignisse",
+            "four": "4 Ereignisse",
+            "five": "5 Ereignisse",
+            "ten": "10 Ereignisse"
+          }
+        }
+      },
+      "calendarTypes": {
+        "local": "Lokal:",
+        "dailyNotes": "Tagesnotizen:",
+        "ics": "ICS:",
+        "caldav": "CalDAV:",
+        "google": "Google:",
+        "generic": "{{type}} Kalender"
+      },
+      "buttons": {
+        "save": "Speichern",
+        "create": "Erstellen",
+        "cancel": "Abbrechen"
+      }
+    },
+    "bulkCategorize": {
+      "title": "Wählen Sie eine Massenaktualisierungsmethode",
+      "description": "Wie möchten Sie vorhandene Ereignisse in Ihren lokalen Kalendern automatisch kategorisieren? Dies ist eine einmalige Aktion, die Ihre Ereignisnotizen entsprechend dem erforderlichen Format ändert.",
+      "smartFolder": {
+        "name": "Übergeordneten Ordner verwenden (Smart)",
+        "description": "Verwenden Sie übergeordnete Ordnernamen als Kategorie für UN-kategorisierte Ereignisse. Ereignisse, die bereits wie 'Kategorie - Titel' aussehen, werden übersprungen.",
+        "button": "Smart-Update ausführen"
+      },
+      "forcedFolder": {
+        "name": "Übergeordneten Ordner verwenden (Erzwungen)",
+        "description": "Fügt den übergeordneten Ordnernamen ALLEN Ereignistiteln hinzu, auch wenn sie bereits eine Kategorie haben. Achtung: Dies erzeugt verschachtelte Kategorien.",
+        "button": "Erzwungenes Update ausführen"
+      },
+      "forcedDefault": {
+        "name": "Erzwungenes Standard-Update",
+        "description": "Fügt eine von Ihnen angegebene Kategorie ALLEN Ereignistiteln hinzu. Falls bereits eine Kategorie existiert, wird die neue vorne angefügt (z.B. Neu - Alt - Titel).",
+        "placeholder": "Standardkategorie eingeben",
+        "button": "Standard setzen",
+        "errorEmpty": "Bitte geben Sie einen Kategorienamen ein."
+      }
+    }
+  },
+  "google": {
+    "title": "Google-Konten",
+    "noAccounts": "Keine Google-Konten verbunden. Fügen Sie eine Kalenderquelle hinzu, um ein Konto zu verbinden.",
+    "accountDescription": "Verbundenes Konto. ID: {{id}}",
+    "buttons": {
+      "disconnect": "Trennen",
+      "selectCalendars": "Kalender auswählen",
+      "connectAccount": "Google-Konto verbinden",
+      "backToAccounts": "Zurück zu Konten",
+      "addCalendars": "{{count}} Kalender hinzufügen",
+      "addCalendarsPlural": "{{count}} Kalender hinzufügen"
+    },
+    "selectAccount": {
+      "title": "Google-Konto verbinden"
+    },
+    "selectCalendars": {
+      "title": "Kalender von {{email}} auswählen",
+      "noCalendars": "Keine neuen Kalender gefunden oder alle Kalender dieses Kontos wurden bereits hinzugefügt.",
+      "description": "Wählen Sie aus, welche Kalender Sie zu Obsidian hinzufügen möchten."
+    },
+    "loading": "Lädt..."
+  },
+  "ui": {
+    "buttons": {
+      "addCalendar": "Kalender hinzufügen"
+    },
+    "navigation": {
+      "thisMonth": "Diesen Monat",
+      "thisWeek": "Diese Woche",
+      "customDate": "Benutzerdefiniertes Datum...",
+      "viewMonth": "Monat anzeigen",
+      "viewWeek": "Woche anzeigen",
+      "viewDay": "Tag anzeigen"
+    }
+  },
+  "notifications": {
+    "eventStarting": {
+      "title": "Ereignis beginnt bald",
+      "body": "{{title}} beginnt um {{time}}"
+    },
+    "eventEnding": {
+      "title": "Ereignis endet bald",
+      "body": "{{title}} endet um {{time}}"
+    },
+    "allDaySuffix": "(Ganztägig)"
+  }
+}

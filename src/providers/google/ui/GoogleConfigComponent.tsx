@@ -12,6 +12,7 @@ import { startGoogleLogin } from '../auth/auth';
 import FullCalendarPlugin from '../../../main';
 import { GoogleApiError } from '../auth/request';
 import { GoogleAuthManager } from '../auth/GoogleAuthManager'; // Import the manager
+import { t } from '../../../features/i18n/i18n';
 
 // ADD this new type definition. It accurately describes what the component passes back.
 type SelectedGoogleCalendar = {
@@ -159,13 +160,15 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
         new Setting(container)
           .setName(account.email)
           .addButton(button =>
-            button.setButtonText('Select Calendars').onClick(() => handleSelectAccount(account))
+            button
+              .setButtonText(t('google.buttons.selectCalendars'))
+              .onClick(() => handleSelectAccount(account))
           );
       });
 
-      new Setting(container).setName('Connect a new account').addButton(button =>
+      new Setting(container).setName(t('google.selectAccount.title')).addButton(button =>
         button
-          .setButtonText('Connect Google Account')
+          .setButtonText(t('google.buttons.connectAccount'))
           .setCta()
           .onClick(() => startGoogleLogin(plugin))
       );
@@ -189,14 +192,14 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
     }
   }, [view, availableCalendars, selection]); // Rerun when data changes
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>{t('google.loading')}</div>;
 
   if (view === 'account-select') {
     return (
       <div>
         <div className="setting-item setting-item-heading">
           <div className="setting-item-info">
-            <div className="setting-item-name">Connect a Google Account</div>
+            <div className="setting-item-name">{t('google.selectAccount.title')}</div>
           </div>
         </div>
         {error && <p className="mod-warning">{error}</p>}
@@ -211,11 +214,13 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
       <div>
         <div className="setting-item setting-item-heading">
           <div className="setting-item-info">
-            <div className="setting-item-name">{`Select Calendars from ${selectedAccount?.email}`}</div>
+            <div className="setting-item-name">
+              {t('google.selectCalendars.title', { email: selectedAccount?.email })}
+            </div>
             <div className="setting-item-description">
               {availableCalendars.length === 0
-                ? 'No new calendars found, or all calendars from this account have been added.'
-                : 'Choose which calendars you would like to add to Obsidian.'}
+                ? t('google.selectCalendars.noCalendars')
+                : t('google.selectCalendars.description')}
             </div>
           </div>
         </div>
@@ -224,14 +229,18 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
 
         <div className="setting-item">
           <div className="setting-item-control">
-            <button onClick={() => setView('account-select')}>Back to Accounts</button>
+            <button onClick={() => setView('account-select')}>
+              {t('google.buttons.backToAccounts')}
+            </button>
             <button
               className="mod-cta"
               style={{ marginLeft: 'auto' }}
               onClick={handleSave}
               disabled={selection.size === 0}
             >
-              Add {selection.size || ''} Calendar{selection.size === 1 ? '' : 's'}
+              {selection.size === 1
+                ? t('google.buttons.addCalendars', { count: selection.size })
+                : t('google.buttons.addCalendarsPlural', { count: selection.size })}
             </button>
           </div>
         </div>

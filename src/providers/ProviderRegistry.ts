@@ -5,6 +5,7 @@ import EventCache from '../core/EventCache';
 import FullCalendarPlugin from '../main';
 import { ObsidianIO, ObsidianInterface } from '../ObsidianAdapter';
 import { TasksBacklogManager } from './tasks/TasksBacklogManager';
+import { t } from '../features/i18n/i18n';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -459,7 +460,7 @@ export class ProviderRegistry {
     }
 
     this.revalidating = true;
-    new Notice('Revalidating remote calendars...');
+    new Notice(t('notices.revalidatingRemotes'));
 
     const promises = remoteInstances.map(([settingsId, instance]) => {
       return instance
@@ -480,12 +481,12 @@ export class ProviderRegistry {
       this.lastRevalidation = Date.now();
       const errors = results.flatMap(result => (result.status === 'rejected' ? result.reason : []));
       if (errors.length > 0) {
-        new Notice('One or more remote calendars failed to load. Check the console for details.');
+        new Notice(t('notices.revalidationFailed'));
         errors.forEach(reason => {
           console.error(`Full Calendar: Revalidation failed.`, reason);
         });
       } else {
-        new Notice('Remote calendars revalidated.');
+        new Notice(t('notices.revalidationSuccess'));
       }
     });
   }

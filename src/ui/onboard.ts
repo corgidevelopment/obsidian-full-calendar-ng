@@ -17,7 +17,7 @@ import { addCalendarButton } from './settings/SettingsTab';
 export function renderOnboarding(plugin: FullCalendarPlugin, el: HTMLElement) {
   const nocal = el.createDiv('full-calendar-onboarding-container');
   const notice = nocal.createDiv();
-  notice.createEl('h1').textContent = 'No calendar available';
+  notice.createEl('h1').textContent = 'No calendars available';
   notice.createEl('p').textContent =
     'Thanks for downloading Full Calendar! Create a calendar below to begin.';
 

@@ -5,6 +5,7 @@ import { FullCalendarSettings } from '../../types/settings';
 import { openFileForEvent } from '../../utils/eventActions';
 import FullCalendarPlugin from '../../main';
 import { TimeState, EnrichedOFCEvent } from '../../core/TimeEngine';
+import { t } from '../i18n/i18n';
 
 export class NotificationManager {
   private plugin: FullCalendarPlugin;
@@ -82,17 +83,23 @@ export class NotificationManager {
   }
 
   private triggerNotification(event: OFCEvent, eventId: string, type: 'start' | 'end') {
-    const title = `Event ${type === 'start' ? 'Starting' : 'Ending'} Soon`;
+    const title =
+      type === 'start'
+        ? t('notifications.eventStarting.title')
+        : t('notifications.eventEnding.title');
 
     let body: string;
     if (event.allDay) {
-      body = `${event.title} (All-day)`;
+      body = `${event.title} ${t('notifications.allDaySuffix')}`;
     } else {
       const timeToDisplay = type === 'start' ? event.startTime : event.endTime;
       const formattedTime = timeToDisplay
         ? DateTime.fromFormat(timeToDisplay, 'HH:mm').toFormat('h:mm a')
         : '';
-      body = `${event.title} ${type === 'start' ? 'starts' : 'ends'} at ${formattedTime}`;
+      body =
+        type === 'start'
+          ? t('notifications.eventStarting.body', { title: event.title, time: formattedTime })
+          : t('notifications.eventEnding.body', { title: event.title, time: formattedTime });
     }
 
     try {

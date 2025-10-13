@@ -185,7 +185,6 @@ export class ObsidianIO implements ObsidianInterface {
       }
       ref = this.metadataCache.on('changed', (changedFile, data, cache) => {
         if (changedFile.path !== file.path) {
-          // console.debug('waitForMetadata(): a different file has changed. continue listening...');
           return;
         }
         resolve(cache);

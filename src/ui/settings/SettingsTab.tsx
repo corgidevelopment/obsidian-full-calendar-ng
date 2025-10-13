@@ -37,6 +37,7 @@ import { ProviderRegistry } from '../../providers/ProviderRegistry';
 import { makeDefaultPartialCalendarSource } from '../../types/calendar_settings';
 
 import { generateCalendarId } from '../../types/calendar_settings';
+import { t } from '../../features/i18n/i18n';
 
 // Import the new React components
 import './changelogs/changelog.css';
@@ -54,22 +55,22 @@ export function addCalendarButton(
     .map(f => f.path);
 
   return new Setting(containerEl)
-    .setName('Calendars')
-    .setDesc('Add calendar')
+    .setName(t('settings.calendars.title'))
+    .setDesc(t('settings.calendars.addCalendar'))
     .addDropdown(
       d =>
         (dropdown = d.addOptions({
-          local: 'Full note',
-          dailynote: 'Daily Note',
-          icloud: 'iCloud',
-          caldav: 'CalDAV',
-          ical: 'Remote (.ics format)',
-          google: 'Google Calendar',
-          tasks: 'Obsidian Tasks'
+          local: t('settings.calendars.types.local'),
+          dailynote: t('settings.calendars.types.dailynote'),
+          icloud: t('settings.calendars.types.icloud'),
+          caldav: t('settings.calendars.types.caldav'),
+          ical: t('settings.calendars.types.ical'),
+          google: t('settings.calendars.types.google'),
+          tasks: t('settings.calendars.types.tasks')
         }))
     )
     .addExtraButton(button => {
-      button.setTooltip('Add Calendar');
+      button.setTooltip(t('settings.calendars.addCalendarTooltip'));
       button.setIcon('plus-with-circle');
       button.onClick(async () => {
         const sourceType = dropdown.getValue();
@@ -77,7 +78,7 @@ export function addCalendarButton(
 
         const providerClass = await plugin.providerRegistry.getProviderForType(providerType);
         if (!providerClass) {
-          new Notice(`${providerType} provider is not registered.`);
+          new Notice(t('notices.providerNotRegistered', { providerType }));
           return;
         }
         // Provider classes expose a static getConfigurationComponent; keep a loose unknown cast locally.
@@ -265,9 +266,9 @@ export class FullCalendarSettingTab extends PluginSettingTab {
   private _renderInitialSetupNotice(): void {
     if (this.plugin.settings.calendarSources.length === 0) {
       const notice = this.containerEl.createDiv('full-calendar-initial-setup-notice');
-      notice.createEl('h2', { text: 'Quick Start: Add Your First Calendar' });
+      notice.createEl('h2', { text: t('settings.quickStart.title') });
       notice.createEl('p', {
-        text: 'To begin, add a calendar source using the "+" button in the "Manage calendars" section.'
+        text: t('settings.quickStart.description')
       });
     }
   }

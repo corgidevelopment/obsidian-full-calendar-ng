@@ -81,6 +81,37 @@ const basenameFromEvent = (event: OFCEvent, settings: TitleSettingsLike): string
 const filenameForEvent = (event: OFCEvent, settings: TitleSettingsLike) =>
   `${basenameFromEvent(event, settings)}.md`;
 
+const SUFFIX_PATTERN = '-_-_-';
+
+/**
+ * Finds an available file path in the vault. If the desired path already exists,
+ * it appends a suffix (e.g., "-_-_1") until an unused path is found.
+ * @param app An ObsidianInterface for interacting with the vault.
+ * @param directory The directory to create the file in.
+ * @param baseFilename The desired filename, without extension or suffix.
+ * @returns A promise that resolves to the first available, unique file path.
+ */
+async function findUniquePath(
+  app: ObsidianInterface,
+  directory: string,
+  baseFilename: string
+): Promise<string> {
+  let path = normalizePath(`${directory}/${baseFilename}.md`);
+  if (!app.getAbstractFileByPath(path)) {
+    return path;
+  }
+
+  let i = 1;
+  while (true) {
+    const suffix = `${SUFFIX_PATTERN}${i}`;
+    path = normalizePath(`${directory}/${baseFilename}${suffix}.md`);
+    if (!app.getAbstractFileByPath(path)) {
+      return path;
+    }
+    i++;
+  }
+}
+
 // Provider Implementation
 // =================================================================================================
 
@@ -115,6 +146,12 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
   }
 
   getEventHandle(event: OFCEvent): EventHandle | null {
+    // Prioritize the UID if it exists. This is the new, robust path.
+    if (event.uid) {
+      return { persistentId: event.uid };
+    }
+
+    // Fallback for legacy events or events created in-memory that haven't been saved yet.
     const filename = filenameForEvent(event, this.plugin.settings);
     const path = normalizePath(`${this.source.directory}/${filename}`);
     return { persistentId: path };
@@ -136,13 +173,16 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
       title: (metadata.frontmatter as { title?: string }).title || file.basename
     } as Record<string, unknown>;
 
-    const rawEvent = validateEvent(rawEventData);
-    if (!rawEvent) {
+    const event = validateEvent(rawEventData);
+    if (!event) {
       return [];
     }
 
+    // Populate UID from the file path.
+    event.uid = file.path;
+
     // The raw event is returned as-is. The EventEnhancer will handle timezone conversion.
-    return [[rawEvent, { file, lineNumber: undefined }]];
+    return [[event, { file, lineNumber: undefined }]];
   }
 
   async getEvents(): Promise<EditableEventResponse[]> {
@@ -162,16 +202,17 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
   }
 
   async createEvent(event: OFCEvent): Promise<[OFCEvent, EventLocation]> {
-    const path = normalizePath(
-      `${this.source.directory}/${filenameForEvent(event, this.plugin.settings)}`
-    );
-    if (this.app.getAbstractFileByPath(path)) {
-      throw new Error(`Event at ${path} already exists.`);
-    }
+    const baseFilename = basenameFromEvent(event, this.plugin.settings);
+    const path = await findUniquePath(this.app, this.source.directory, baseFilename);
 
+    // The frontmatter is generated from the clean `event` object, so the title remains unsuffixed.
     const newPage = replaceFrontmatter('', newFrontmatter(event));
     const file = await this.app.create(path, newPage);
-    return [event, { file, lineNumber: undefined }];
+
+    // The authoritative event object returned to the cache must contain the
+    // unique path as its UID for future updates and deletions.
+    const finalEvent = { ...event, uid: file.path };
+    return [finalEvent, { file, lineNumber: undefined }];
   }
 
   async updateEvent(
@@ -179,20 +220,30 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
     oldEventData: OFCEvent,
     newEventData: OFCEvent
   ): Promise<EventLocation | null> {
-    const path = handle.persistentId;
-    const file = this.app.getFileByPath(path);
+    const oldPath = handle.persistentId;
+    const file = this.app.getFileByPath(oldPath);
     if (!file) {
-      throw new Error(`File ${path} not found.`);
-    }
-    const newPath = normalizePath(
-      `${this.source.directory}/${filenameForEvent(newEventData, this.plugin.settings)}`
-    );
-    if (file.path !== newPath) {
-      await this.app.rename(file, newPath);
+      throw new Error(`File ${oldPath} not found.`);
     }
 
+    // Determine if the event's core identifiers (which make up the filename) have changed.
+    const oldBaseFilename = basenameFromEvent(oldEventData, this.plugin.settings);
+    const newBaseFilename = basenameFromEvent(newEventData, this.plugin.settings);
+
+    let finalPath = oldPath;
+
+    if (oldBaseFilename !== newBaseFilename) {
+      // It's a rename. We must find a new unique path for the new base name.
+      finalPath = await findUniquePath(this.app, this.source.directory, newBaseFilename);
+      await this.app.rename(file, finalPath);
+    }
+
+    // The `newEventData` from the cache always has a clean title.
+    // Write this clean data to the frontmatter.
     await this.app.rewrite(file, page => modifyFrontmatterString(page, newEventData));
-    return { file: { path: newPath }, lineNumber: undefined };
+
+    // The location returned must have the final, potentially new, path.
+    return { file: { path: finalPath }, lineNumber: undefined };
   }
 
   async deleteEvent(handle: EventHandle): Promise<void> {

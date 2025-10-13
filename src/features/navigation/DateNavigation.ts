@@ -17,6 +17,7 @@
 import { Calendar } from '@fullcalendar/core';
 import { Menu } from 'obsidian';
 import { DatePicker, createHiddenDatePicker } from '../../ui/components/forms/DatePicker';
+import { t } from '../i18n/i18n';
 
 export type NavigationOption = 'thisMonth' | 'thisWeek' | 'customDate';
 
@@ -54,11 +55,11 @@ export function getAvailableNavigationOptions(context: NavigationContext): Navig
 export function getNavigationLabel(option: NavigationOption): string {
   switch (option) {
     case 'thisMonth':
-      return 'This Month';
+      return t('ui.navigation.thisMonth');
     case 'thisWeek':
-      return 'This Week';
+      return t('ui.navigation.thisWeek');
     case 'customDate':
-      return 'Custom Date...';
+      return t('ui.navigation.customDate');
     default:
       return 'Unknown';
   }
@@ -122,9 +123,15 @@ export class DateNavigation {
 
     // Add view options for the specific date
     const viewOptions = [
-      { view: context.isNarrow ? 'timeGrid3Days' : 'dayGridMonth', label: 'View Month' },
-      { view: context.isNarrow ? 'timeGrid3Days' : 'timeGridWeek', label: 'View Week' },
-      { view: 'timeGridDay', label: 'View Day' }
+      {
+        view: context.isNarrow ? 'timeGrid3Days' : 'dayGridMonth',
+        label: t('ui.navigation.viewMonth')
+      },
+      {
+        view: context.isNarrow ? 'timeGrid3Days' : 'timeGridWeek',
+        label: t('ui.navigation.viewWeek')
+      },
+      { view: 'timeGridDay', label: t('ui.navigation.viewDay') }
     ];
 
     viewOptions.forEach(({ view, label }) => {
@@ -164,9 +171,15 @@ export class DateNavigation {
 
     // Add view options for the detected/current date
     const viewOptions = [
-      { view: context.isNarrow ? 'timeGrid3Days' : 'dayGridMonth', label: 'View Month' },
-      { view: context.isNarrow ? 'timeGrid3Days' : 'timeGridWeek', label: 'View Week' },
-      { view: 'timeGridDay', label: 'View Day' }
+      {
+        view: context.isNarrow ? 'timeGrid3Days' : 'dayGridMonth',
+        label: t('ui.navigation.viewMonth')
+      },
+      {
+        view: context.isNarrow ? 'timeGrid3Days' : 'timeGridWeek',
+        label: t('ui.navigation.viewWeek')
+      },
+      { view: 'timeGridDay', label: t('ui.navigation.viewDay') }
     ];
 
     viewOptions.forEach(({ view, label }) => {

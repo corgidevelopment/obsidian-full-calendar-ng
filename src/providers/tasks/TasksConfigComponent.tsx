@@ -8,6 +8,7 @@
 import * as React from 'react';
 import { TasksProviderConfig } from './typesTask';
 import { ProviderConfigContext } from '../typesProvider';
+import { t } from '../../features/i18n/i18n';
 
 interface TasksConfigComponentProps {
   config: Partial<TasksProviderConfig>;
@@ -38,10 +39,9 @@ export const TasksConfigComponent: React.FC<TasksConfigComponentProps> = ({
     <div className="tasks-provider-config">
       <div className="setting-item">
         <div className="setting-item-info">
-          <div className="setting-item-name">Zero Configuration Required</div>
+          <div className="setting-item-name">{t('settings.calendars.tasks.zeroConfig.label')}</div>
           <div className="setting-item-description">
-            This provider automatically reads your existing Obsidian Tasks plugin settings. All
-            tasks with due dates will be displayed on the calendar as read-only events.
+            {t('settings.calendars.tasks.zeroConfig.description')}
           </div>
         </div>
       </div>
@@ -49,8 +49,12 @@ export const TasksConfigComponent: React.FC<TasksConfigComponentProps> = ({
       <form onSubmit={handleSubmit}>
         <div className="setting-item">
           <div className="setting-item-info">
-            <div className="setting-item-name">Calendar Name</div>
-            <div className="setting-item-description">Display name for this calendar</div>
+            <div className="setting-item-name">
+              {t('settings.calendars.tasks.calendarName.label')}
+            </div>
+            <div className="setting-item-description">
+              {t('settings.calendars.tasks.calendarName.description')}
+            </div>
           </div>
           <div className="setting-item-control">
             <input
@@ -67,17 +71,16 @@ export const TasksConfigComponent: React.FC<TasksConfigComponentProps> = ({
 
         <div className="setting-item">
           <div className="setting-item-info">
-            <div className="setting-item-name">Read-Only Calendar</div>
+            <div className="setting-item-name">{t('settings.calendars.tasks.readOnly.label')}</div>
             <div className="setting-item-description">
-              Tasks can be viewed but not modified through the calendar interface. To edit tasks,
-              use the Tasks plugin or modify your notes directly.
+              {t('settings.calendars.tasks.readOnly.description')}
             </div>
           </div>
         </div>
 
         <div className="setting-item">
           <button type="submit" className="mod-cta" disabled={isSubmitting || !name.trim()}>
-            {isSubmitting ? 'Adding...' : 'Add Calendar'}
+            {isSubmitting ? t('settings.calendars.tasks.adding') : t('ui.buttons.addCalendar')}
           </button>
           <button
             type="button"
@@ -85,7 +88,7 @@ export const TasksConfigComponent: React.FC<TasksConfigComponentProps> = ({
             disabled={isSubmitting}
             style={{ marginLeft: '10px' }}
           >
-            Cancel
+            {t('settings.calendars.tasks.cancel')}
           </button>
         </div>
       </form>

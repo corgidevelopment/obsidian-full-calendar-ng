@@ -2,6 +2,7 @@ import * as React from 'react';
 import { DirectorySelect } from '../../ui/components/forms/DirectorySelect';
 import { FullNoteProviderConfig } from './typesLocal';
 import { ProviderConfigContext } from '../typesProvider';
+import { t } from '../../features/i18n/i18n';
 
 interface FullNoteConfigComponentProps {
   config: Partial<FullNoteProviderConfig>;
@@ -33,8 +34,12 @@ export const FullNoteConfigComponent: React.FC<FullNoteConfigComponentProps> = (
     <form onSubmit={handleSubmit}>
       <div className="setting-item">
         <div className="setting-item-info">
-          <div className="setting-item-name">Directory</div>
-          <div className="setting-item-description">Directory to store event notes</div>
+          <div className="setting-item-name">
+            {t('settings.calendars.fullNote.directory.label')}
+          </div>
+          <div className="setting-item-description">
+            {t('settings.calendars.fullNote.directory.description')}
+          </div>
         </div>
         <div className="setting-item-control">
           <DirectorySelect
@@ -51,7 +56,7 @@ export const FullNoteConfigComponent: React.FC<FullNoteConfigComponentProps> = (
         <div className="setting-item-info" />
         <div className="setting-item-control">
           <button className="mod-cta" type="submit" disabled={isSubmitting || !directory}>
-            Add Calendar
+            {t('ui.buttons.addCalendar')}
           </button>
         </div>
       </div>

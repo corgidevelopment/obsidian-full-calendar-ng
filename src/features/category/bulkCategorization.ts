@@ -24,6 +24,7 @@ import {
 } from '../../providers/dailynote/parser_dailyN';
 import { constructTitle, parseTitle } from './categoryParser';
 import { validateEvent } from '../../types/schema';
+import { t } from '../i18n/i18n';
 
 type CategoryProvider = (file: TFile) => string | undefined;
 
@@ -95,7 +96,7 @@ export async function bulkUpdateCategories(
   const force = choice !== 'smart';
   const files = await getFilesToProcess(plugin);
   if (files.length === 0) {
-    new Notice('No local event notes found to categorize.');
+    new Notice(t('notices.bulkCategorization.noNotesFound'));
     return;
   }
 
@@ -180,7 +181,7 @@ export async function bulkUpdateCategories(
   };
 
   await plugin.nonBlockingProcess(files, combinedProcessor, 'Categorizing event notes');
-  new Notice('Bulk categorization complete.');
+  new Notice(t('notices.bulkCategorization.complete'));
 }
 
 /**
@@ -192,7 +193,7 @@ export async function bulkRemoveCategories(plugin: FullCalendarPlugin): Promise<
   );
   const files = await getFilesToProcess(plugin);
   if (files.length === 0) {
-    new Notice('No local event notes found to de-categorize.');
+    new Notice(t('notices.bulkDecategorization.noNotesFound'));
     return;
   }
 
@@ -266,5 +267,5 @@ export async function bulkRemoveCategories(plugin: FullCalendarPlugin): Promise<
   };
 
   await plugin.nonBlockingProcess(files, combinedProcessor, 'De-categorizing event notes');
-  new Notice('Bulk de-categorization complete.');
+  new Notice(t('notices.bulkDecategorization.complete'));
 }

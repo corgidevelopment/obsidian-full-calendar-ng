@@ -10,17 +10,18 @@ import * as ReactDOM from 'react-dom/client';
 import FullCalendarPlugin from '../../../main';
 import { CategorySettingsManager } from './CategorySetting';
 import { bulkUpdateCategories, bulkRemoveCategories } from '../bulkCategorization';
+import { t } from '../../i18n/i18n';
 
 export function renderCategorizationSettings(
   containerEl: HTMLElement,
   plugin: FullCalendarPlugin,
   rerender: () => void
 ): void {
-  new Setting(containerEl).setName('Advanced categorization and Timeline').setHeading();
+  new Setting(containerEl).setName(t('settings.categorization.title')).setHeading();
   const fragment = document.createDocumentFragment();
-  fragment.appendText('Learn more ');
+  fragment.appendText(`${t('settings.categorization.learnMore')} `);
   fragment.createEl('a', {
-    text: 'here',
+    text: t('settings.categorization.learnMoreLink'),
     href: 'https://youfoundjk.github.io/plugin-full-calendar/events/categories'
   });
   fragment.appendText('.');
@@ -28,10 +29,8 @@ export function renderCategorizationSettings(
   learnMoreP.appendChild(fragment);
 
   new Setting(containerEl)
-    .setName('Enable advanced categorization (Title-based)')
-    .setDesc(
-      'Enable category-based coloring and unlock timeline views. This will modify event note titles and allow timeline visualization by category.'
-    )
+    .setName(t('settings.categorization.enable.label'))
+    .setDesc(t('settings.categorization.enable.description'))
     .addToggle(toggle => {
       toggle.setValue(plugin.settings.enableAdvancedCategorization).onChange(async value => {
         if (value) {
@@ -49,14 +48,14 @@ export function renderCategorizationSettings(
           const confirmModal = new Modal(plugin.app);
           confirmModal.modalEl.addClass('full-calendar-confirm-modal');
           const { contentEl } = confirmModal;
-          contentEl.createEl('h2', { text: '⚠️ Disable and clean up' });
+          contentEl.createEl('h2', { text: t('settings.categorization.disable.modalTitle') });
           contentEl.createEl('p', {
-            text: 'Disabling this feature will remove known category prefixes from your event titles and will permanently delete all saved category color settings.'
+            text: t('settings.categorization.disable.modalDescription')
           });
           new Setting(contentEl)
             .addButton(btn =>
               btn
-                .setButtonText('Disable and clean up notes')
+                .setButtonText(t('settings.categorization.disable.buttonDisable'))
                 .setWarning()
                 .onClick(async () => {
                   plugin.settings.enableAdvancedCategorization = false;
@@ -68,7 +67,7 @@ export function renderCategorizationSettings(
                 })
             )
             .addButton(btn =>
-              btn.setButtonText('Cancel').onClick(() => {
+              btn.setButtonText(t('settings.categorization.disable.buttonCancel')).onClick(() => {
                 toggle.setValue(true); // Revert toggle state if cancelled
                 confirmModal.close();
               })

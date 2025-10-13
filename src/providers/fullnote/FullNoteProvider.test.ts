@@ -182,6 +182,7 @@ describe('FullNoteCalendar Tests', () => {
       const info: CalendarInfo = {
         type: 'local',
         id: 'local_1',
+        name: 'Test Calendar', // <-- ADD THIS LINE
         color,
         directory: dirName
       };
@@ -209,6 +210,7 @@ describe('FullNoteCalendar Tests', () => {
     const info: CalendarInfo = {
       type: 'local',
       id: 'local_1',
+      name: 'Test Calendar', // <-- ADD THIS LINE
       color,
       directory: dirName
     };
@@ -259,6 +261,7 @@ describe('FullNoteCalendar Tests', () => {
     const info: CalendarInfo = {
       type: 'local',
       id: 'local_1',
+      name: 'Test Calendar', // <-- ADD THIS LINE
       color,
       directory: dirName
     };

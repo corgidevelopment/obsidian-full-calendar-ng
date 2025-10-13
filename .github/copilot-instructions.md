@@ -1,63 +1,83 @@
+
 # Full Calendar Plugin for Obsidian
 
-Full Calendar is a TypeScript-based Obsidian plugin that integrates FullCalendar.js to provide calendar views for notes and events. It supports both local calendars (Full Note and Daily Note formats) and remote calendars (ICS and CalDAV).
+This plugin integrates FullCalendar.js into Obsidian, supporting local (Full Note, Daily Note) and remote (ICS, CalDAV, Google) calendars. It is TypeScript-based, modular, and designed for robust event management and calendar views.
 
-**Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.**
+## Essential Architecture
 
-## Working Effectively
+- **UI Layer**: React components (`src/ui/`), FullCalendar.js integration (`src/ui/view.ts`), and view models (e.g., `ViewEnhancer`).
+- **Core Layer**: Central event management via `EventCache` (single source of truth) and `EventStore` (in-memory DB, indexes).
+- **Calendar Layer**: Pluggable sources (`src/calendars/`): Full Note, Daily Note, ICS, CalDAV.
+- **Abstraction Layer**: `ObsidianAdapter` for testable Obsidian API interactions.
+- **ChronoAnalyser**: Data visualization (see `src/chrono_analyser/`), consumes `EventCache` via pub/sub for real-time updates.
 
-Bootstrap, build, and test the repository:
+**Data Flow Example**:
+- User actions → EventCache → Calendar implementations → Obsidian vault
+- File changes/remote sync → EventCache → UI updates (pub/sub)
 
-- `npm install` -- takes 45 seconds. NEVER CANCEL. Set timeout to 2+ minutes.
-- `npm run compile` -- TypeScript type checking, takes 5 seconds
-- `npm run lint` -- Prettier formatting check, takes 1.5 seconds  
-- `npm run test` -- Jest test suite (154 tests), takes 3 seconds
-- `npm run build` -- esbuild production build, takes 0.5 seconds
-- `npm run prod` -- TypeScript check + production build, takes 5.5 seconds
+## Developer Workflows
 
-Development workflow:
-- `npm run dev` -- starts esbuild in watch mode for rapid iteration
-- `npm run fix-lint` -- auto-fixes Prettier formatting issues
-- `npm run coverage` -- runs tests with coverage report, takes 4.5 seconds
-- `npm run test-update` -- updates Jest snapshots when tests fail due to expected changes
+- **Bootstrap**:  
+	- `npm install` (45s, never cancel)
+- **Build/Test**:  
+	- `npm run compile` (type check)  
+	- `npm run lint` (Prettier)  
+	- `npm run test` (Jest, 154 tests)  
+	- `npm run build` (esbuild)  
+	- `npm run prod` (type check + build)
+- **Development**:  
+	- `npm run dev` (esbuild watch)  
+	- `npm run fix-lint` (auto-format)  
+	- `npm run coverage` (test coverage)  
+	- `npm run test-update` (update Jest snapshots)
+- **Validation**:  
+	- Always run `npm run lint && npm run compile && npm run test` before commit
+	- Test in `obsidian-dev-vault/` (pre-configured dev vault)
+	- Copy `manifest.json` to plugin build directory for Obsidian testing
 
-## Build Output and Plugin Testing
+## Project Conventions
 
-The plugin builds to `obsidian-dev-vault/.obsidian/plugins/Full-Calender/` containing:
-- `main.js` -- bundled plugin code
-- `styles.css` -- plugin styles (renamed from main.css by build script)
-- `manifest.json` -- copy manually with `cp manifest.json obsidian-dev-vault/.obsidian/plugins/Full-Calender/`
+- **Event Storage**:  
+	- Full Note: events as separate notes with frontmatter  
+	- Daily Note: events as list items with inline metadata
+- **Category System**:  
+	- Format: `Category - Title` or `Category - Subcategory - Title`
+	- Color coding and parsing logic in core
+- **Recurring Events**:  
+	- Recurrence logic and instance modification supported
+- **Internationalization**:  
+	- Uses i18next, translation files in `src/features/i18n/locales/`, type-safe keys
 
-Development vault setup (already exists):
-- Development vault is pre-configured at `obsidian-dev-vault/`
-- Plugin directory structure is already created
-- Simply run builds and copy manifest to test in Obsidian
-- Sample test files are available for testing Full Note and Daily Note formats
+## Key Files & Directories
 
-## Validation
+- `src/main.ts` — Plugin entry
+- `src/core/EventCache.ts` — Event management
+- `src/core/EventStore.ts` — In-memory DB
+- `src/calendars/` — Calendar sources
+- `src/ui/view.ts` — Calendar view integration
+- `src/types/schema.ts` — Zod schemas
+- `test_helpers/MockVault.ts` — Obsidian API mocking
+- `docs/` — MkDocs documentation
 
-ALWAYS run through complete user scenarios after making changes:
+## Integration & Extensibility
 
-**Core Plugin Functionality Tests:**
-1. **Full Note Calendar**: Create a new event that generates a separate note file with frontmatter
-2. **Daily Note Calendar**: Create events as list items in daily notes with inline metadata
-3. **Event Management**: Test creating, editing, deleting, and drag-and-drop operations
-4. **Category System**: Test the category parsing (`Category - Title` and `Category - Subcategory - Title` format) and color coding
-5. **Recurring Events**: Test recurring event creation and individual instance modifications
+- **External dependencies**: FullCalendar.js, React, Luxon (bundled), Obsidian APIs (external)
+- **ChronoAnalyser**: Extensible charting via Strategy Pattern; subscribes to EventCache for real-time data
+- **Testing**: Unit/integration tests, snapshot updates, coverage enforcement
 
-**Required Validation Steps:**
-- ALWAYS run `npm run lint && npm run compile && npm run test` before committing (takes 9 seconds total)
-- If tests fail due to snapshot mismatches, run `npm run test-update` first to fix expected changes
-- ALWAYS test actual plugin functionality by loading in development vault
-- Test both Full Note and Daily Note calendar types when modifying core event logic
-- Run `npm run coverage` to verify test coverage stays high (current: 53% overall)
+## Troubleshooting
 
-**CI/CD Validation:**
-- GitHub Actions runs lint, compile, and test on every push via `.github/workflows/check.yml`
-- Release workflow builds and packages the plugin via `.github/workflows/release.yml`
-- NEVER skip linting - the CI will fail if code is not properly formatted
+- Build failures: check TypeScript errors, esbuild config, CSS renaming
+- Test failures: run `npm run test-update` for snapshots, check date/timezone issues
+- Plugin loading: verify build output, copy manifest, check Obsidian console
 
-## Common Tasks
+## Best Practices
+
+- Minimal, modular changes; follow SOLID/DRY
+- Strict formatting (Prettier, Husky hooks)
+- Always validate in dev vault before commit
+- Reference [Obsidian plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines)
+
 
 ### Repository Structure
 ```

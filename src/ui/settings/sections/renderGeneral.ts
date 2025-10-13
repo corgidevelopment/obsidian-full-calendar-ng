@@ -6,18 +6,19 @@
 
 import { Setting } from 'obsidian';
 import FullCalendarPlugin from '../../../main';
+import { t } from '../../../features/i18n/i18n';
 
 const INITIAL_VIEW_OPTIONS = {
   DESKTOP: {
-    timeGridDay: 'Day',
-    timeGridWeek: 'Week',
-    dayGridMonth: 'Month',
-    listWeek: 'List'
+    timeGridDay: 'settings.viewOptions.day',
+    timeGridWeek: 'settings.viewOptions.week',
+    dayGridMonth: 'settings.viewOptions.month',
+    listWeek: 'settings.viewOptions.list'
   },
   MOBILE: {
-    timeGrid3Days: '3 Days',
-    timeGridDay: 'Day',
-    listWeek: 'List'
+    timeGrid3Days: 'settings.viewOptions.threeDays',
+    timeGridDay: 'settings.viewOptions.day',
+    listWeek: 'settings.viewOptions.list'
   }
 };
 
@@ -28,16 +29,16 @@ export function renderGeneralSettings(
 ): void {
   const desktopViewOptions: { [key: string]: string } = { ...INITIAL_VIEW_OPTIONS.DESKTOP };
   if (plugin.settings.enableAdvancedCategorization) {
-    desktopViewOptions['resourceTimelineWeek'] = 'Timeline Week';
-    desktopViewOptions['resourceTimelineDay'] = 'Timeline Day';
+    desktopViewOptions['resourceTimelineWeek'] = 'settings.viewOptions.timelineWeek';
+    desktopViewOptions['resourceTimelineDay'] = 'settings.viewOptions.timelineDay';
   }
 
   new Setting(containerEl)
-    .setName('Desktop initial view')
-    .setDesc('Choose the initial view range on desktop devices.')
+    .setName(t('settings.general.desktopInitialView.label'))
+    .setDesc(t('settings.general.desktopInitialView.description'))
     .addDropdown(dropdown => {
-      Object.entries(desktopViewOptions).forEach(([value, display]) => {
-        dropdown.addOption(value, display);
+      Object.entries(desktopViewOptions).forEach(([value, labelKey]) => {
+        dropdown.addOption(value, t(labelKey));
       });
       dropdown.setValue(plugin.settings.initialView.desktop);
       dropdown.onChange(async initialView => {
@@ -47,11 +48,11 @@ export function renderGeneralSettings(
     });
 
   new Setting(containerEl)
-    .setName('Mobile initial view')
-    .setDesc('Choose the initial view range on mobile devices.')
+    .setName(t('settings.general.mobileInitialView.label'))
+    .setDesc(t('settings.general.mobileInitialView.description'))
     .addDropdown(dropdown => {
-      Object.entries(INITIAL_VIEW_OPTIONS.MOBILE).forEach(([value, display]) => {
-        dropdown.addOption(value, display);
+      Object.entries(INITIAL_VIEW_OPTIONS.MOBILE).forEach(([value, labelKey]) => {
+        dropdown.addOption(value, t(labelKey));
       });
       dropdown.setValue(plugin.settings.initialView.mobile);
       dropdown.onChange(async initialView => {
@@ -61,10 +62,8 @@ export function renderGeneralSettings(
     });
 
   new Setting(containerEl)
-    .setName('Display timezone')
-    .setDesc(
-      'Choose the timezone for displaying events. Defaults to your system timezone. Changing this will reload the calendar.'
-    )
+    .setName(t('settings.general.displayTimezone.label'))
+    .setDesc(t('settings.general.displayTimezone.description'))
     .addDropdown(dropdown => {
       const timezones = Intl.supportedValuesOf('timeZone');
       timezones.forEach(tz => {
@@ -80,8 +79,8 @@ export function renderGeneralSettings(
     });
 
   new Setting(containerEl)
-    .setName('Click on a day in month view to create event')
-    .setDesc('Switch off to open day view on click instead.')
+    .setName(t('settings.general.clickToCreateEvent.label'))
+    .setDesc(t('settings.general.clickToCreateEvent.description'))
     .addToggle(toggle => {
       toggle.setValue(plugin.settings.clickToCreateEventFromMonthView);
       toggle.onChange(async val => {
@@ -91,8 +90,8 @@ export function renderGeneralSettings(
     });
 
   new Setting(containerEl)
-    .setName('Enable event reminders')
-    .setDesc('Show a desktop notification 10 minutes before an event starts.')
+    .setName(t('settings.general.enableReminders.label'))
+    .setDesc(t('settings.general.enableReminders.description'))
     .addToggle(toggle => {
       toggle.setValue(plugin.settings.enableReminders).onChange(async value => {
         plugin.settings.enableReminders = value;

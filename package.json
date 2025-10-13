@@ -1,6 +1,6 @@
 {
     "name": "full-calendar-remasteredr",
-    "version": "0.12.3.1-beta",
+    "version": "0.12.3.2-beta",
     "description": "Obsidian integration with Full Calendar (fullcalendar.io)",
     "main": "main.js",
     "scripts": {
@@ -67,6 +67,7 @@
         "deep-equal": "^2.2.3",
         "esbuild-css-modules-plugin": "^3.1.5",
         "flatpickr": "^4.6.13",
+        "i18next": "^25.6.0",
         "ical": "^0.8.0",
         "ical.js": "^1.5.0",
         "js-yaml": "^4.1.0",

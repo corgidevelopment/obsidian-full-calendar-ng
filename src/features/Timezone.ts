@@ -19,6 +19,7 @@ import { DateTime } from 'luxon';
 import { Notice } from 'obsidian';
 import { OFCEvent } from '../types';
 import FullCalendarPlugin from '../main';
+import { t } from './i18n/i18n';
 
 /**
  * Helper function to parse a time string (HH:mm or h:mm a) into a Luxon DateTime object.
@@ -132,7 +133,7 @@ export async function manageTimezone(plugin: FullCalendarPlugin): Promise<void> 
     await plugin.saveData(settings);
 
     new Notice(
-      `System timezone changed to ${systemTimezone}. Full Calendar view updated to match.`,
+      t('notices.timezoneChanged', { timezone: systemTimezone }),
       10000 // 10-second notice
     );
   }

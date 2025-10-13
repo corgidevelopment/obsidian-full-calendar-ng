@@ -105,13 +105,12 @@ const makeCache = (events: OFCEvent[]) => {
       },
       getAllSources: () => [calendarInfo],
       getInstance: () => mockProvider,
-      // Added mocks for registry
       generateId: withCounter(x => x, 'test-id'),
       buildMap: jest.fn(),
       addMapping: jest.fn(),
       removeMapping: jest.fn(),
       getSource: () => calendarInfo,
-      getCapabilities: () => ({ canCreate: false, canEdit: false, canDelete: false }) // Added
+      getCapabilities: () => ({ canCreate: false, canEdit: false, canDelete: false })
     }
   } as any;
 
@@ -309,7 +308,7 @@ const makeEditableCache = (events: EditableEventResponse[]) => {
       canEdit: true,
       canDelete: true
     })),
-    getEventHandle: jest.fn((e: OFCEvent) => ({ persistentId: e.title })),
+    getEventHandle: jest.fn((e: OFCEvent) => ({ persistentId: e.uid || e.title })), // Updated to use UID
     createEvent: jest.fn(),
     updateEvent: jest.fn(),
     deleteEvent: jest.fn(),
@@ -372,13 +371,17 @@ const makeEditableCache = (events: EditableEventResponse[]) => {
       ),
       deleteEventInProvider: jest.fn(),
       getSource: () => calendarInfo,
-      getCapabilities: () => ({ canCreate: true, canEdit: true, canDelete: true }) // Added
+      getCapabilities: () => ({ canCreate: true, canEdit: true, canDelete: true })
     }
   } as any;
   const cache = new EventCache(mockPlugin);
 
-  // Ensure createEvent returns [event, location] as expected by addEvent
-  calendar.createEvent.mockImplementation(async (event: OFCEvent) => [event, mockLocation()]);
+  // Ensure createEvent returns [event, location] as expected by addEvent, and adds the UID.
+  calendar.createEvent.mockImplementation(async (event: OFCEvent) => {
+    const location = mockLocation();
+    const finalEvent = { ...event, uid: location.file.path }; // Add the UID
+    return [finalEvent, location];
+  });
 
   return [cache, calendar, mockPlugin] as const;
 };

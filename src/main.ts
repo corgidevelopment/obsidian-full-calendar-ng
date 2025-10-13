@@ -13,7 +13,7 @@
  */
 
 import { NotificationManager } from './features/notifications/NotificationManager';
-import { StatusBarManager } from './features/statusbar/StatusBarManager'; // added
+import { StatusBarManager } from './features/statusbar/StatusBarManager';
 import { LazySettingsTab } from './ui/settings/LazySettingsTab';
 import { ensureCalendarIds, migrateAndSanitizeSettings } from './ui/settings/utilsSettings';
 import { PLUGIN_SLUG } from './types';
@@ -21,6 +21,7 @@ import EventCache from './core/EventCache';
 import { toEventInput } from './core/interop';
 import { manageTimezone } from './features/Timezone';
 import { Notice, Plugin, TFile, App } from 'obsidian';
+import { initializeI18n, t } from './features/i18n/i18n';
 
 // Heavy calendar classes are loaded lazily in the initializer map below
 import type { CalendarView } from './ui/view';
@@ -35,7 +36,7 @@ export default class FullCalendarPlugin extends Plugin {
   private _settings: FullCalendarSettings = DEFAULT_SETTINGS;
 
   notificationManager!: NotificationManager;
-  statusBarManager!: StatusBarManager; // added
+  statusBarManager!: StatusBarManager;
 
   get settings(): FullCalendarSettings {
     return this._settings;
@@ -89,6 +90,9 @@ export default class FullCalendarPlugin extends Plugin {
    * listeners for Vault file changes (create, rename, delete).
    */
   async onload() {
+    // Initialize i18n system first, before any UI is rendered
+    await initializeI18n(this.app);
+
     this.isMobile = (this.app as App & { isMobile: boolean }).isMobile;
     this.providerRegistry = new ProviderRegistry(this);
 
@@ -108,13 +112,13 @@ export default class FullCalendarPlugin extends Plugin {
     this.providerRegistry.listenForSourceChanges();
 
     this.cache.reset();
-    this.cache.listenForSettingsChanges(this.app.workspace); // ADD THIS LINE
+    this.cache.listenForSettingsChanges(this.app.workspace);
 
-    // ADD: Start NotificationManager after providerRegistry is initialized
+    // Start NotificationManager after providerRegistry is initialized
     this.notificationManager = new NotificationManager(this);
     this.notificationManager.update(this.settings);
-    this.statusBarManager = new StatusBarManager(this); // added
-    this.statusBarManager.update(this.settings); // added
+    this.statusBarManager = new StatusBarManager(this);
+    this.statusBarManager.update(this.settings);
     const workspaceEvents = this.app.workspace as unknown as {
       // Keep `any` here because Obsidian's internal event system passes heterogeneous arguments.
       // Localising the unsafeness avoids polluting the rest of the codebase.
@@ -133,7 +137,7 @@ export default class FullCalendarPlugin extends Plugin {
     this.registerEvent(
       workspaceEvents.on(
         'full-calendar:settings-updated',
-        this.statusBarManager.update.bind(this.statusBarManager) // added
+        this.statusBarManager.update.bind(this.statusBarManager)
       )
     );
     this.registerEvent(
@@ -195,12 +199,12 @@ export default class FullCalendarPlugin extends Plugin {
         })
         .catch(err => {
           console.error('Full Calendar: Failed to load Chrono Analyser view', err);
-          new Notice('Failed to load Chrono Analyser. Please check the console.');
+          new Notice(t('notices.chronoAnalyserLoadFailed'));
         });
     }
 
     // Register the calendar icon on left-side bar
-    this.addRibbonIcon('calendar-glyph', 'Open Full Calendar', async (_: MouseEvent) => {
+    this.addRibbonIcon('calendar-glyph', t('ribbon.openCalendar'), async (_: MouseEvent) => {
       await this.activateView();
     });
 
@@ -210,7 +214,7 @@ export default class FullCalendarPlugin extends Plugin {
     // Commands visible in the command palette
     this.addCommand({
       id: 'full-calendar-new-event',
-      name: 'New Event',
+      name: t('commands.newEvent'),
       callback: async () => {
         const { launchCreateModal } = await import('./ui/modals/event_modal');
         launchCreateModal(this, {});
@@ -218,24 +222,24 @@ export default class FullCalendarPlugin extends Plugin {
     });
     this.addCommand({
       id: 'full-calendar-reset',
-      name: 'Reset Event Cache',
+      name: t('commands.resetCache'),
       callback: () => {
         this.cache.reset();
         this.app.workspace.detachLeavesOfType(FULL_CALENDAR_VIEW_TYPE);
         this.app.workspace.detachLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE);
-        new Notice('Full Calendar has been reset.');
+        new Notice(t('notices.cacheReset'));
       }
     });
     this.addCommand({
       id: 'full-calendar-revalidate',
-      name: 'Revalidate remote calendars',
+      name: t('commands.revalidateRemote'),
       callback: () => {
         this.providerRegistry.revalidateRemoteCalendars(true);
       }
     });
     this.addCommand({
       id: 'full-calendar-open',
-      name: 'Open Calendar',
+      name: t('commands.openCalendar'),
       callback: () => {
         this.activateView();
       }
@@ -244,18 +248,16 @@ export default class FullCalendarPlugin extends Plugin {
     if (this.isMobile) {
       this.addCommand({
         id: 'full-calendar-open-analysis-mobile-disabled',
-        name: 'Open Chrono Analyser (Desktop Only)',
+        name: t('commands.openChronoAnalyser'),
         callback: () => {
-          new Notice(
-            'The Chrono Analyser feature is only available on the desktop version of Obsidian.'
-          );
+          new Notice(t('notices.chronoAnalyserMobileDisabled'));
         }
       });
     }
 
     this.addCommand({
       id: 'full-calendar-open-sidebar',
-      name: 'Open in sidebar',
+      name: t('commands.openSidebar'),
       callback: () => {
         if (this.app.workspace.getLeavesOfType(FULL_CALENDAR_SIDEBAR_VIEW_TYPE).length) {
           return;
@@ -286,7 +288,7 @@ export default class FullCalendarPlugin extends Plugin {
           await this.settingsTab.display();
         }
       } else {
-        new Notice('Google authentication failed. Please try again.');
+        new Notice(t('notices.googleAuthFailed'));
         console.error('Google Auth Callback Error: Missing code or state.', params);
       }
     });
@@ -302,7 +304,7 @@ export default class FullCalendarPlugin extends Plugin {
       this.notificationManager.unload();
     }
     if (this.statusBarManager) {
-      this.statusBarManager.unload(); // added
+      this.statusBarManager.unload();
     }
     if (this.providerRegistry) {
       this.providerRegistry.stopListening();
@@ -328,7 +330,7 @@ export default class FullCalendarPlugin extends Plugin {
 
     // Save back to disk if any migration or sanitization occurred.
     if (needsSave) {
-      new Notice('Full Calendar has updated your calendar settings to a new format.');
+      new Notice(t('notices.settingsUpdated'));
       await this.saveData(this.settings);
     }
   }
@@ -422,7 +424,7 @@ export default class FullCalendarPlugin extends Plugin {
         .catch(err => {
           console.error('Error during bulk processing batch', err);
           notice.hide();
-          new Notice('Error during bulk update. Check console for details.');
+          new Notice(t('notices.bulkUpdateError'));
         });
     };
 

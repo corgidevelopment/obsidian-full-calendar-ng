@@ -95,9 +95,9 @@ export default class EventCache {
   private recurringEventManager:
     | import('../features/recur_events/RecurringEventManager').RecurringEventManager
     | null = null;
-  private timeEngine: TimeEngine; // ADDED
+  private timeEngine: TimeEngine;
 
-  // ADD: Listener for view config changes
+  // Listener for view config changes
   private viewConfigListener: (() => void) | null = null;
   private workspaceEmitter: import('obsidian').Workspace | null = null;
 
@@ -111,12 +111,12 @@ export default class EventCache {
   constructor(plugin: FullCalendarPlugin) {
     this._plugin = plugin;
     this.enhancer = new EventEnhancer(this.plugin.settings);
-    this.timeEngine = new TimeEngine(this); // ADDED
+    this.timeEngine = new TimeEngine(this);
     // REMOVE direct instantiation
     // this.recurringEventManager = new RecurringEventManager(this, this._plugin);
   }
 
-  // ADD: Listen for settings changes
+  // Listen for settings changes
   public listenForSettingsChanges(workspace: import('obsidian').Workspace): void {
     this.workspaceEmitter = workspace;
     const emitter = workspace as unknown as {
@@ -169,7 +169,7 @@ export default class EventCache {
    */
   reset(): void {
     this.initialized = false;
-    this.timeEngine.stop(); // ADDED
+    this.timeEngine.stop();
     const infos = this.plugin.providerRegistry.getAllSources();
     this.calendars.clear();
     this._store.clear();
@@ -414,7 +414,7 @@ export default class EventCache {
           calendarId: calendarId
         };
 
-        this.timeEngine.scheduleCacheRebuild(); // ADDED
+        this.timeEngine.scheduleCacheRebuild();
 
         return true;
       } catch (e) {
@@ -494,13 +494,13 @@ export default class EventCache {
           `Could not generate a persistent handle for the event being deleted. Proceeding with deletion from cache only.`
         );
         // No I/O to perform, so no rollback is necessary. The operation is complete.
-        this.timeEngine.scheduleCacheRebuild(); // ADDED
+        this.timeEngine.scheduleCacheRebuild();
         return;
       }
 
       try {
         await this.plugin.providerRegistry.deleteEventInProvider(eventId, event, calendarId);
-        this.timeEngine.scheduleCacheRebuild(); // ADDED
+        this.timeEngine.scheduleCacheRebuild();
         // SUCCESS: The external source is now in sync with the cache.
       } catch (e) {
         // FAILURE: The I/O operation failed. Roll back the optimistic changes.
@@ -672,7 +672,7 @@ export default class EventCache {
           });
         }
 
-        this.timeEngine.scheduleCacheRebuild(); // ADDED
+        this.timeEngine.scheduleCacheRebuild();
 
         return true;
       } catch (e) {
@@ -1036,7 +1036,7 @@ export default class EventCache {
       calendarId
     }));
     this.flushUpdateQueue(idsToRemove, cacheEntriesToAdd);
-    this.timeEngine.scheduleCacheRebuild(); // ADDED
+    this.timeEngine.scheduleCacheRebuild();
   }
 
   /**
@@ -1171,7 +1171,7 @@ export default class EventCache {
       calendarId
     }));
     this.flushUpdateQueue(idsToRemove, cacheEntriesToAdd);
-    this.timeEngine.scheduleCacheRebuild(); // ADDED
+    this.timeEngine.scheduleCacheRebuild();
   }
 
   private getProviderForEvent(eventId: string) {

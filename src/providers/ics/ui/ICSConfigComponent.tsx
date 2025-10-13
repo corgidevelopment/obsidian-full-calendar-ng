@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { UrlInput } from '../../../ui/components/forms/UrlInput';
 import { ICSProviderConfig } from '../typesICS';
+import { t } from '../../../features/i18n/i18n';
 
 interface ICSConfigComponentProps {
   config: Partial<ICSProviderConfig>;
@@ -30,8 +31,10 @@ export const ICSConfigComponent: React.FC<ICSConfigComponentProps> = ({
     <form onSubmit={handleSubmit}>
       <div className="setting-item">
         <div className="setting-item-info">
-          <div className="setting-item-name">URL</div>
-          <div className="setting-item-description">URL of the .ics file</div>
+          <div className="setting-item-name">{t('settings.calendars.ics.url.label')}</div>
+          <div className="setting-item-description">
+            {t('settings.calendars.ics.url.description')}
+          </div>
         </div>
         <div className="setting-item-control">
           <UrlInput
@@ -47,7 +50,7 @@ export const ICSConfigComponent: React.FC<ICSConfigComponentProps> = ({
         <div className="setting-item-info" />
         <div className="setting-item-control">
           <button className="mod-cta" type="submit" disabled={isSubmitting || !url}>
-            Add Calendar
+            {t('ui.buttons.addCalendar')}
           </button>
         </div>
       </div>

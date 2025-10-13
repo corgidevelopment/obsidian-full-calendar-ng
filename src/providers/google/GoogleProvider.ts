@@ -17,12 +17,7 @@ import { GoogleAuthManager } from './auth/GoogleAuthManager';
 const GoogleNameSetting: React.FC<{ source: Partial<import('../../types').CalendarInfo> }> = ({
   source
 }) => {
-  // Handle both flat and nested config structures for name
-  const getName = (): string => {
-    const flat = (source as { name?: unknown }).name;
-    const nested = (source as { config?: { name?: unknown } }).config?.name;
-    return typeof flat === 'string' ? flat : typeof nested === 'string' ? nested : '';
-  };
+  const calendarId = (source as any)?.calendarId || '';
 
   return React.createElement(
     'div',
@@ -30,7 +25,7 @@ const GoogleNameSetting: React.FC<{ source: Partial<import('../../types').Calend
     React.createElement('input', {
       disabled: true,
       type: 'text',
-      value: getName(),
+      value: calendarId,
       className: 'fc-setting-input'
     })
   );

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { HeadingInput } from '../../ui/components/forms/HeadingInput';
 import { DailyNoteProviderConfig } from './typesDaily';
 import { ProviderConfigContext } from '../typesProvider';
+import { t } from '../../features/i18n/i18n';
 
 interface DailyNoteConfigComponentProps {
   config: Partial<DailyNoteProviderConfig>;
@@ -33,9 +34,9 @@ export const DailyNoteConfigComponent: React.FC<DailyNoteConfigComponentProps> =
     <form onSubmit={handleSubmit}>
       <div className="setting-item">
         <div className="setting-item-info">
-          <div className="setting-item-name">Heading</div>
+          <div className="setting-item-name">{t('settings.calendars.dailyNote.heading.label')}</div>
           <div className="setting-item-description">
-            Heading to store events under in the daily note.
+            {t('settings.calendars.dailyNote.heading.description')}
           </div>
         </div>
         <div className="setting-item-control">
@@ -53,7 +54,7 @@ export const DailyNoteConfigComponent: React.FC<DailyNoteConfigComponentProps> =
         <div className="setting-item-info" />
         <div className="setting-item-control">
           <button className="mod-cta" type="submit" disabled={isSubmitting || !heading}>
-            Add Calendar
+            {t('ui.buttons.addCalendar')}
           </button>
         </div>
       </div>

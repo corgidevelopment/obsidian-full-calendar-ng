@@ -23,33 +23,28 @@ import ReactModal from '../ReactModal';
 
 import { Notice } from 'obsidian';
 import { OFCEvent } from '../../types';
+import { EditEvent } from './EditEvent';
 import FullCalendarPlugin from '../../main';
 import { ConfirmModal } from './ConfirmModal';
-import { EditEvent } from './EditEvent';
 import { openFileForEvent } from '../../utils/eventActions';
-import { CalendarInfo } from '../../types';
 
 export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Partial<OFCEvent>) {
   const calendars = plugin.providerRegistry
     .getAllSources()
+    .filter(s => s.type !== 'FOR_TEST_ONLY')
     .map(info => {
       const instance = plugin.providerRegistry.getInstance(info.id);
       if (!instance) return null;
       const capabilities = instance.getCapabilities();
       if (!capabilities.canCreate) return null; // Filter for writable calendars
 
-      const providerClass = plugin.providerRegistry.getProviderForType(info.type);
-      if (!providerClass) return null;
       return {
-        id: info.id, // This is the SETTINGS ID
+        id: info.id,
         type: info.type,
-        name:
-          'name' in info && typeof (info as { name?: unknown }).name === 'string'
-            ? (info as { name: string }).name
-            : (providerClass as { displayName?: string } | undefined)?.displayName || info.type
+        name: info.name
       };
     })
-    .filter((c): c is { id: string; type: CalendarInfo['type']; name: string } => !!c);
+    .filter((c): c is NonNullable<typeof c> => !!c);
 
   if (calendars.length === 0) {
     new Notice('Cannot create event: No writable calendars are available.');
@@ -106,24 +101,20 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
 
   const calendars = plugin.providerRegistry
     .getAllSources()
+    .filter(s => s.type !== 'FOR_TEST_ONLY')
     .map(info => {
       const instance = plugin.providerRegistry.getInstance(info.id);
       if (!instance) return null;
       const capabilities = instance.getCapabilities();
       if (!capabilities.canEdit && !capabilities.canCreate) return null;
 
-      const providerClass = plugin.providerRegistry.getProviderForType(info.type);
-      if (!providerClass) return null;
       return {
         id: info.id,
         type: info.type,
-        name:
-          'name' in info && typeof (info as { name?: unknown }).name === 'string'
-            ? (info as { name: string }).name
-            : (providerClass as { displayName?: string } | undefined)?.displayName || info.type
+        name: info.name
       };
     })
-    .filter((c): c is { id: string; type: CalendarInfo['type']; name: string } => !!c);
+    .filter((c): c is NonNullable<typeof c> => !!c);
 
   const calIdx = calendars.findIndex(({ id }) => id === calId);
   const availableCategories = plugin.cache.getAllCategories();

@@ -25,6 +25,7 @@
  */
 
 import { App, Modal, Notice, Setting, TextComponent } from 'obsidian';
+import { t } from '../../i18n/i18n';
 
 // This modal presents the 3 bulk-update choices to the user.
 export class BulkCategorizeModal extends Modal {
@@ -41,20 +42,18 @@ export class BulkCategorizeModal extends Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl('h2', { text: 'Choose a Bulk-Update Method' });
+    contentEl.createEl('h2', { text: t('modals.bulkCategorize.title') });
     contentEl.createEl('p', {
-      text: 'How would you like to automatically categorize existing events in your local calendars? Note that this is a one time operation that will modify your event notes to match the required formatting.'
+      text: t('modals.bulkCategorize.description')
     });
 
     // Option 1: Smart Folder Update
     new Setting(contentEl)
-      .setName('Use Parent Folder (Smart)')
-      .setDesc(
-        "Use parent folder names as the category for UN-categorized events. Events that already look like 'Category - Title' will be skipped."
-      )
+      .setName(t('modals.bulkCategorize.smartFolder.name'))
+      .setDesc(t('modals.bulkCategorize.smartFolder.description'))
       .addButton(button =>
         button
-          .setButtonText('Run Smart Update')
+          .setButtonText(t('modals.bulkCategorize.smartFolder.button'))
           .setCta()
           .onClick(() => {
             this.onSubmit('smart');
@@ -64,13 +63,11 @@ export class BulkCategorizeModal extends Modal {
 
     // Option 2: Forced Folder Update
     new Setting(contentEl)
-      .setName('Use Parent Folder (Forced)')
-      .setDesc(
-        'PREPENDS the parent folder name to ALL event titles, even if they already have a category. Warning: This creates nested categories.'
-      )
+      .setName(t('modals.bulkCategorize.forcedFolder.name'))
+      .setDesc(t('modals.bulkCategorize.forcedFolder.description'))
       .addButton(button =>
         button
-          .setButtonText('Run Forced Update')
+          .setButtonText(t('modals.bulkCategorize.forcedFolder.button'))
           .setWarning()
           .onClick(() => {
             this.onSubmit('force_folder');
@@ -81,22 +78,20 @@ export class BulkCategorizeModal extends Modal {
     // Option 3: Forced Default Update
     let textInput: TextComponent;
     new Setting(contentEl)
-      .setName('Forced Default Update')
-      .setDesc(
-        'Prepends a category you provide to ALL event titles. If a category already exists, the new one will be added in front (e.g., New - Old - Title).'
-      )
+      .setName(t('modals.bulkCategorize.forcedDefault.name'))
+      .setDesc(t('modals.bulkCategorize.forcedDefault.description'))
       .addText(text => {
         textInput = text;
-        text.setPlaceholder('Enter default category');
+        text.setPlaceholder(t('modals.bulkCategorize.forcedDefault.placeholder'));
       })
       .addButton(button =>
         button
-          .setButtonText('Set Default')
+          .setButtonText(t('modals.bulkCategorize.forcedDefault.button'))
           .setWarning()
           .onClick(() => {
             const categoryValue = textInput.getValue().trim();
             if (categoryValue === '') {
-              new Notice('Please enter a category name.');
+              new Notice(t('modals.bulkCategorize.forcedDefault.errorEmpty'));
               return;
             }
             this.onSubmit('force_default', categoryValue);

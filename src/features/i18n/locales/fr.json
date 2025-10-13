@@ -1,0 +1,590 @@
+{
+  "commands": {
+    "newEvent": "Nouvel événement",
+    "resetCache": "Réinitialiser le cache d'événements",
+    "revalidateRemote": "Revalider les calendriers distants",
+    "openCalendar": "Ouvrir le calendrier",
+    "openChronoAnalyser": "Ouvrir Chrono Analyser (Desktop uniquement)",
+    "openSidebar": "Ouvrir dans la barre latérale"
+  },
+  "notices": {
+    "settingsUpdated": "Full Calendar a mis à jour vos paramètres de calendrier vers un nouveau format.",
+    "cacheReset": "Full Calendar a été réinitialisé.",
+    "chronoAnalyserMobileDisabled": "La fonctionnalité Chrono Analyser est uniquement disponible sur la version desktop d'Obsidian.",
+    "chronoAnalyserInitializing": "Chrono Analyser : Initialisation du cache d'événements...",
+    "chronoAnalyserLoadFailed": "Échec du chargement de Chrono Analyser. Veuillez vérifier la console.",
+    "chronoAnalyserConfigureFirst": "Veuillez d'abord configurer vos groupes d'insights en utilisant l'icône ⚙️.",
+    "chronoAnalyserGeneratingInsights": "Génération des insights (cela peut prendre un moment)...",
+    "chronoAnalyserInsightsFailed": "Échec de la génération des insights. Vérifiez la console développeur pour les erreurs.",
+    "chronoAnalyserInsightsSaved": "Configuration des insights enregistrée !",
+    "googleAuthFailed": "Échec de l'authentification Google. Veuillez réessayer.",
+    "bulkUpdateError": "Erreur lors de la mise à jour en masse. Vérifiez la console pour plus de détails.",
+    "providerNotRegistered": "Le fournisseur {{providerType}} n'est pas enregistré.",
+    "timezoneChanged": "Le fuseau horaire du système a été changé en {{timezone}}. La vue du calendrier a été mise à jour.",
+    "revalidatingRemotes": "Revalidation des calendriers distants...",
+    "revalidationFailed": "Un ou plusieurs calendriers distants n'ont pas pu être chargés. Vérifiez la console pour plus de détails.",
+    "revalidationSuccess": "Les calendriers distants ont été revalidés.",
+    "cannotOpenRemote": "Impossible d'ouvrir la note pour un événement distant.",
+    "bulkCategorization": {
+      "noNotesFound": "Aucune note d'événement local trouvée à catégoriser.",
+      "progress": "Catégorisation des notes d'événement : {{index}}/{{total}}",
+      "complete": "Catégorisation en masse terminée."
+    },
+    "bulkDecategorization": {
+      "noNotesFound": "Aucune note d'événement local trouvée à décatégoriser.",
+      "progress": "Décatégorisation des notes d'événement : {{index}}/{{total}}",
+      "complete": "Décatégorisation en masse terminée."
+    }
+  },
+  "ribbon": {
+    "openCalendar": "Ouvrir Full Calendar"
+  },
+  "settings": {
+    "general": {
+      "desktopInitialView": {
+        "label": "Vue initiale sur desktop",
+        "description": "Choisissez la plage de vue initiale sur les appareils desktop."
+      },
+      "mobileInitialView": {
+        "label": "Vue initiale sur mobile",
+        "description": "Choisissez la plage de vue initiale sur les appareils mobiles."
+      },
+      "displayTimezone": {
+        "label": "Fuseau horaire d'affichage",
+        "description": "Choisissez le fuseau horaire pour l'affichage des événements. Par défaut, celui de votre système. Changer cela rechargera le calendrier."
+      },
+      "clickToCreateEvent": {
+        "label": "Cliquer sur un jour en vue mois pour créer un événement",
+        "description": "Désactivez pour ouvrir la vue jour au lieu de créer un événement."
+      },
+      "enableReminders": {
+        "label": "Activer les rappels d'événement",
+        "description": "Afficher une notification desktop 10 minutes avant le début d'un événement."
+      }
+    },
+    "appearance": {
+      "title": "Apparence",
+      "firstDay": {
+        "label": "Premier jour de la semaine",
+        "description": "Choisissez le jour de début de la semaine."
+      },
+      "timeFormat24h": {
+        "label": "Format 24 heures",
+        "description": "Afficher l'heure au format 24h."
+      },
+      "businessHours": {
+        "enable": {
+          "label": "Activer les heures de travail",
+          "description": "Mettre en surbrillance vos heures de travail dans les vues en grille pour distinguer le temps de travail du temps personnel."
+        },
+        "days": {
+          "label": "Jours ouvrables",
+          "description": "Sélectionnez les jours de la semaine considérés comme ouvrables."
+        },
+        "startTime": {
+          "label": "Heure de début des heures de travail",
+          "description": "Quand commence votre journée de travail (format : HH:mm)"
+        },
+        "endTime": {
+          "label": "Heure de fin des heures de travail",
+          "description": "Quand se termine votre journée de travail (format : HH:mm)"
+        },
+        "options": {
+          "mondayFriday": "Lundi - Vendredi",
+          "everyDay": "Tous les jours",
+          "mondayThursday": "Lundi - Jeudi",
+          "tuesdaySaturday": "Mardi - Samedi"
+        }
+      },
+      "viewTimeRange": {
+        "title": "Plage horaire de la vue",
+        "slotMinTime": {
+          "label": "Heure la plus tôt à afficher",
+          "description": "Définir l'heure la plus tôt visible dans les vues en grille (format : HH:mm)"
+        },
+        "slotMaxTime": {
+          "label": "Heure la plus tardive à afficher",
+          "description": "Définir l'heure la plus tardive visible dans les vues en grille (format : HH:mm)"
+        }
+      },
+      "dayVisibility": {
+        "title": "Visibilité des jours",
+        "weekends": {
+          "label": "Afficher les week-ends",
+          "description": "Afficher ou non les jours du week-end (samedi et dimanche) dans le calendrier"
+        },
+        "hiddenDays": {
+          "label": "Jours cachés",
+          "description": "Sélectionnez les jours de la semaine à masquer dans le calendrier",
+          "options": {
+            "showAll": "Afficher tous les jours",
+            "hideWeekends": "Masquer les week-ends (dim, sam)",
+            "hideSunday": "Masquer uniquement le dimanche",
+            "hideSaturday": "Masquer uniquement le samedi",
+            "hideMonday": "Masquer le lundi",
+            "hideTuesday": "Masquer le mardi",
+            "hideWednesday": "Masquer le mercredi",
+            "hideThursday": "Masquer le jeudi",
+            "hideFriday": "Masquer le vendredi"
+          }
+        }
+      },
+      "dayMaxEvents": {
+        "label": "Nombre max d'événements par jour (vue mois)",
+        "description": "Limiter le nombre d'événements affichés par jour en vue mois",
+        "options": {
+          "default": "Utiliser la limite par défaut",
+          "unlimited": "Aucune limite (tout afficher)",
+          "one": "1 événement maximum",
+          "two": "2 événements maximum",
+          "three": "3 événements maximum",
+          "four": "4 événements maximum",
+          "five": "5 événements maximum",
+          "ten": "10 événements maximum"
+        }
+      },
+      "enableBackgroundEvents": {
+        "label": "Activer les événements en arrière-plan",
+        "description": "Permettre l'affichage d'événements comme éléments d'arrière-plan pour les vacances, le temps de concentration ou les horaires de cours."
+      },
+      "showEventInStatusBar": {
+        "label": "Afficher l'événement en cours dans la barre d'état",
+        "description": "Afficher le titre de l'événement en cours dans la barre d'état d'Obsidian."
+      }
+    },
+    "calendars": {
+      "title": "Gérer les calendriers",
+      "addCalendar": "Ajouter un calendrier",
+      "addCalendarTooltip": "Ajouter un calendrier",
+      "defaults": {
+        "iCloud": "Calendrier iCloud",
+        "new": "Nouveau calendrier {{type}}"
+      },
+      "types": {
+        "local": "Note complète",
+        "dailynote": "Note quotidienne",
+        "icloud": "iCloud",
+        "caldav": "CalDAV",
+        "ical": "Distant (format .ics)",
+        "google": "Google Calendar",
+        "tasks": "Tâches Obsidian"
+      },
+      "fullNote": {
+        "directory": {
+          "label": "Répertoire",
+          "description": "Répertoire pour stocker les notes d'événement"
+        }
+      },
+      "dailyNote": {
+        "heading": {
+          "label": "En-tête",
+          "description": "En-tête sous lequel stocker les événements dans la note quotidienne."
+        }
+      },
+      "ics": {
+        "url": {
+          "label": "URL",
+          "description": "URL du fichier .ics"
+        }
+      },
+      "caldav": {
+        "url": {
+          "label": "URL de la collection",
+          "description": "Collez l'URL de votre collection de calendrier (ex : https://calendar.zoho.in/caldav/<id>/events/)"
+        },
+        "username": {
+          "label": "Nom d'utilisateur",
+          "description": "Nom d'utilisateur du compte"
+        },
+        "password": {
+          "label": "Mot de passe",
+          "description": "Mot de passe du compte"
+        },
+        "importButton": "Importer les calendriers",
+        "importing": "Importation..."
+      },
+      "tasks": {
+        "zeroConfig": {
+          "label": "Aucune configuration requise",
+          "description": "Ce fournisseur lit automatiquement les paramètres existants du plugin Obsidian Tasks. Toutes les tâches avec une date d'échéance seront affichées sur le calendrier en tant qu'événements en lecture seule."
+        },
+        "calendarName": {
+          "label": "Nom du calendrier",
+          "description": "Nom d'affichage pour ce calendrier"
+        },
+        "readOnly": {
+          "label": "Calendrier en lecture seule",
+          "description": "Les tâches peuvent être consultées mais pas modifiées via l'interface du calendrier. Pour modifier les tâches, utilisez le plugin Tasks ou modifiez directement vos notes."
+        },
+        "adding": "Ajout...",
+        "cancel": "Annuler"
+      }
+    },
+    "categorization": {
+      "title": "Catégorisation avancée et Timeline",
+      "learnMore": "En savoir plus",
+      "learnMoreLink": "ici",
+      "enable": {
+        "label": "Activer la catégorisation avancée (basée sur le titre)",
+        "description": "Activer la coloration par catégorie et débloquer les vues timeline. Cela modifiera les titres des notes d'événement et permettra la visualisation timeline par catégorie."
+      },
+      "disable": {
+        "modalTitle": "⚠️ Désactiver et nettoyer",
+        "modalDescription": "Désactiver cette fonctionnalité supprimera les préfixes de catégorie connus de vos titres d'événement et supprimera définitivement tous les paramètres de couleur de catégorie enregistrés.",
+        "buttonDisable": "Désactiver et nettoyer les notes",
+        "buttonCancel": "Annuler"
+      }
+    },
+    "workspaces": {
+      "title": "Espaces de travail",
+      "description": "Créer et gérer des espaces de travail de calendrier. Chaque espace peut avoir ses propres paramètres de vue, calendriers visibles et filtres.",
+      "addNew": {
+        "label": "Ajouter un nouvel espace de travail",
+        "description": "Créer un nouvel espace de travail de calendrier"
+      },
+      "buttons": {
+        "new": "Nouvel espace de travail",
+        "edit": "Modifier",
+        "duplicate": "Dupliquer",
+        "activate": "Activer",
+        "active": "Actif",
+        "delete": "Supprimer"
+      },
+      "defaultName": "Nouvel espace de travail",
+      "copyName": "{{name}} Copie"
+    },
+    "quickStart": {
+  "title": "Démarrage rapide : Ajoutez votre premier calendrier",
+  "description": "Pour commencer, ajoutez une source de calendrier en utilisant le bouton \"+\" dans la section \"Gérer les calendriers\"."
+    },
+    "viewOptions": {
+      "day": "Jour",
+      "week": "Semaine",
+      "month": "Mois",
+      "list": "Liste",
+      "threeDays": "3 jours",
+      "timelineWeek": "Semaine timeline",
+      "timelineDay": "Jour timeline"
+    },
+    "weekdays": {
+      "sunday": "Dimanche",
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi"
+    }
+  },
+  "modals": {
+    "editEvent": {
+      "title": {
+        "new": "Nouvel événement",
+        "edit": "Modifier l'événement"
+      },
+      "buttons": {
+        "openNote": "Ouvrir la note",
+        "delete": "Supprimer",
+        "save": "Enregistrer l'événement"
+      },
+      "fields": {
+        "title": {
+          "label": "Titre",
+          "placeholder": "Titre de l'événement"
+        },
+        "category": {
+          "label": "Catégorie",
+          "placeholder": "Catégorie (optionnel)"
+        },
+        "display": {
+          "label": "Affichage",
+          "options": {
+            "auto": "Événement normal",
+            "background": "Événement en arrière-plan",
+            "inverseBackground": "Arrière-plan inversé",
+            "none": "Caché"
+          }
+        },
+        "inCalendar": {
+          "label": "Dans le calendrier"
+        },
+        "date": {
+          "label": "Date"
+        },
+        "time": {
+          "label": "Heure"
+        },
+        "options": {
+          "label": "Options",
+          "allDay": "Toute la journée",
+          "isTask": "Est une tâche",
+          "completed": "Terminée",
+          "endReminder": "Rappeler 10 min avant la fin",
+          "endReminderTooltip": "Un rappel de fin nécessite une heure de fin spécifique."
+        },
+        "repeats": {
+          "label": "Répétitions",
+          "options": {
+            "none": "Aucune",
+            "weekly": "Hebdomadaire",
+            "monthly": "Mensuelle",
+            "yearly": "Annuelle"
+          },
+          "repeatEvery": "Répéter chaque",
+          "week": "semaine",
+          "weeks": "semaines",
+          "month": "mois",
+          "months": "mois",
+          "year": "an",
+          "years": "ans",
+          "repeatOn": "Répéter le",
+          "onDay": "Le jour {{day}}",
+          "onThe": "Le",
+          "ordinal": {
+            "first": "premier",
+            "second": "deuxième",
+            "third": "troisième",
+            "fourth": "quatrième",
+            "last": "dernier"
+          },
+          "yearlyText": "Répète chaque année le {{date}}.",
+          "endRepeat": "Fin de la répétition"
+        }
+      },
+      "tooltips": {
+        "recurringTaskCompletion": "La complétion des tâches récurrentes peut être activée sur chaque instance dans la vue calendrier.",
+        "dailyNoteRecurring": "Les événements récurrents ne sont pas pris en charge dans les notes quotidiennes. Veuillez utiliser un calendrier 'Note complète' à la place.",
+        "inheritedEvent": "Cet événement hérite d'une série récurrente. Pour le modifier, ouvrez d'abord la note de la série."
+      }
+    },
+    "deleteRecurring": {
+  "title": "Supprimer l'événement récurrent",
+  "description": "Ceci est un événement récurrent. Que souhaitez-vous faire de toutes ses futures instances \"override\" (c'est-à-dire les événements que vous avez déplacés ou modifiés) ?",
+      "deleteInstance": {
+        "name": "Supprimer uniquement cette instance",
+        "description": "Supprimer uniquement l'instance du {{date}}. Cela sautera cette date dans la récurrence.",
+        "button": "Supprimer cette instance"
+      },
+      "promoteChildren": {
+        "name": "Promouvoir les événements enfants",
+        "description": "Transformer tous les événements modifiés (le cas échéant) en événements autonomes. Ils ne seront plus liés à cette série récurrente.",
+        "button": "Promouvoir les enfants"
+      },
+      "deleteAll": {
+        "name": "Supprimer les événements enfants",
+        "description": "Supprimer tous les futurs événements modifiés associés à cette série récurrente. Ceci est irréversible.",
+        "button": "Tout supprimer"
+      },
+      "cancel": "Annuler"
+    },
+    "workspace": {
+      "title": {
+        "create": "Créer un espace de travail",
+        "edit": "Modifier l'espace de travail"
+      },
+      "sections": {
+        "general": "Général",
+        "viewConfiguration": "Configuration de la vue",
+        "calendarFilters": "Filtres de calendrier",
+        "categoryFilters": "Filtres de catégorie",
+        "appearanceOverrides": "Remplacements d'apparence",
+        "viewClipping": "Plage horaire et découpage de la vue"
+      },
+      "fields": {
+        "name": {
+          "label": "Nom",
+          "description": "Un nom unique pour cet espace de travail",
+          "placeholder": "ex : Travail, Planification familiale"
+        },
+        "desktopView": {
+          "label": "Vue desktop",
+          "description": "Vue par défaut pour les appareils desktop"
+        },
+        "mobileView": {
+          "label": "Vue mobile",
+          "description": "Vue par défaut pour les appareils mobiles"
+        },
+        "defaultDate": {
+          "label": "Date par défaut (optionnel)",
+          "description": "Date à afficher lors de l'activation de l'espace de travail (ex : \"aujourd'hui\", \"2024-01-01\")",
+          "placeholder": "aujourd'hui, semaine-prochaine, 2024-01-01"
+        },
+        "visibleCalendars": {
+          "label": "Calendriers visibles",
+          "description": "Sélectionnez les calendriers à afficher (laisser vide pour tout afficher)",
+          "noCalendars": "Aucun calendrier configuré. Configurez d'abord les calendriers dans les paramètres principaux."
+        },
+        "categoryFilterMode": {
+          "label": "Mode de filtre de catégorie",
+          "description": "Choisissez comment filtrer les catégories",
+          "options": {
+            "showOnly": "Afficher uniquement les catégories sélectionnées",
+            "hide": "Masquer les catégories sélectionnées"
+          }
+        },
+        "categories": {
+          "label": "Catégories",
+          "description": "Sélectionnez les catégories à inclure/exclure (laisser vide pour tout afficher)",
+          "noCategories": "Aucune catégorie configurée. Configurez les catégories dans les paramètres de catégorisation.",
+          "requiresAdvanced": "Le filtrage par catégorie nécessite l'activation de la catégorisation avancée dans les paramètres principaux."
+        },
+        "overrideBusinessHours": {
+          "label": "Remplacer les heures de travail",
+          "description": "Activer des heures de travail personnalisées pour cet espace de travail"
+        },
+        "enableBusinessHours": {
+          "label": "Activer les heures de travail",
+          "description": "Afficher la surbrillance des heures de travail dans cet espace de travail"
+        },
+        "businessDays": {
+          "label": "Jours ouvrables",
+          "description": "Sélectionnez les jours de la semaine considérés comme ouvrables"
+        },
+        "businessHoursStart": {
+          "label": "Heure de début des heures de travail",
+          "description": "Quand commence votre journée de travail (format : HH:mm)"
+        },
+        "businessHoursEnd": {
+          "label": "Heure de fin des heures de travail",
+          "description": "Quand se termine votre journée de travail (format : HH:mm)"
+        },
+        "timelineCategories": {
+          "label": "Catégories de timeline",
+          "description": "État par défaut des groupes de catégories de timeline",
+          "options": {
+            "useDefault": "Utiliser le paramètre par défaut",
+            "expanded": "Développé par défaut",
+            "collapsed": "Réduit par défaut"
+          }
+        },
+        "slotMinTime": {
+          "label": "Heure la plus tôt à afficher",
+          "description": "Remplacer l'heure la plus tôt visible dans les vues en grille (format : HH:mm)",
+          "placeholder": "Utiliser le paramètre global"
+        },
+        "slotMaxTime": {
+          "label": "Heure la plus tardive à afficher",
+          "description": "Remplacer l'heure la plus tardive visible dans les vues en grille (format : HH:mm)",
+          "placeholder": "Utiliser le paramètre global"
+        },
+        "weekendDisplay": {
+          "label": "Affichage du week-end",
+          "description": "Remplacer l'affichage des week-ends dans le calendrier",
+          "options": {
+            "useDefault": "Utiliser le paramètre global",
+            "show": "Afficher les week-ends",
+            "hide": "Masquer les week-ends"
+          }
+        },
+        "hiddenDays": {
+          "label": "Jours cachés",
+          "description": "Remplacer les jours à masquer dans le calendrier",
+          "options": {
+            "useDefault": "Utiliser le paramètre global",
+            "showAll": "Afficher tous les jours",
+            "hideWeekends": "Masquer les week-ends (dim, sam)",
+            "hideSunday": "Masquer le dimanche",
+            "hideSaturday": "Masquer le samedi",
+            "hideMonday": "Masquer le lundi",
+            "hideFriday": "Masquer le vendredi"
+          }
+        },
+        "dayMaxEvents": {
+          "label": "Nombre max d'événements par jour (vue mois)",
+          "description": "Remplacer le nombre maximum d'événements à afficher par jour en vue mois",
+          "options": {
+            "useGlobal": "Utiliser le paramètre global",
+            "useDefault": "Utiliser la limite par défaut",
+            "noLimit": "Aucune limite",
+            "one": "1 événement",
+            "two": "2 événements",
+            "three": "3 événements",
+            "four": "4 événements",
+            "five": "5 événements",
+            "ten": "10 événements"
+          }
+        }
+      },
+      "calendarTypes": {
+        "local": "Local :",
+        "dailyNotes": "Notes quotidiennes :",
+        "ics": "ICS :",
+        "caldav": "CalDAV :",
+        "google": "Google :",
+        "generic": "Calendrier {{type}}"
+      },
+      "buttons": {
+        "save": "Enregistrer",
+        "create": "Créer",
+        "cancel": "Annuler"
+      }
+    },
+    "bulkCategorize": {
+      "title": "Choisissez une méthode de mise à jour en masse",
+      "description": "Comment souhaitez-vous catégoriser automatiquement les événements existants dans vos calendriers locaux ? Il s'agit d'une opération unique qui modifiera vos notes d'événement pour correspondre au format requis.",
+      "smartFolder": {
+        "name": "Utiliser le dossier parent (intelligent)",
+        "description": "Utiliser le nom du dossier parent comme catégorie pour les événements NON catégorisés. Les événements déjà au format 'Catégorie - Titre' seront ignorés.",
+        "button": "Lancer la mise à jour intelligente"
+      },
+      "forcedFolder": {
+        "name": "Utiliser le dossier parent (forcé)",
+        "description": "PRÉFIXE le nom du dossier parent à TOUS les titres d'événement, même s'ils ont déjà une catégorie. Attention : cela crée des catégories imbriquées.",
+        "button": "Lancer la mise à jour forcée"
+      },
+      "forcedDefault": {
+        "name": "Mise à jour par défaut forcée",
+        "description": "Préfixe une catégorie que vous fournissez à TOUS les titres d'événement. Si une catégorie existe déjà, la nouvelle sera ajoutée devant (ex : Nouvelle - Ancienne - Titre).",
+        "placeholder": "Entrez la catégorie par défaut",
+        "button": "Définir par défaut",
+        "errorEmpty": "Veuillez entrer un nom de catégorie."
+      }
+    }
+  },
+  "google": {
+    "title": "Comptes Google",
+    "noAccounts": "Aucun compte Google connecté. Ajoutez une source de calendrier pour connecter un compte.",
+    "accountDescription": "Compte connecté. ID : {{id}}",
+    "buttons": {
+      "disconnect": "Déconnecter",
+      "selectCalendars": "Sélectionner les calendriers",
+      "connectAccount": "Connecter un compte Google",
+      "backToAccounts": "Retour aux comptes",
+      "addCalendars": "Ajouter {{count}} calendrier",
+      "addCalendarsPlural": "Ajouter {{count}} calendriers"
+    },
+    "selectAccount": {
+      "title": "Connecter un compte Google"
+    },
+    "selectCalendars": {
+      "title": "Sélectionner les calendriers de {{email}}",
+      "noCalendars": "Aucun nouveau calendrier trouvé, ou tous les calendriers de ce compte ont été ajoutés.",
+      "description": "Choisissez les calendriers que vous souhaitez ajouter à Obsidian."
+    },
+    "loading": "Chargement..."
+  },
+  "ui": {
+    "buttons": {
+      "addCalendar": "Ajouter un calendrier"
+    },
+    "navigation": {
+      "thisMonth": "Ce mois-ci",
+      "thisWeek": "Cette semaine",
+      "customDate": "Date personnalisée...",
+      "viewMonth": "Voir le mois",
+      "viewWeek": "Voir la semaine",
+      "viewDay": "Voir le jour"
+    }
+  },
+  "notifications": {
+    "eventStarting": {
+      "title": "Événement commençant bientôt",
+      "body": "{{title}} commence à {{time}}"
+    },
+    "eventEnding": {
+      "title": "Événement se terminant bientôt",
+      "body": "{{title}} se termine à {{time}}"
+    },
+    "allDaySuffix": "(Toute la journée)"
+  }
+}

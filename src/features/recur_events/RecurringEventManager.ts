@@ -201,7 +201,6 @@ export class RecurringEventManager {
       const masterSessionId = await this.cache.getSessionId(globalMasterIdentifier);
 
       if (masterSessionId) {
-        // [DEBUG] inspect store before processEvent
         await this.cache.processEvent(
           masterSessionId,
           e => {
