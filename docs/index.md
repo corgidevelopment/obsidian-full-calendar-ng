@@ -4,7 +4,10 @@ Keep your calendar in your vault! This plugin integrates the [FullCalendar.io](h
 
 With Full Calendar, you can connect to local note-based calendars, your daily notes, and even remote sources like Google Calendar, iCloud, and Fastmail. The latest version 0.12.2 introduces **[event reminders with desktop notifications](whats_new.md#-event-reminder-system)**, **[multi-account Google Calendar support](whats_new.md#-multi-account-google-calendar)**, and **[lightning-fast performance improvements](whats_new.md#-lightning-fast-performance)** with lazy loading and event-driven architecture.
 
+The latest versions introduces **multi-language support** (the UI adapts to your Obsidian language, and developers can contribute new translations via the [i18n documentation](features/i18n.md)), and a **refactored provider architecture** (making calendar sources easier to extend, more reliable, and with improved CalDAV support).
+
 Previous releases brought powerful **[Advanced Categories system](events/categories.md)** for coloring and organization, a reimagined **[recurring event engine](events/recurring.md)**, **[Calendar Workspaces](whats_new.md#-calendar-workspaces)** for quick setup switching, and the **[Chrono Analyser dashboard](chrono_analyser/introduction.md)** for time-based insights.
+
 
 This documentation site will guide you through setup and advanced features. If something is unclear, don't hesitate to [submit an issue on GitHub](https://github.com/YouFoundJK/plugin-full-calendar/issues).
 

@@ -14,6 +14,28 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.12.4',
+    changes: [
+      {
+        type: 'new',
+        title: 'Multi-Language (i18n) Support',
+        description:
+          'Full Calendar now supports multiple languages. The UI will automatically switch based on your Obsidian language setting. Developers can add new translations via the i18n system with type-safe keys.'
+      },
+      {
+        type: 'improvement',
+        title: 'Deep Task Provider 2.0',
+        description: 'Tasks Plugin integration is now much smoother and robust.'
+      },
+      {
+        type: 'fix',
+        title: 'CalDAV and Provider Architecture Refactor',
+        description:
+          'The calendar source/provider system has been refactored for modularity, reliability, and easier extension. CalDAV support is now more robust and easier to configure.'
+      }
+    ]
+  },
+  {
     version: '0.12.3.1-beta',
     changes: [
       {

@@ -2,6 +2,20 @@
 
 This page provides a detailed breakdown of every version of the Full Calendar plugin, including new features, improvements, and bugfixes.
 
+## Version 0.12.4
+
+-   **Major Refactor:** CalDAV and Provider Architecture (#cc01102)
+    _The calendar source/provider system has been refactored for modularity, reliability, and easier extension. CalDAV support is now more robust and easier to configure._
+
+-   **New:** Multi-Language (i18n) Support
+    _Full Calendar now supports multiple languages. The UI will automatically switch based on your Obsidian language setting. Developers can add new translations via the i18n system with type-safe keys._
+
+-   **Improvement:** Provider Registry and Error Handling
+    _Provider registry logic has been improved for better calendar source management and error handling. Adding new calendar types is now simpler and safer._
+
+-   **Other:** Documentation and Translation Files
+    _Updated documentation and added instructions for contributing new translations. See [i18n documentation](features/i18n.md)._ 
+
 ---
 
 ## Version 0.12.3.1-beta

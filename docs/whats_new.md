@@ -3,6 +3,11 @@
 This page highlights the latest major features and improvements to help you get the most out of the plugin.  
 For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
+
+## 🌐 Multi-Language Support
+
+Full Calendar now supports multiple languages! The UI will automatically switch based on your Obsidian language setting. Developers can contribute new translations using the i18n system with type-safe keys. See [i18n documentation](features/i18n.md).
+
 ---
 
 ## ✅ Tasks Integration Reimagined

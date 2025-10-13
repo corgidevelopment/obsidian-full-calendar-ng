@@ -53,6 +53,7 @@ nav:
           - Workspaces: views/workspaces.md
           - Timezone Support: events/timezones.md
           - Hover & Context Menu: events/hover_context.md
+          - Internationalization: features/i18n.md
     - ChronoAnalyser: 
           - Chrono Analyser: chrono_analyser/introduction.md
           - Use Cases: chrono_analyser/usecases.md
