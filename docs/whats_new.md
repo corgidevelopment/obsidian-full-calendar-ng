@@ -4,6 +4,13 @@ This page highlights the latest major features and improvements to help you get 
 For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
 
+## ✅ CalDAV validation & Google recurrence fixes
+
+CalDAV imports now verify that the URL is a real calendar collection via PROPFIND, with clearer errors when a non-calendar endpoint is pasted. Google Calendar recurring events respect their source timezone, hide deleted instances reliably, and the mobile OAuth flow opens a safe placeholder tab to avoid popup blockers.
+
+---
+
+
 ## 🌐 Multi-Language Support
 
 Full Calendar now supports multiple languages! The UI will automatically switch based on your Obsidian language setting. Developers can contribute new translations using the i18n system with type-safe keys. See [i18n documentation](features/i18n.md).

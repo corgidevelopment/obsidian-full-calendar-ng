@@ -57,3 +57,5 @@ Notes:
 - Google calendars are writable from Obsidian (create, edit, delete). Some edits to a single instance of a recurring series create proper exceptions.
 - Duplicate checks are not enforced for Google; the source allows same-name events.
 - Events are converted into your chosen Display Timezone for viewing.
+- Recurring events now respect the source timezone for BYDAY alignment and hide deleted instances correctly, even across DST shifts.
+- On mobile, allow popups in Obsidian; the login flow opens a blank tab first to avoid iOS popup blockers.

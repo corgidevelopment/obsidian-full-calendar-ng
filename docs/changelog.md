@@ -2,6 +2,22 @@
 
 This page provides a detailed breakdown of every version of the Full Calendar plugin, including new features, improvements, and bugfixes.
 
+## Version 0.12.5
+
+-   **Fix:** CalDAV validation and parsing (#193)
+    _CalDAVProvider now validates calendar collections with PROPFIND, parses calendar-data via DOMParser, adds JSDOM-backed tests, and surfaces clearer errors when a URL is not a calendar collection._
+
+-   **Fix:** Provider initialization and cache refresh (#173)
+    _Providers call initialize() after construction, load events into the cache with completion callbacks, adjust load priorities, and resync event sources without a full calendar rebuild._
+
+-   **Fix:** Google auth and recurring timezone handling (#191, #190, #94)
+    _Mobile OAuth opens windows synchronously to avoid popup blockers; recurring Google events now honor exdates and BYDAY across timezones, correctly hiding deleted instances and preserving durations across DST._
+
+-   **Improvement:** ChronoAnalyser data integrity and Bases provider
+    _ChronoAnalyser pulls from the main EventStore with corrected category/project parsing, and you can now add an Obsidian Bases calendar (with a guard to enable the Bases plugin first)._ 
+
+---
+
 ## Version 0.12.4
 
 -   **Major Refactor:** CalDAV and Provider Architecture (#cc01102)

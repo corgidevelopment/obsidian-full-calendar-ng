@@ -1,6 +1,6 @@
 
 <!-- ![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22obsidian-full-calendar%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json) -->
-[![Version](https://img.shields.io/badge/Version-v_0.12.4-blue)](https://youfoundjk.github.io/plugin-full-calendar/)
+[![Version](https://img.shields.io/badge/Version-v_0.12.5-blue)](https://youfoundjk.github.io/plugin-full-calendar/)
 
 # Full Calendar (Remastered) Plugin
 
@@ -21,3 +21,9 @@ The FullCalendar library is released under the [GPLv3 license](https://fullcalen
 ### Installation
 
 You can also head over to the [releases page](https://github.com/YouFoundJK/plugin-full-calendar/releases/latest) and unzip the latest release inside of the `.obsidian/plugins` directory inside your vault.
+
+Or install via **BRAT**:
+
+1. Install the [Obsidian42 BRAT](https://github.com/TfTHacker/obsidian42-brat) community plugin.
+2. In BRAT, add this repo URL: `https://github.com/YouFoundJK/plugin-full-calendar`.
+3. Click **Add Plugin** and let Obsidian download it. Restart if prompted.

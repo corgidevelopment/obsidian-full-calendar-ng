@@ -2,6 +2,9 @@
 
 You can add any calendar that supports CalDAV over HTTPS basic authentication with a few providers already confirmed to work.
 
+!!! info
+	Paste the **calendar collection URL** (usually ending in `/events/`) when adding CalDAV. The plugin now validates the URL with a PROPFIND request and will reject endpoints that are not calendar collections.
+
 Calendars are automatically re-fetched from their source at most every five minutes. If you would like to revalidate remote calendars directly, you can run the command `Full Calendar: Revalidate remote calendars`.
 
 ---

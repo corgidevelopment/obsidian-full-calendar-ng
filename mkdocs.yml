@@ -44,6 +44,7 @@ nav:
           - Remote (CalDAV): calendars/caldav.md
           - Remote (Google Calender): calendars/gcal.md
           - Tasks Plugin Integration: calendars/tasks-plugin-integration.md
+          - Obsidian Bases Calendar: calendars/Bases.md
     - Events & Features:
           - Event Management: events/manage.md
           - Recurring Events: events/recurring.md

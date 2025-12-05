@@ -14,6 +14,40 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.12.5',
+    changes: [
+      {
+        type: 'new',
+        title: 'Obsidian Bases provider',
+        description: 'Add Bases as a calendar source (BETA).'
+      },
+      {
+        type: 'improvement',
+        title: 'Provider initialization and cache resync',
+        description:
+          'Providers invoke initialize() after creation, load events into the cache with onAllComplete callbacks, adjust load priorities, and refresh event sources without full re-render when resyncing. (#173)'
+      },
+      {
+        type: 'improvement',
+        title: 'ChronoAnalyser data integrity',
+        description:
+          'ChronoAnalyser now pulls from the main EventStore and parses category/project/subproject hierarchies correctly for accurate analysis.'
+      },
+      {
+        type: 'fix',
+        title: 'CalDAV validation and parsing',
+        description:
+          'CalDAVProvider now validates calendar collections with PROPFIND, parses calendar-data via DOMParser, adds JSDOM-backed tests, and surfaces clearer errors when URLs are invalid. (#193)'
+      },
+      {
+        type: 'fix',
+        title: 'Google OAuth and recurring timezone handling',
+        description:
+          'Mobile OAuth opens windows synchronously to avoid popup blockers (#191); recurring Google events honor exdates and BYDAY across timezones, correctly hiding deleted instances and preserving durations. (#190, #94)'
+      }
+    ]
+  },
+  {
     version: '0.12.4',
     changes: [
       {
