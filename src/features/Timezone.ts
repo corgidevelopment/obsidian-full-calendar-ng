@@ -95,13 +95,15 @@ export function convertEvent<T extends OFCEvent>(
         ? convertedEnd.minus({ milliseconds: 1 }).toISODate()!
         : convertedEnd.toISODate()!;
 
-    return {
+    const result = {
       ...event,
       date: convertedStart.toISODate()!,
       startTime: convertedStart.toFormat('HH:mm'),
       endTime: convertedEnd.toFormat('HH:mm'),
       endDate: finalEndDate
     };
+
+    return result;
   }
 
   // For recurring events or other types, return the event unmodified for now.

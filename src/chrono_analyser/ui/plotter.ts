@@ -165,7 +165,8 @@ export function renderPieChartDisplay(
   pieData: PieData,
   showDetailPopup: ShowDetailPopupFn,
   useReact: boolean,
-  isNewChartType: boolean
+  isNewChartType: boolean,
+  metric: 'duration' | 'count'
 ) {
   const mainChartEl = rootEl.querySelector<HTMLElement>('#mainChart');
   if (!mainChartEl) return;
@@ -192,7 +193,9 @@ export function renderPieChartDisplay(
   ];
 
   const layout: Partial<Plotly.Layout> = {
-    title: { text: `Time Distribution by ${chartTitleText}` },
+    title: {
+      text: `${metric === 'count' ? 'Event Count' : 'Time'} Distribution by ${chartTitleText}`
+    },
     showlegend: true,
     margin: { l: 40, r: 40, t: 60, b: 80 }
   };
@@ -219,7 +222,8 @@ export function renderSunburstChartDisplay(
   sunburstData: SunburstData,
   showDetailPopup: ShowDetailPopupFn,
   useReact: boolean,
-  isNewChartType: boolean
+  isNewChartType: boolean,
+  metric: 'duration' | 'count'
 ) {
   const mainContainerEl = rootEl.querySelector<HTMLElement>('#mainChart');
   if (!mainContainerEl) return;
@@ -253,7 +257,7 @@ export function renderSunburstChartDisplay(
   ];
 
   const layout: Partial<Plotly.Layout> = {
-    title: { text: 'Time Breakdown' },
+    title: { text: metric === 'count' ? 'Event Count Breakdown' : 'Time Breakdown' },
     margin: { l: 0, r: 0, b: 0, t: 40 },
     showlegend: false
   };
@@ -280,7 +284,8 @@ export function renderTimeSeriesChart(
   rootEl: HTMLElement,
   filteredRecords: TimeRecord[],
   useReact: boolean,
-  isNewChartType: boolean
+  isNewChartType: boolean,
+  metric: 'duration' | 'count'
 ) {
   const mainChartEl = rootEl.querySelector<HTMLElement>('#mainChart');
   if (!mainChartEl) return;
@@ -307,8 +312,8 @@ export function renderTimeSeriesChart(
   // REFACTORED: Simple, unified loop. All records are now dated instances.
   filteredRecords.forEach(record => {
     if (!record.date || isNaN(record.date.getTime())) return;
-    const duration = record._effectiveDurationInPeriod || 0;
-    if (duration <= 0) return;
+    const value = metric === 'count' ? 1 : record._effectiveDurationInPeriod || 0;
+    if (metric === 'duration' && value <= 0) return;
 
     let periodKey: string | null;
     if (granularity === 'daily') periodKey = Utils.getISODate(record.date);
@@ -320,11 +325,11 @@ export function renderTimeSeriesChart(
 
     if (!dataByPeriod.has(periodKey)) dataByPeriod.set(periodKey, { total: 0, categories: {} });
     const periodData = dataByPeriod.get(periodKey)!;
-    periodData.total += duration;
+    periodData.total += value;
 
     if (chartType === 'stackedArea') {
       const category = String(record[stackingLevel] || `(No ${stackingLevel})`);
-      periodData.categories[category] = (periodData.categories[category] || 0) + duration;
+      periodData.categories[category] = (periodData.categories[category] || 0) + value;
     }
   });
 
@@ -344,7 +349,7 @@ export function renderTimeSeriesChart(
       y: sortedPeriods.map(p => dataByPeriod.get(p)!.total.toFixed(2)),
       type: 'scatter',
       mode: 'lines+markers',
-      name: 'Total Hours'
+      name: metric === 'count' ? 'Total Events' : 'Total Hours'
     });
   } else {
     const allCategories = new Set<string>();
@@ -369,12 +374,12 @@ export function renderTimeSeriesChart(
 
   const layout: Partial<Plotly.Layout> = {
     title: {
-      text: `Time Spent (${granularity}) - ${
+      text: `${metric === 'count' ? 'Event Count' : 'Time Spent'} (${granularity}) - ${
         chartType === 'line' ? 'Overall Trend' : `Stacked by ${stackingLevel}`
       }`
     },
     xaxis: { title: { text: 'Period' }, type: 'date' },
-    yaxis: { title: { text: 'Hours' } },
+    yaxis: { title: { text: metric === 'count' ? 'Count' : 'Hours' } },
     margin: { t: 50, b: 80, l: 60, r: 30 },
     hovermode: 'x unified'
   };
@@ -386,7 +391,8 @@ export function renderActivityPatternChart(
   filteredRecords: TimeRecord[],
   showDetailPopup: ShowDetailPopupFn,
   useReact: boolean,
-  isNewChartType: boolean
+  isNewChartType: boolean,
+  metric: 'duration' | 'count'
 ) {
   const mainChartEl = rootEl.querySelector<HTMLElement>('#mainChart');
   if (!mainChartEl) return;
@@ -426,13 +432,14 @@ export function renderActivityPatternChart(
     filteredRecords.forEach(record => {
       if (record.date && !isNaN(record.date.getTime())) {
         const dayIndex = record.date.getUTCDay();
-        hoursByDay[dayIndex] += record._effectiveDurationInPeriod || 0;
+        const value = metric === 'count' ? 1 : record._effectiveDurationInPeriod || 0;
+        hoursByDay[dayIndex] += value;
       }
     });
     data = [{ x: daysOfWeekLabels, y: hoursByDay.map(h => h.toFixed(2)), type: 'bar' }];
     layout = {
-      title: { text: 'Total Hours by Day of Week' },
-      yaxis: { title: { text: 'Hours' } },
+      title: { text: `Total ${metric === 'count' ? 'Events' : 'Hours'} by Day of Week` },
+      yaxis: { title: { text: metric === 'count' ? 'Count' : 'Hours' } },
       margin: activityLayoutMargin
     };
   } else if (patternType === 'hourOfDay') {
@@ -442,14 +449,15 @@ export function renderActivityPatternChart(
       const startTime = 'startTime' in record.metadata ? record.metadata.startTime : null;
       const startHour = startTime ? Utils.getHourFromTimeStr(startTime) : null;
       if (startHour !== null) {
-        hoursByHour[startHour] += record._effectiveDurationInPeriod || 0;
+        const value = metric === 'count' ? 1 : record._effectiveDurationInPeriod || 0;
+        hoursByHour[startHour] += value;
       }
     });
     data = [{ x: hourLabels, y: hoursByHour.map(h => h.toFixed(2)), type: 'bar' }];
     layout = {
-      title: { text: 'Total Hours by Task Start Hour' },
+      title: { text: `Total ${metric === 'count' ? 'Events' : 'Hours'} by Task Start Hour` },
       xaxis: { title: { text: 'Hour of Day (0-23)' } },
-      yaxis: { title: { text: 'Hours' } },
+      yaxis: { title: { text: metric === 'count' ? 'Count' : 'Hours' } },
       margin: activityLayoutMargin
     };
   } else if (patternType === 'heatmapDOWvsHOD') {
@@ -464,7 +472,8 @@ export function renderActivityPatternChart(
       if (startHour === null) return;
       if (record.date && !isNaN(record.date.getTime())) {
         const dayIndex = record.date.getUTCDay();
-        heatmapData[dayIndex][startHour] += record._effectiveDurationInPeriod || 0;
+        const value = metric === 'count' ? 1 : record._effectiveDurationInPeriod || 0;
+        heatmapData[dayIndex][startHour] += value;
       }
     });
     data = [

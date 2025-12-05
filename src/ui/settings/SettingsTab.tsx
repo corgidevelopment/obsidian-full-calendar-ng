@@ -66,7 +66,8 @@ export function addCalendarButton(
           caldav: t('settings.calendars.types.caldav'),
           ical: t('settings.calendars.types.ical'),
           google: t('settings.calendars.types.google'),
-          tasks: t('settings.calendars.types.tasks')
+          tasks: t('settings.calendars.types.tasks'),
+          bases: t('settings.calendars.types.bases')
         }))
     )
     .addExtraButton(button => {
@@ -74,6 +75,17 @@ export function addCalendarButton(
       button.setIcon('plus-with-circle');
       button.onClick(async () => {
         const sourceType = dropdown.getValue();
+
+        if (sourceType === 'bases') {
+          const app = plugin.app as any;
+          const basesPlugin =
+            app.internalPlugins?.getPluginById('bases') || app.plugins?.getPlugin('bases');
+          if (!basesPlugin) {
+            new Notice('Please enable the Obsidian Bases plugin first.');
+            return;
+          }
+        }
+
         const providerType = sourceType === 'icloud' ? 'caldav' : sourceType;
 
         const providerClass = await plugin.providerRegistry.getProviderForType(providerType);

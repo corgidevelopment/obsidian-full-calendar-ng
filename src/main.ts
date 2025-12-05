@@ -153,15 +153,6 @@ export default class FullCalendarPlugin extends Plugin {
         this.providerRegistry.handleFileUpdate(file);
       })
     );
-    // Ensure TasksPluginProvider subscribes to live updates after layout is ready
-    this.app.workspace.onLayoutReady(() => {
-      const tasksProvider = this.providerRegistry
-        .getActiveProviders()
-        .find(p => p.type === 'tasks');
-      if (tasksProvider && typeof (tasksProvider as any).initialize === 'function') {
-        (tasksProvider as any).initialize();
-      }
-    });
     this.registerEvent(
       this.app.vault.on('rename', (file, oldPath) => {
         if (file instanceof TFile) {

@@ -43,6 +43,7 @@
         "fast-check": "^3.10.0",
         "husky": "^9.1.7",
         "jest": "^30.0.4",
+        "jest-environment-jsdom": "^30.2.0",
         "obsidian": "^1.8.7",
         "prettier": "^3.6.2",
         "ts-jest": "^29.4.0",

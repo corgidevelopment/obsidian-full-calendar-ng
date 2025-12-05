@@ -56,7 +56,7 @@ export class DataService {
       const calendarSource =
         provider.type === 'local' ? calId.split('::')[1] || 'local' : provider.displayName;
 
-      const eventsInCalendar = this.eventCache._storeForTest.getEventsInCalendar(calId);
+      const eventsInCalendar = this.eventCache.store.getEventsInCalendar(calId);
 
       for (const storedEvent of eventsInCalendar) {
         const timeRecord = Translator.storedEventToTimeRecord(

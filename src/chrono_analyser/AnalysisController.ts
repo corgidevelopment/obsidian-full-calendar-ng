@@ -1,30 +1,13 @@
-/**
- * @file The main orchestrator for the Chrono Analyser.
- * This class connects the DataService and UIService, managing the flow of data
- * from the main plugin's EventCache and triggering UI updates in response.
- */
-
 import { App, Notice } from 'obsidian';
 import FullCalendarPlugin from '../main';
 import * as Plotter from './ui/plotter';
-import * as Aggregator from './data/aggregator';
 import { DataManager } from './data/DataManager';
 import { UIService, ChartType, ChartSpecificFilter } from './ui/UIService';
 import { DataService } from './data/DataService';
-import { PieData, TimeRecord } from './data/types';
+import { TimeRecord } from './data/types';
 import { InsightsEngine } from './data/InsightsEngine';
-import { InsightConfigModal, InsightsConfig } from './ui/ui'; // Import necessary types
+import { InsightConfigModal, InsightsConfig } from './ui/ui';
 import { t } from '../features/i18n/i18n';
-
-interface IChartStrategy {
-  analysisName: string;
-  render(
-    controller: AnalysisController,
-    useReact: boolean,
-    filteredRecords: TimeRecord[],
-    isNewChartType: boolean
-  ): void;
-}
 
 export class AnalysisController {
   public uiService: UIService;
@@ -134,7 +117,7 @@ export class AnalysisController {
   private updateAnalysis(): void {
     this.uiService.saveState(null);
 
-    const { filters, newChartType } = this.uiService.getFilterState();
+    const { filters, newChartType, metric } = this.uiService.getFilterState();
     const chartSpecificFilters = this.uiService.getChartSpecificFilter(newChartType);
 
     const isNewChartType = this.activeChartType !== newChartType;
@@ -161,8 +144,6 @@ export class AnalysisController {
       }
     }
 
-    // filters.pattern = chartSpecificFilters.pattern; // DELETE THIS LINE
-
     // REFACTOR: Tell DataManager to expand events for time-based charts
     const expandRecurring =
       chartSpecificFilters.chart === 'time-series' || chartSpecificFilters.chart === 'activity';
@@ -172,7 +153,7 @@ export class AnalysisController {
       { expandRecurring }
     );
 
-    this.renderUI(records, totalHours, fileCount, useReact, isNewChartType);
+    this.renderUI(records, totalHours, fileCount, useReact, isNewChartType, metric);
 
     this.activeChartType = newChartType;
     switch (chartSpecificFilters.chart) {
@@ -214,12 +195,13 @@ export class AnalysisController {
   }
 
   private renderUI(
-    filteredRecords: TimeRecord[],
+    records: TimeRecord[],
     totalHours: number,
     fileCount: number,
     useReact: boolean,
-    isNewChartType: boolean
-  ) {
+    isNewChartType: boolean,
+    metric: 'duration' | 'count'
+  ): void {
     Plotter.renderErrorLog(this.rootEl, [], this.dataManager.getTotalRecordCount());
 
     if (this.dataManager.getTotalRecordCount() === 0) {
@@ -234,7 +216,7 @@ export class AnalysisController {
 
     this.uiService.showMainContainers();
 
-    if (filteredRecords.length === 0) {
+    if (records.length === 0) {
       this.uiService.renderStats('-', '-');
       this.uiService.updateActiveAnalysisStat('N/A');
       Plotter.renderChartMessage(this.rootEl, 'No data matches the current filters.');
@@ -242,117 +224,80 @@ export class AnalysisController {
       return;
     }
 
-    this.uiService.renderStats(totalHours, fileCount);
+    // Update Stats
+    if (metric === 'count') {
+      const totalCount = records.length;
+      this.uiService.renderStats(totalCount, fileCount);
+      const labelEl = this.rootEl.querySelector('#totalHours + .stat-label');
+      if (labelEl) labelEl.textContent = 'Total Events';
+    } else {
+      this.uiService.renderStats(totalHours, fileCount);
+      const labelEl = this.rootEl.querySelector('#totalHours + .stat-label');
+      if (labelEl) labelEl.textContent = 'Total Hours (Filtered)';
+    }
 
     const { newChartType } = this.uiService.getFilterState();
-    const chartStrategies = this.createChartStrategies();
-    const strategy = chartStrategies.get(newChartType!);
+    const chartSpecificFilters = this.uiService.getChartSpecificFilter(newChartType);
 
-    if (strategy) {
-      this.uiService.updateActiveAnalysisStat(strategy.analysisName);
-      strategy.render(this, useReact, filteredRecords, isNewChartType);
-      this.isChartRendered = true;
-    } else {
-      Plotter.renderChartMessage(this.rootEl, `Unknown chart type: ${newChartType}`);
-      this.isChartRendered = false;
+    this.uiService.updateActiveAnalysisStat(
+      newChartType ? newChartType.charAt(0).toUpperCase() + newChartType.slice(1) : 'None'
+    );
+
+    if (!newChartType) {
+      this.uiService.hideMainContainers();
+      return;
     }
-  }
 
-  private createChartStrategies(): Map<string, IChartStrategy> {
-    const strategies = new Map<string, IChartStrategy>();
+    this.isChartRendered = true;
 
-    strategies.set('pie', {
-      analysisName: 'Category Breakdown',
-      render: (
-        controller: AnalysisController,
-        useReact: boolean,
-        filteredRecords: TimeRecord[],
-        isNewChartType: boolean
-      ) => {
-        const pieFilters = controller.uiService.getChartSpecificFilter('pie');
-        if (pieFilters.chart !== 'pie') return;
-        const breakdownBy = pieFilters.breakdownBy as keyof TimeRecord;
-
-        const aggregation = new Map<string, number>();
-        const recordsByCategory = new Map<string, TimeRecord[]>();
-
-        for (const record of filteredRecords) {
-          const key = String(record[breakdownBy] || `(No ${breakdownBy})`);
-          // No more regex checks needed here
-          const duration = record._effectiveDurationInPeriod || 0;
-          aggregation.set(key, (aggregation.get(key) || 0) + duration);
-
-          if (!recordsByCategory.has(key)) recordsByCategory.set(key, []);
-          recordsByCategory.get(key)!.push(record);
-        }
-
-        const pieData: PieData = { hours: aggregation, recordsByCategory, error: false };
-        Plotter.renderPieChartDisplay(
-          controller.rootEl,
-          pieData,
-          controller.uiService.showDetailPopup,
-          useReact,
-          isNewChartType
+    // Render Chart
+    switch (chartSpecificFilters.chart) {
+      case 'pie':
+        const pieData = this.dataManager.preparePieChartData(
+          records,
+          chartSpecificFilters.breakdownBy,
+          metric
         );
-      }
-    });
-
-    strategies.set('sunburst', {
-      analysisName: 'Hierarchical Breakdown',
-      render: (
-        controller: AnalysisController,
-        useReact: boolean,
-        filteredRecords: TimeRecord[],
-        isNewChartType: boolean
-      ) => {
-        const sunburstFilters = controller.uiService.getChartSpecificFilter('sunburst');
-        if (sunburstFilters.chart !== 'sunburst') return;
-        const sunburstData = Aggregator.aggregateForSunburst(
-          filteredRecords,
-          sunburstFilters.level
+        Plotter.renderPieChartDisplay(
+          this.rootEl,
+          pieData,
+          this.uiService.showDetailPopup,
+          useReact,
+          isNewChartType,
+          metric
+        );
+        break;
+      case 'sunburst':
+        const sunburstData = this.dataManager.prepareSunburstData(
+          records,
+          chartSpecificFilters.level,
+          metric
         );
         Plotter.renderSunburstChartDisplay(
-          controller.rootEl,
+          this.rootEl,
           sunburstData,
-          controller.uiService.showDetailPopup,
+          this.uiService.showDetailPopup,
           useReact,
-          isNewChartType
+          isNewChartType,
+          metric
         );
-      }
-    });
-
-    strategies.set('time-series', {
-      analysisName: 'Time-Series Trend',
-      render: (
-        controller: AnalysisController,
-        useReact: boolean,
-        filteredRecords: TimeRecord[],
-        isNewChartType: boolean
-      ) => {
-        // No extra data fetching needed, plotter will use the pre-expanded records
-        Plotter.renderTimeSeriesChart(controller.rootEl, filteredRecords, useReact, isNewChartType);
-      }
-    });
-
-    strategies.set('activity', {
-      analysisName: 'Activity Patterns',
-      render: (
-        controller: AnalysisController,
-        useReact: boolean,
-        filteredRecords: TimeRecord[],
-        isNewChartType: boolean
-      ) => {
-        // No extra data fetching needed, plotter will use the pre-expanded records
+        break;
+      case 'time-series':
+        Plotter.renderTimeSeriesChart(this.rootEl, records, useReact, isNewChartType, metric);
+        break;
+      case 'activity':
         Plotter.renderActivityPatternChart(
-          controller.rootEl,
-          filteredRecords,
-          controller.uiService.showDetailPopup,
+          this.rootEl,
+          records,
+          this.uiService.showDetailPopup,
           useReact,
-          isNewChartType
+          isNewChartType,
+          metric
         );
-      }
-    });
-
-    return strategies;
+        break;
+      default:
+        Plotter.renderChartMessage(this.rootEl, `Unknown chart type: ${newChartType}`);
+        this.isChartRendered = false;
+    }
   }
 }

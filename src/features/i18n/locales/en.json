@@ -167,7 +167,8 @@
         "caldav": "CalDAV",
         "ical": "Remote (.ics format)",
         "google": "Google Calendar",
-        "tasks": "Obsidian Tasks"
+        "tasks": "Obsidian Tasks",
+        "bases": "Obsidian Bases"
       },
       "fullNote": {
         "directory": {

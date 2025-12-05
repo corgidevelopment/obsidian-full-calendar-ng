@@ -463,6 +463,7 @@ export class CalendarView extends ItemView {
    * callback with the EventCache to listen for updates.
    */
   async onOpen() {
+    const startTime = performance.now();
     await this.plugin.loadSettings();
     if (!this.plugin.cache) {
       new Notice('Full Calendar event cache not loaded.');
@@ -470,6 +471,8 @@ export class CalendarView extends ItemView {
     }
     if (!this.plugin.cache.initialized) {
       await this.plugin.cache.populate();
+    } else {
+      // console.log('Full Calendar: Cache already initialized.');
     }
 
     this.viewEnhancer = new ViewEnhancer(this.plugin.settings);
@@ -543,6 +546,7 @@ export class CalendarView extends ItemView {
 
       currentViewType = newViewType;
     };
+
     this.fullCalendarView = await renderCalendar(calendarEl, sources, {
       // timeZone:
       //   this.plugin.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -956,7 +960,18 @@ export class CalendarView extends ItemView {
 
       // handle resync event
       if (info.type === 'resync') {
-        this.onOpen();
+        // DON'T call onOpen() - that resets everything!
+        // Instead, just refresh the event sources from the current cache state
+        this.viewEnhancer.updateSettings(this.plugin.settings);
+        const allCachedSources = this.plugin.cache.getAllEvents();
+        const { sources } = this.viewEnhancer.getEnhancedData(allCachedSources);
+
+        requestAnimationFrame(() => {
+          if (this.fullCalendarView) {
+            this.fullCalendarView.removeAllEventSources();
+            sources.forEach(source => this.fullCalendarView!.addEventSource(source));
+          }
+        });
         return;
       }
 

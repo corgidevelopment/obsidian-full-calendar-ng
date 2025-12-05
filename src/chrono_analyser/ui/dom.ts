@@ -78,6 +78,15 @@ export function createDOMStructure(rootEl: HTMLElement): void {
 
           <!-- Row 3: Analysis Selection & Configuration -->
           <div class="control-group analysis-config-group">
+             <!-- NEW: Metric Selection -->
+            <div class="control-item">
+              <label for="metricSelect">📏 Metric</label>
+              <select id="metricSelect">
+                <option value="duration">Duration (Hours)</option>
+                <option value="count">Event Count</option>
+              </select>
+            </div>
+
             <div class="control-item">
               <label for="analysisTypeSelect">🎯 Analysis Type</label>
               <select id="analysisTypeSelect">

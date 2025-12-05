@@ -14,6 +14,12 @@ export interface CalendarProvider<TConfig> {
   readonly isRemote: boolean;
   readonly loadPriority: number;
 
+  /**
+   * Optional initialization hook called after provider instance is created.
+   * Use this to subscribe to external events or set up live watchers.
+   */
+  initialize?(): void;
+
   getCapabilities(): CalendarProviderCapabilities;
 
   getEventHandle(event: OFCEvent): EventHandle | null;

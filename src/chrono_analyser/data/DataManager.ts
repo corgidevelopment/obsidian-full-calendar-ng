@@ -363,7 +363,8 @@ export class DataManager {
             includeRecord = true;
           }
         }
-        if (includeRecord && effectiveDuration > 0) {
+        if (includeRecord) {
+          // Allow 0-duration events (like Tasks) to be included
           const finalRecord = { ...record, _effectiveDurationInPeriod: effectiveDuration };
           this.processRecord(finalRecord, effectiveDuration, breakdownBy, result, uniqueFiles);
         }
@@ -372,6 +373,126 @@ export class DataManager {
 
     result.fileCount = uniqueFiles.size;
     return result;
+  }
+
+  /**
+   * Prepares data for a Pie Chart.
+   */
+  public preparePieChartData(
+    records: TimeRecord[],
+    breakdownBy: keyof TimeRecord,
+    metric: 'duration' | 'count'
+  ): { hours: Map<string, number>; recordsByCategory: Map<string, TimeRecord[]>; error: boolean } {
+    const aggregation = new Map<string, number>();
+    const recordsByCategory = new Map<string, TimeRecord[]>();
+
+    for (const record of records) {
+      const key = String(record[breakdownBy] || `(No ${breakdownBy})`);
+      const value = metric === 'count' ? 1 : record._effectiveDurationInPeriod || 0;
+
+      if (metric === 'duration' && value <= 0) continue;
+
+      aggregation.set(key, (aggregation.get(key) || 0) + value);
+
+      if (!recordsByCategory.has(key)) recordsByCategory.set(key, []);
+      recordsByCategory.get(key)!.push(record);
+    }
+
+    return { hours: aggregation, recordsByCategory, error: false };
+  }
+
+  /**
+   * Prepares data for a Sunburst Chart.
+   */
+  public prepareSunburstData(
+    records: TimeRecord[],
+    level: string,
+    metric: 'duration' | 'count'
+  ): {
+    ids: string[];
+    labels: string[];
+    parents: string[];
+    values: number[];
+    recordsByLabel: Map<string, TimeRecord[]>;
+  } {
+    const data = {
+      ids: [] as string[],
+      labels: [] as string[],
+      parents: [] as string[],
+      values: [] as number[],
+      recordsByLabel: new Map<string, TimeRecord[]>()
+    };
+
+    let innerField: keyof TimeRecord;
+    let outerField: keyof TimeRecord;
+
+    if (level === 'project') {
+      innerField = 'hierarchy';
+      outerField = 'project';
+    } else {
+      innerField = 'project';
+      outerField = 'subproject';
+    }
+
+    const uniqueEntries = new Map<
+      string,
+      { value: number; records: TimeRecord[]; inner: string; outer: string }
+    >();
+
+    for (const record of records) {
+      const val = metric === 'count' ? 1 : record._effectiveDurationInPeriod;
+      if (typeof val !== 'number' || isNaN(val)) continue;
+      if (metric === 'duration' && val <= 0) continue;
+
+      const innerVal = String(record[innerField] || `(No ${innerField})`).trim();
+      const outerVal = String(record[outerField] || `(No ${outerField})`).trim();
+      const leafId = `${innerVal} - ${outerVal}`;
+
+      if (!uniqueEntries.has(leafId)) {
+        uniqueEntries.set(leafId, { value: 0, records: [], inner: innerVal, outer: outerVal });
+      }
+      const entry = uniqueEntries.get(leafId)!;
+      entry.value += val;
+      entry.records.push(record);
+    }
+
+    const parentTotals = new Map<string, number>();
+    let grandTotal = 0;
+
+    for (const { value, inner } of uniqueEntries.values()) {
+      parentTotals.set(inner, (parentTotals.get(inner) || 0) + value);
+    }
+    for (const total of parentTotals.values()) {
+      grandTotal += total;
+    }
+
+    const rootId = 'Total';
+    data.ids.push(rootId);
+    data.labels.push(rootId);
+    data.parents.push('');
+    data.values.push(grandTotal);
+    data.recordsByLabel.set(rootId, records);
+
+    for (const [parent, total] of parentTotals.entries()) {
+      data.ids.push(parent);
+      data.labels.push(parent);
+      data.parents.push(rootId);
+      data.values.push(total);
+      const parentRecords = records.filter(
+        r => String(r[innerField] || `(No ${innerField})`).trim() === parent
+      );
+      data.recordsByLabel.set(parent, parentRecords);
+    }
+
+    for (const [leafId, { value, records, inner, outer }] of uniqueEntries.entries()) {
+      data.ids.push(leafId);
+      data.labels.push(outer);
+      data.parents.push(inner);
+      data.values.push(value);
+      data.recordsByLabel.set(leafId, records);
+    }
+
+    return data;
   }
 
   /**
@@ -396,7 +517,7 @@ export class DataManager {
 
     result.records.push(record);
     result.totalHours += duration;
-    uniqueFiles.add(record.path);
+    uniqueFiles.add(record.path); // Use record.path as per original code, assuming it exists on TimeRecord
   }
 
   private isWithinDateRange(

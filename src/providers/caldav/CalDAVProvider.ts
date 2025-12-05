@@ -8,14 +8,11 @@ import { CalDAVConfigComponent } from './CalDAVConfigComponent';
 import * as React from 'react';
 import { obsidianFetch } from './obsidian-fetch_caldav';
 
+import { checkCalendarResourceType } from './helper_caldav';
+
 // Helper function to ensure URL formatting is consistent.
 function canonCollection(u?: string): string {
   return u ? (u.endsWith('/') ? u : u + '/') : (u as unknown as string);
-}
-
-// Helper function to check if a URL looks like a calendar collection URL.
-function looksLikeCollection(u?: string): u is string {
-  return !!u && /\/events\/?$/.test(u);
 }
 
 // Helper to format a Date object into the format CalDAV expects (YYYYMMDDTHHMMSSZ).
@@ -38,6 +35,7 @@ async function fetchCalendarObjects(
 <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
   <d:prop>
     <d:getetag/>
+    <c:calendar-data/>
   </d:prop>
   <c:filter>
     <c:comp-filter name="VCALENDAR">
@@ -62,7 +60,8 @@ async function fetchCalendarObjects(
     reportHeaders['Authorization'] = authHeader;
   }
 
-  // STEP 1: Send the REPORT to get the list of event URLs
+  // STEP 1: Send the REPORT to get the list of event URLs and data
+
   const reportRes = await obsidianFetch(canonCollection(collectionUrl), {
     method: 'REPORT',
     headers: reportHeaders,
@@ -70,38 +69,96 @@ async function fetchCalendarObjects(
   });
 
   const xml = await reportRes.text();
+
   if (reportRes.status >= 400) {
     console.error('[CalDAVProvider] REPORT request failed', reportRes.status, xml.slice(0, 800));
     throw new Error(`REPORT ${reportRes.status}`);
   }
 
-  // STEP 2: Parse the XML response to extract all event hrefs
-  const eventHrefs: string[] = [];
-  const hrefRe = /<d:href[^>]*>([\s\S]*?)<\/d:href>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = hrefRe.exec(xml))) {
-    const href = m[1];
-    if (href.endsWith('.ics')) {
-      eventHrefs.push(href);
+  // STEP 2: Parse the XML response using DOMParser
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+  const icsList: string[] = [];
+
+  // Robustly find calendar-data elements regardless of namespace prefix
+  // We use getElementsByTagNameNS('*', 'response') to find all response elements regardless of namespace
+  const responses = doc.getElementsByTagNameNS('*', 'response');
+  const allResponses = Array.from(responses);
+
+  for (const response of allResponses) {
+    // Find calendar-data within this response
+    // We use wildcard namespace to find propstat and prop elements
+    const propstats = response.getElementsByTagNameNS('*', 'propstat');
+
+    for (let i = 0; i < propstats.length; i++) {
+      const propstat = propstats[i];
+      const status = propstat.getElementsByTagNameNS('*', 'status')[0]?.textContent || '';
+      if (!status.includes('200')) continue;
+
+      const prop = propstat.getElementsByTagNameNS('*', 'prop')[0];
+      if (!prop) continue;
+
+      // Try to find calendar-data
+      // 1. Try standard namespace
+      let calendarData = prop.getElementsByTagNameNS(
+        'urn:ietf:params:xml:ns:caldav',
+        'calendar-data'
+      )[0];
+
+      // 2. Try wildcard namespace if specific one fails
+      if (!calendarData) {
+        const candidates = prop.getElementsByTagNameNS('*', 'calendar-data');
+        if (candidates.length > 0) {
+          calendarData = candidates[0];
+        }
+      }
+
+      if (calendarData && calendarData.textContent) {
+        icsList.push(calendarData.textContent);
+      }
     }
   }
 
-  if (eventHrefs.length === 0) {
-    return []; // No events in the given time range.
+  // STEP 3: Fallback - if no calendar-data was returned, fetch individual .ics files
+  if (icsList.length === 0) {
+    const eventHrefs: string[] = [];
+
+    // Parse hrefs using DOMParser
+    for (const response of allResponses) {
+      let hrefEl = response.getElementsByTagNameNS('DAV:', 'href')[0];
+      if (!hrefEl) {
+        // Fallback to wildcard
+        const candidates = response.getElementsByTagNameNS('*', 'href');
+        if (candidates.length > 0) {
+          hrefEl = candidates[0];
+        }
+      }
+
+      if (hrefEl && hrefEl.textContent && hrefEl.textContent.endsWith('.ics')) {
+        eventHrefs.push(hrefEl.textContent);
+      }
+    }
+
+    if (eventHrefs.length === 0) {
+      return [];
+    }
+
+    // Fetch each .ics file individually
+    const collectionOrigin = new URL(collectionUrl).origin;
+    const getPromises = eventHrefs.map(href => {
+      const getUrl = collectionOrigin + href;
+      const getHeaders: Record<string, string> = { Accept: 'text/calendar' };
+      if (authHeader) {
+        getHeaders['Authorization'] = authHeader;
+      }
+      console.log(`[CalDAV] Fetching individual event from ${getUrl}`);
+      return obsidianFetch(getUrl, { method: 'GET', headers: getHeaders }).then(res => res.text());
+    });
+
+    const fetchedIcs = await Promise.all(getPromises);
+    return fetchedIcs;
   }
 
-  // STEP 3: Fetch each .ics file individually
-  const collectionOrigin = new URL(collectionUrl).origin;
-  const getPromises = eventHrefs.map(href => {
-    const getUrl = collectionOrigin + href;
-    const getHeaders: Record<string, string> = { Accept: 'text/calendar' };
-    if (authHeader) {
-      getHeaders['Authorization'] = authHeader;
-    }
-    return obsidianFetch(getUrl, { method: 'GET', headers: getHeaders }).then(res => res.text());
-  });
-
-  const icsList = await Promise.all(getPromises);
   return icsList;
 }
 
@@ -165,8 +222,14 @@ export class CalDAVProvider implements CalendarProvider<CalDAVProviderConfig> {
   }
 
   async getEvents(): Promise<[OFCEvent, EventLocation | null][]> {
-    if (!looksLikeCollection(this.source.homeUrl)) {
-      const message = `[CalDAVProvider] No valid collection URL. Expected ".../events/", but got: ${this.source.homeUrl}`;
+    // Validate collection URL using PROPFIND instead of regex
+    const isValid = await checkCalendarResourceType(this.source.homeUrl, {
+      username: this.source.username,
+      password: this.source.password
+    });
+
+    if (!isValid) {
+      const message = `[CalDAVProvider] Invalid collection URL or not a calendar: ${this.source.homeUrl}`;
       console.error(message);
       throw new Error(message);
     }

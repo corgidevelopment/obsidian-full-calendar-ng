@@ -58,6 +58,7 @@ export type ChartSpecificFilter =
   | NullChartFilter;
 
 export interface FilterPayload {
+  metric?: 'duration' | 'count';
   analysisTypeSelect?: ChartType;
   hierarchyFilterInput?: string;
   projectFilterInput?: string;
@@ -121,6 +122,8 @@ export class UIService {
     this.rootEl.querySelector<HTMLInputElement>('#hierarchyFilterInput')!.value = '';
     this.rootEl.querySelector<HTMLInputElement>('#projectFilterInput')!.value = '';
     this.rootEl.querySelector<HTMLInputElement>('#patternInput')!.value = '';
+    // Default metric to duration if not specified
+    this.rootEl.querySelector<HTMLSelectElement>('#metricSelect')!.value = 'duration';
 
     for (const key in payload) {
       if (key === 'dateRangePicker') {
@@ -214,7 +217,15 @@ export class UIService {
     this.flatpickrInstance?.destroy();
   }
 
-  public getFilterState(): { filters: AnalysisFilters; newChartType: ChartType | null } {
+  public getFilterState(): {
+    filters: AnalysisFilters;
+    newChartType: ChartType | null;
+    metric: 'duration' | 'count';
+  } {
+    const metric =
+      (this.rootEl.querySelector<HTMLSelectElement>('#metricSelect')?.value as
+        | 'duration'
+        | 'count') || 'duration';
     const hierarchyFilter =
       this.rootEl
         .querySelector<HTMLInputElement>('#hierarchyFilterInput')
@@ -242,7 +253,7 @@ export class UIService {
       (this.rootEl.querySelector<HTMLSelectElement>('#analysisTypeSelect')?.value as
         | ChartType
         | undefined) ?? null;
-    return { filters, newChartType };
+    return { filters, newChartType, metric };
   }
 
   public getChartSpecificFilter(type: ChartType | null): ChartSpecificFilter {
@@ -341,6 +352,7 @@ export class UIService {
       ?.addEventListener('click', () => this.setPresetDateRange('thisMonth'));
 
     // Analysis Controls
+    this.rootEl.querySelector('#metricSelect')?.addEventListener('change', this.onFilterChange);
     this.rootEl
       .querySelector('#analysisTypeSelect')
       ?.addEventListener('change', () => this.handleAnalysisTypeChange());
@@ -368,6 +380,7 @@ export class UIService {
     const getElValue = (id: string) =>
       this.rootEl.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`)?.value;
     const state: Record<string, unknown> = {
+      metric: getElValue('metricSelect'),
       analysisTypeSelect: getElValue('analysisTypeSelect'),
       hierarchyFilter: getElValue('hierarchyFilterInput'),
       projectFilter: getElValue('projectFilterInput'),
@@ -402,6 +415,7 @@ export class UIService {
           const el = this.rootEl.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`);
           if (el && val !== undefined) el.value = val;
         };
+        setVal('metricSelect', state.metric);
         setVal('analysisTypeSelect', state.analysisTypeSelect);
         setVal('hierarchyFilterInput', state.hierarchyFilter);
         setVal('projectFilterInput', state.projectFilter);

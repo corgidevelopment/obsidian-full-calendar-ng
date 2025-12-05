@@ -69,6 +69,7 @@ export class ProviderRegistry {
     this.register('caldav', () => import('./caldav/CalDAVProvider'));
     this.register('google', () => import('./google/GoogleProvider'));
     this.register('tasks', () => import('./tasks/TasksPluginProvider'));
+    this.register('bases', () => import('./bases/BasesProvider'));
   }
 
   public register(type: string, loader: ProviderLoader): void {
@@ -141,6 +142,39 @@ export class ProviderRegistry {
       this.instances.set(settingsId, instance);
       // Also update the internal sources list to keep it in sync.
       this.sources.push(source);
+
+      // Call initialize() if provider supports it
+      if (instance.initialize) {
+        instance.initialize();
+      }
+
+      // Fetch events from the newly added provider and add them to cache
+      if (this.cache && this.cache.initialized) {
+        try {
+          const rawEvents = await instance.getEvents();
+
+          // Add events to cache
+          for (const [rawEvent, location] of rawEvents) {
+            const event = this.cache.enhancer.enhance(rawEvent);
+            const id = this.generateId();
+            this.cache.store.add({
+              calendarId: settingsId,
+              location,
+              id,
+              event
+            });
+            this.addMapping(event, settingsId, id);
+          }
+
+          // Add the provider to cache.calendars so getAllEvents() can see it
+          this.cache.calendars.set(settingsId, instance);
+
+          // Trigger cache resync to update UI
+          this.cache.resync();
+        } catch (error) {
+          console.error(`Full Calendar: Failed to fetch events from new provider:`, error);
+        }
+      }
     }
   }
 
@@ -162,6 +196,12 @@ export class ProviderRegistry {
         // Provider constructor accepts loosely typed config; pass source directly
         const instance = new ProviderClass(source, this.plugin, app);
         this.instances.set(settingsId, instance);
+
+        // Call initialize() if provider supports it
+        if (instance.initialize) {
+          instance.initialize();
+        } else {
+        }
       } else {
         // Warning is already logged in getProviderForType
       }
@@ -269,8 +309,10 @@ export class ProviderRegistry {
     onProviderComplete?: (
       calendarId: string,
       events: { event: OFCEvent; location: EventLocation | null }[]
-    ) => void
+    ) => void,
+    onAllComplete?: () => void
   ): Promise<{ event: OFCEvent; location: EventLocation | null; calendarId: string }[]> {
+    const startTime = performance.now();
     if (!this.cache) {
       throw new Error('Cache not set on ProviderRegistry');
     }
@@ -314,7 +356,7 @@ export class ProviderRegistry {
     // Load remote providers asynchronously in background
     if (remoteProviders.length > 0) {
       (async () => {
-        for (const [settingsId, instance] of remoteProviders) {
+        const promises = remoteProviders.map(async ([settingsId, instance]) => {
           try {
             const rawEvents = await instance.getEvents();
             const events = rawEvents.map(([rawEvent, location]) => ({
@@ -330,10 +372,26 @@ export class ProviderRegistry {
             const source = this.getSource(settingsId);
             console.warn(`Full Calendar: Failed to load remote calendar source`, source, e);
           }
+        });
+
+        await Promise.all(promises);
+
+        // All remote providers have completed
+        if (onAllComplete) {
+          onAllComplete();
         }
       })().catch(error => {
         console.error('Full Calendar: Error loading remote calendars:', error);
+        // Still call onAllComplete even if there was an error
+        if (onAllComplete) {
+          onAllComplete();
+        }
       });
+    } else {
+      // No remote providers, trigger completion immediately
+      if (onAllComplete) {
+        onAllComplete();
+      }
     }
 
     return results;
@@ -529,7 +587,8 @@ export class ProviderRegistry {
     this.cache.reset();
     await this.cache.populate();
     this.revalidateRemoteCalendars();
-    this.cache.resync();
+    // Note: resync is now triggered automatically by populate's onAllComplete callback
+    // when all async providers finish loading, so we don't need to call it here
 
     // Refresh backlog views if they exist
     if (this.tasksBacklogManager.getIsLoaded()) {

@@ -6,11 +6,11 @@
  * This file provides the `renderCalendar` function, which is a factory for
  * creating a `Calendar` instance from the `@fullcalendar/core` library. It
  * encapsulates all the configuration and boilerplate needed to set up the
-- * calendar, including plugins, views, toolbar settings, and interaction
+ * calendar, including plugins, views, toolbar settings, and interaction
  * callbacks.
  *
  * @exports renderCalendar
- * 
+ *
  * @license See LICENSE.md
  */
 
@@ -89,24 +89,63 @@ export async function renderCalendar(
     : null;
 
   // Apply RRULE monkeypatch once after plugin loads
+  // This patch fixes timezone/DST handling for recurring events.
+  //
+  // PROBLEM: For events with TZID, rrule.js stores the local time in UTC components.
+  // Across DST boundaries, the actual UTC time changes, causing display time shifts.
+  //
+  // SOLUTION: For events with TZID, we:
+  //   1. Extract the local time from dtstart's UTC components
+  //   2. Get occurrences from the original expand (preserves correct dates)
+  //   3. Apply the local time consistently to all occurrences
+  //
+  // For floating-time events (no TZID), we use a similar approach with getHours().
   if (!didPatchRRule) {
     const rrulePlugin = ((rrule as unknown as { default?: RRulePluginLike }).default ||
       (rrule as unknown as RRulePluginLike)) as RRulePluginLike;
     const originalExpand = rrulePlugin.recurringTypes[0].expand;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rrulePlugin.recurringTypes[0].expand = function (errd: any, fr: any, de: any) {
-      if (errd.rruleSet.tzid()) {
-        return originalExpand.call(this, errd, fr, de);
+      const tzid = errd.rruleSet.tzid();
+      const dtstart = errd.rruleSet._dtstart;
+
+      // For events with TZID, we need custom handling because rrule.js stores
+      // the local time in UTC components. We extract the hour from dtstart's
+      // UTC components (which is actually the local time in the TZID zone)
+      // and apply it consistently to all occurrences.
+      if (tzid) {
+        // Get the local time (stored in UTC components by rrule.js)
+        const localHours = dtstart ? dtstart.getUTCHours() : 0;
+        const localMinutes = dtstart ? dtstart.getUTCMinutes() : 0;
+
+        // Get occurrences from the original expand
+        const result = originalExpand.call(this, errd, fr, de) as Date[];
+
+        // Map each occurrence to use the correct local time
+        // The result dates have the local time in UTC components, which is correct
+        // for FullCalendar when it interprets them as "floating" times.
+        // We just need to ensure consistency across DST boundaries.
+        const mappedDates = result.map((d: Date) => {
+          // Create a new date with the local time preserved in UTC components
+          // This is what FullCalendar expects - getUTCHours() should return the display hour
+          return new Date(
+            Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), localHours, localMinutes)
+          );
+        });
+
+        return mappedDates;
       }
-      const hours = errd.rruleSet._dtstart
-        ? errd.rruleSet._dtstart.getHours()
-        : de.toDate(fr.start).getUTCHours();
-      return errd.rruleSet
-        .between(de.toDate(fr.start), de.toDate(fr.end), true)
-        .map(
-          (d: Date) =>
-            new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), hours, d.getMinutes()))
-        );
+
+      // Fallback for events without TZID - use dtstart's local hours
+      const hours = dtstart ? dtstart.getHours() : de.toDate(fr.start).getUTCHours();
+
+      const betweenDates = errd.rruleSet.between(de.toDate(fr.start), de.toDate(fr.end), true);
+      const mappedDates = betweenDates.map(
+        (d: Date) =>
+          new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), hours, d.getMinutes()))
+      );
+
+      return mappedDates;
     };
     didPatchRRule = true;
   }

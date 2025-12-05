@@ -122,6 +122,21 @@ function startDesktopLogin(plugin: FullCalendarPlugin, authUrl: string): void {
  * Kicks off the Google OAuth 2.0 flow.
  */
 export async function startGoogleLogin(plugin: FullCalendarPlugin): Promise<void> {
+  const { settings } = plugin;
+  const isMobile = Platform.isMobile;
+
+  // For mobile: Open window FIRST (synchronously) to avoid iOS popup blocker.
+  // iOS requires window.open() to be called in the same event loop tick as the user action.
+  let mobileWindow: Window | null = null;
+  if (isMobile) {
+    mobileWindow = window.open('about:blank', '_blank');
+    if (!mobileWindow) {
+      new Notice('Popup blocked. Please allow popups for Obsidian.');
+      return;
+    }
+  }
+
+  // NOW perform async operations (after window is opened on mobile)
   const state = generateRandomString(16);
   const verifier = generateRandomString(128);
   const challenge = await generateCodeChallenge(verifier);
@@ -129,14 +144,15 @@ export async function startGoogleLogin(plugin: FullCalendarPlugin): Promise<void
   // Store the verifier and state to be used in the callback.
   pkce = { verifier, state };
 
-  const { settings } = plugin;
-  const isMobile = Platform.isMobile;
-
   const clientId = settings.useCustomGoogleClient ? settings.googleClientId : PUBLIC_CLIENT_ID;
   const redirectUri = isMobile ? MOBILE_REDIRECT_URI : DESKTOP_REDIRECT_URI;
 
   if (settings.useCustomGoogleClient && (!clientId || !settings.googleClientSecret)) {
     new Notice('Custom Google Client ID and Secret must be set in the plugin settings.');
+    // Close the mobile window if we opened one
+    if (mobileWindow) {
+      mobileWindow.close();
+    }
     return;
   }
 
@@ -153,8 +169,9 @@ export async function startGoogleLogin(plugin: FullCalendarPlugin): Promise<void
   });
 
   const authUrl = `${AUTH_URL}?${params.toString()}`;
-  if (isMobile) {
-    window.open(authUrl);
+  if (isMobile && mobileWindow) {
+    // Redirect the already-open window to the OAuth URL
+    mobileWindow.location.href = authUrl;
   } else {
     startDesktopLogin(plugin, authUrl);
   }

@@ -195,20 +195,21 @@ export default class EventCache {
   }
 
   /**
-   * Populate the cache with events, prioritizing local providers for immediate display.
-   * Remote providers are loaded asynchronously in the background with proper priority ordering.
+   * Populate the cache with events from all sources.
    */
-  async populate() {
-    this.reset();
-
-    // Use the unified priority-based loading approach
+  async populate(): Promise<void> {
+    const startTime = performance.now();
     const localEvents = await this.plugin.providerRegistry.fetchAllByPriority(
-      (calendarId, events) => {
-        // Handle remote events via callback
-        const eventsForSync: [OFCEvent, EventLocation | null][] = events.map(
-          ({ event, location }) => [event, location]
+      (calendarId, eventsForSync) => {
+        const tuples = eventsForSync.map(
+          ({ event, location }) => [event, location] as [OFCEvent, EventLocation | null]
         );
-        this.syncCalendar(calendarId, eventsForSync);
+        this.syncCalendar(calendarId, tuples);
+      },
+      async () => {
+        this.initialized = true;
+        this.resync();
+        await this.timeEngine.start();
       }
     );
 

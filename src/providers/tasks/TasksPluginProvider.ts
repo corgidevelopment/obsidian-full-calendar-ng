@@ -170,7 +170,7 @@ export class TasksPluginProvider implements CalendarProvider<TasksProviderConfig
   readonly type = 'tasks';
   readonly displayName = 'Obsidian Tasks';
   readonly isRemote = false;
-  readonly loadPriority = 30;
+  readonly loadPriority = 130;
 
   constructor(source: TasksProviderConfig, plugin: FullCalendarPlugin, app?: ObsidianInterface) {
     if (!app) {

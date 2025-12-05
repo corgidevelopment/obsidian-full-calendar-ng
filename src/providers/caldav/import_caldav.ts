@@ -1,13 +1,10 @@
 // import_caldav.ts
 import { Authentication, CalDAVSource } from '../../types';
 import { generateCalendarId } from '../../types/calendar_settings';
-import { splitCalDAVUrl, ensureTrailingSlash } from './helper_caldav';
+import { splitCalDAVUrl, ensureTrailingSlash, checkCalendarResourceType } from './helper_caldav';
 
 /**
- * STRICT mode for Zoho:
- *  - If a collection URL is pasted, return it immediately (no discovery).
- *  - If only a root is pasted, throw and ask the user for a collection URL.
- * This fully eliminates /.well-known and root PROPFINDs during import.
+ * Imports a CalDAV calendar by validating the URL using PROPFIND.
  */
 export async function importCalendars(
   auth: Authentication,
@@ -16,9 +13,15 @@ export async function importCalendars(
 ): Promise<CalDAVSource[]> {
   const { serverUrl, collectionUrl } = splitCalDAVUrl(inputUrl);
 
-  if (!collectionUrl) {
+  // Validate that the URL is actually a calendar collection
+  const isValid = await checkCalendarResourceType(collectionUrl, {
+    username: auth.username,
+    password: auth.password
+  });
+
+  if (!isValid) {
     throw new Error(
-      'Please paste a collection URL (…/caldav/<CalendarID>/events/). Root discovery is disabled.'
+      'The provided URL does not appear to be a valid CalDAV calendar collection. Please ensure it points directly to a calendar.'
     );
   }
 
@@ -29,9 +32,9 @@ export async function importCalendars(
     {
       type: 'caldav',
       id,
-      name: 'Zoho Calendar',
+      name: 'CalDAV Calendar', // Default name, user can change it
       url: ensureTrailingSlash(serverUrl),
-      homeUrl: ensureTrailingSlash(collectionUrl), // must end with /events/
+      homeUrl: ensureTrailingSlash(collectionUrl),
       color: '#888888',
       username: auth.username,
       password: auth.password

@@ -38,7 +38,7 @@ export function storedEventToTimeRecord(
       ? Utils.calculateDuration(startTime, endTime, 1)
       : Utils.calculateDuration(startTime, endTime, days);
 
-  if (typeof duration !== 'number' || isNaN(duration) || duration <= 0) {
+  if (typeof duration !== 'number' || isNaN(duration) || duration < 0) {
     return null;
   }
 
@@ -61,17 +61,27 @@ export function storedEventToTimeRecord(
 
     if (useCategoryFeature) {
       // CATEGORY MODE: DERIVE EVERYTHING FROM THE EVENT OBJECT.
-      // Ignore filename, ignore file path.
       if (!event.category) {
-        // If the feature is on but an event has no category, skip it.
-        // This enforces data quality for this mode.
         return { hierarchy: null, project: null, subproject: null };
       }
 
-      const { project, subproject } = parseTitleForProject(event.title);
+      const categoryParts = event.category.split('/');
+      const hierarchy = categoryParts[0] || event.category;
+
+      // Project: 2nd level. Use subCategory if available, otherwise title.
+      let project = event.subCategory;
+      if (!project) {
+        project = event.title;
+      }
+
+      // Subproject: 3rd level (whatever is left). Use title ONLY if subCategory was used for Project.
+      let subproject = 'none';
+      if (event.subCategory) {
+        subproject = event.title;
+      }
 
       return {
-        hierarchy: event.category,
+        hierarchy: hierarchy,
         project: project,
         subproject: subproject
       };

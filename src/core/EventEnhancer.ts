@@ -47,8 +47,8 @@ export class EventEnhancer {
       categorizedEvent = {
         ...rawEvent,
         title,
-        category,
-        subCategory
+        category: category || rawEvent.category,
+        subCategory: subCategory || rawEvent.subCategory
       };
     }
 

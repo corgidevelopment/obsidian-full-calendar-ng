@@ -47,15 +47,30 @@ export interface GoogleEventLike {
 }
 
 export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
+  // DEBUG: Log all incoming Google events for debugging recurring event issues
+  const isDebugEvent = gEvent.summary === '123123';
+  if (isDebugEvent) {
+    console.log('[FC DEBUG] fromGoogleEvent called for "123123"');
+    console.log('[FC DEBUG] Raw Google Event:', JSON.stringify(gEvent, null, 2));
+  }
+
   if (gEvent.status === 'cancelled') {
     // This is an exception marker for a deleted instance of a recurring event.
     // Its information is already incorporated into the master event's `exdates`.
     // We should not display it as a separate event.
+    if (isDebugEvent) {
+      console.log('[FC DEBUG] Event is cancelled, returning null');
+    }
     return null;
   }
 
   if (!gEvent.id || !gEvent.summary || (!gEvent.start && !gEvent.end)) {
     // Not a valid event.
+    if (isDebugEvent) {
+      console.log(
+        '[FC DEBUG] Event is invalid (missing id, summary, or start/end), returning null'
+      );
+    }
     return null;
   }
 
@@ -86,13 +101,23 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
     // Timed event
     eventData.allDay = false;
 
-    // Use Luxon to correctly parse the absolute time and then shift it to the event's specified timezone.
-    const start = DateTime.fromISO(gEvent.start.dateTime, { setZone: true }).setZone(
-      gEvent.start.timeZone || 'utc'
-    );
+    // Google's dateTime is the absolute time (with offset). The timeZone field indicates
+    // the event's original timezone, which is used for recurrence calculation (BYDAY alignment).
+    // We should convert to the EVENT's timezone to get the local time that aligns with BYDAY rules.
+    const eventTimezone = gEvent.start.timeZone || 'utc';
+
+    // Parse the absolute time and convert to the event's timezone
+    const start = DateTime.fromISO(gEvent.start.dateTime, { setZone: true }).setZone(eventTimezone);
     const end = DateTime.fromISO(gEvent.end.dateTime, { setZone: true }).setZone(
-      gEvent.end.timeZone || 'utc'
+      gEvent.end.timeZone || eventTimezone
     );
+
+    if (isDebugEvent) {
+      console.log('[FC DEBUG] Raw dateTime:', gEvent.start.dateTime);
+      console.log('[FC DEBUG] Event timezone:', eventTimezone);
+      console.log('[FC DEBUG] Parsed start in event TZ:', start.toString());
+      console.log('[FC DEBUG] Start time extracted:', start.toFormat('HH:mm'));
+    }
 
     eventData.date = start.toISODate();
     eventData.startTime = start.toFormat('HH:mm');
@@ -136,7 +161,21 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
         skipDates: exdates,
         isTask: false // Google Calendar events are not tasks in the OFC sense.
       };
-      return { ...eventData, ...rruleEvent } as OFCEvent;
+
+      const result = { ...eventData, ...rruleEvent } as OFCEvent;
+
+      // DEBUG: Log the parsed recurring event
+      if (isDebugEvent) {
+        console.log('[FC DEBUG] Parsed as rrule event');
+        console.log('[FC DEBUG] eventData:', JSON.stringify(eventData, null, 2));
+        console.log('[FC DEBUG] rruleEvent:', JSON.stringify(rruleEvent, null, 2));
+        console.log('[FC DEBUG] Final OFCEvent:', JSON.stringify(result, null, 2));
+        console.log('[FC DEBUG] Original RRULE string from Google:', rruleString);
+        console.log('[FC DEBUG] Parsed rrule.toString():', rrule.toString());
+        console.log('[FC DEBUG] rrule options:', JSON.stringify(rrule.options, null, 2));
+      }
+
+      return result;
     }
   }
 
@@ -145,7 +184,15 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
     type: 'single'
   };
 
-  return { ...eventData, ...singleEvent } as OFCEvent;
+  const result = { ...eventData, ...singleEvent } as OFCEvent;
+
+  // DEBUG: Log the parsed single event
+  if (isDebugEvent) {
+    console.log('[FC DEBUG] Parsed as single event');
+    console.log('[FC DEBUG] Final OFCEvent:', JSON.stringify(result, null, 2));
+  }
+
+  return result;
 }
 
 /**

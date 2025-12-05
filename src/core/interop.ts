@@ -328,59 +328,152 @@ export function toEventInput(
     // Tell FullCalendar it’s all-day when relevant
     baseEvent.allDay = !!frontmatter.allDay;
   } else if (frontmatter.type === 'rrule') {
-    const dtstart = (() => {
-      const zone = frontmatter.timezone || settings.displayTimezone || 'local';
-      if (frontmatter.allDay) {
-        // For all-day events, we treat them as being at the start of the day in the specified zone.
-        return DateTime.fromISO(frontmatter.startDate, { zone });
-      } else {
-        const dtstartStr = combineDateTimeStrings(frontmatter.startDate, frontmatter.startTime);
+    const fm = frontmatter as any;
 
-        if (!dtstartStr) {
-          return null;
-        }
-        // When creating the DateTime, explicitly use the event's timezone.
-        return DateTime.fromISO(dtstartStr, { zone });
-      }
-    })();
-    if (dtstart === null) {
+    // DEBUG: Log rrule event processing for the 123123 event
+    const isDebugEvent = frontmatter.title === '123123';
+    if (isDebugEvent) {
+      console.log('[FC DEBUG] toEventInput processing rrule event "123123"');
+      console.log('[FC DEBUG] Input frontmatter:', JSON.stringify(frontmatter, null, 2));
+      console.log('[FC DEBUG] Settings displayTimezone:', settings.displayTimezone);
+    }
+
+    // Determine source and display timezones
+    const sourceZone = frontmatter.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const displayZone =
+      settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    if (isDebugEvent) {
+      console.log('[FC DEBUG] sourceZone:', sourceZone);
+      console.log('[FC DEBUG] displayZone:', displayZone);
+    }
+
+    // Parse the event time in its source timezone first
+    const dtstartStr = frontmatter.allDay
+      ? null
+      : combineDateTimeStrings(fm.startDate, fm.startTime);
+    if (!frontmatter.allDay && !dtstartStr) {
       return null;
     }
-    // NOTE: how exdates are handled does not support events which recur more than once per day.
-    const exdate = frontmatter.skipDates
+
+    const dtInSource = frontmatter.allDay
+      ? DateTime.fromISO(fm.startDate, { zone: sourceZone })
+      : DateTime.fromISO(dtstartStr!, { zone: sourceZone });
+
+    // Convert to display timezone to get the correct display time
+    const dtInDisplay = dtInSource.setZone(displayZone);
+
+    // Calculate the day offset: how many days the date shifts when converting timezones
+    // This is CRITICAL for cross-timezone events that cross day boundaries
+    const dayOffset =
+      dtInDisplay.ordinal - dtInSource.ordinal + (dtInDisplay.year - dtInSource.year) * 365; // Approximate, but works for small offsets
+
+    if (isDebugEvent) {
+      console.log('[FC DEBUG] dtInSource:', dtInSource.toString());
+      console.log('[FC DEBUG] dtInSource weekday:', dtInSource.weekdayLong);
+      console.log('[FC DEBUG] dtInDisplay:', dtInDisplay.toString());
+      console.log('[FC DEBUG] dtInDisplay weekday:', dtInDisplay.weekdayLong);
+      console.log('[FC DEBUG] dayOffset:', dayOffset);
+    }
+
+    // Adjust BYDAY rules if the timezone conversion shifts the day
+    let adjustedRrule = frontmatter.rrule;
+    if (dayOffset !== 0 && adjustedRrule.includes('BYDAY=')) {
+      // Map of weekday names
+      const weekdays = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+
+      // Extract BYDAY value
+      const bydayMatch = adjustedRrule.match(/BYDAY=([A-Z,]+)/);
+      if (bydayMatch) {
+        const originalDays = bydayMatch[1].split(',');
+        const adjustedDays = originalDays.map((day: string) => {
+          const dayIndex = weekdays.indexOf(day);
+          if (dayIndex === -1) return day;
+          // Apply day offset (negative offset = earlier day)
+          let newIndex = (dayIndex + dayOffset) % 7;
+          if (newIndex < 0) newIndex += 7;
+          return weekdays[newIndex];
+        });
+        adjustedRrule = adjustedRrule.replace(/BYDAY=[A-Z,]+/, `BYDAY=${adjustedDays.join(',')}`);
+
+        if (isDebugEvent) {
+          console.log('[FC DEBUG] Original BYDAY:', originalDays);
+          console.log('[FC DEBUG] Adjusted BYDAY:', adjustedDays);
+          console.log('[FC DEBUG] Adjusted rrule:', adjustedRrule);
+        }
+      }
+    }
+
+    // Use display timezone for DTSTART so times display correctly
+    // The BYDAY has been adjusted to compensate for any day shift
+    const dtstart = dtInDisplay;
+
+    if (isDebugEvent) {
+      console.log('[FC DEBUG] Final dtstart:', dtstart.toString());
+      console.log('[FC DEBUG] dtstart weekday:', dtstart.weekdayLong);
+    }
+
+    // Construct exdates - these need to be in "fake UTC" format where the local time
+    // in the display timezone is stored in UTC components (matching the monkeypatch behavior)
+    const exdate = fm.skipDates
       .map((d: string) => {
-        // Can't do date arithmetic because timezone might change for different exdates due to DST.
-        // RRule only has one dtstart that doesn't know about DST/timezone changes.
-        // Therefore, just concatenate the date for this exdate and the start time for the event together.
-        const date = DateTime.fromISO(d).toISODate();
-        const time = dtstart.toJSDate().toISOString().split('T')[1];
-
-        return `${date}T${time}`;
+        // Parse the skip date with the event's start time in the source timezone
+        const exInSource = DateTime.fromISO(`${d}T${fm.startTime}`, { zone: sourceZone });
+        // Convert to display timezone to get the local time
+        const exInDisplay = exInSource.setZone(displayZone);
+        // Create a "fake UTC" date where the local time is stored in UTC components
+        // This matches how the monkeypatch stores times for FullCalendar
+        const fakeUtc = new Date(
+          Date.UTC(
+            exInDisplay.year,
+            exInDisplay.month - 1, // JS months are 0-indexed
+            exInDisplay.day,
+            exInDisplay.hour,
+            exInDisplay.minute,
+            exInDisplay.second,
+            exInDisplay.millisecond
+          )
+        );
+        return fakeUtc.toISOString();
       })
-      .flatMap((d: string) => (d ? [d] : []));
+      .flatMap((d: string | null) => (d ? [d] : []));
 
-    // Manually construct the rrule string with TZID to preserve timezone context for FullCalendar.
-    const zone = frontmatter.timezone || settings.displayTimezone || 'local';
-    const dtstartString = `DTSTART;TZID=${zone}:${dtstart.toFormat("yyyyMMdd'T'HHmmss")}`;
-    const rruleString = frontmatter.rrule;
+    // Construct the rrule string with DISPLAY timezone and ADJUSTED BYDAY
+    // This ensures the event displays at the correct time in the user's timezone
+    const dtstartString = `DTSTART;TZID=${displayZone}:${dtstart.toFormat("yyyyMMdd'T'HHmmss")}`;
+    const rruleString = adjustedRrule;
 
-    baseEvent.rrule = [dtstartString, rruleString].join('\n'); // We don't need exdates here as FullCalendar handles them separately.
+    if (isDebugEvent) {
+      console.log('[FC DEBUG] dtstartString:', dtstartString);
+      console.log('[FC DEBUG] rruleString (adjusted):', rruleString);
+      console.log(
+        '[FC DEBUG] Combined rrule for FullCalendar:',
+        [dtstartString, rruleString].join('\n')
+      );
+      console.log('[FC DEBUG] exdates:', exdate);
+    }
+
+    baseEvent.rrule = [dtstartString, rruleString].join('\n');
     baseEvent.exdate = exdate;
     baseEvent.extendedProps = { ...baseEvent.extendedProps, isTask: !!frontmatter.isTask };
 
     if (!frontmatter.allDay) {
+      // Calculate duration using the source timezone times (duration is timezone-independent)
       const startTime = parseTime(frontmatter.startTime);
       if (startTime && frontmatter.endTime) {
         const endTime = parseTime(frontmatter.endTime);
         if (endTime) {
+          // Parse in source timezone to get correct duration
           let startDt = DateTime.fromISO(
-            combineDateTimeStrings(frontmatter.startDate, frontmatter.startTime)!
+            combineDateTimeStrings(frontmatter.startDate, frontmatter.startTime)!,
+            { zone: sourceZone }
           );
           let endDt = DateTime.fromISO(
             combineDateTimeStrings(
               frontmatter.endDate || frontmatter.startDate,
               frontmatter.endTime
-            )!
+            )!,
+            { zone: sourceZone }
           );
 
           if (endDt < startDt) {
@@ -394,9 +487,22 @@ export function toEventInput(
               suppressMilliseconds: true,
               suppressSeconds: true
             });
+
+            if (isDebugEvent) {
+              console.log('[FC DEBUG] startDt (source):', startDt.toString());
+              console.log('[FC DEBUG] endDt (source):', endDt.toString());
+              console.log('[FC DEBUG] Calculated duration:', baseEvent.duration);
+            }
           }
         }
       }
+    }
+
+    if (isDebugEvent) {
+      console.log(
+        '[FC DEBUG] Final baseEvent for FullCalendar:',
+        JSON.stringify(baseEvent, null, 2)
+      );
     }
   } else if (frontmatter.type === 'single') {
     if (!frontmatter.allDay) {

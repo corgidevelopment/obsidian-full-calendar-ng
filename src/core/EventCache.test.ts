@@ -115,6 +115,7 @@ const makeCache = (events: OFCEvent[]) => {
   } as any;
 
   const cache = new EventCache(mockPlugin);
+  cache.reset();
   return cache;
 };
 
@@ -229,6 +230,7 @@ describe('event cache with readonly calendar', () => {
       }
     } as any;
     const cache = new EventCache(mockPlugin);
+    cache.reset();
 
     await cache.populate();
 
@@ -383,6 +385,7 @@ const makeEditableCache = (events: EditableEventResponse[]) => {
     return [finalEvent, location];
   });
 
+  cache.reset();
   return [cache, calendar, mockPlugin] as const;
 };
 
@@ -833,6 +836,7 @@ describe('editable calendars', () => {
       } as any;
 
       cache = new EventCache(mockPlugin);
+      cache.reset();
       cache.syncCalendar = syncCalendarSpy;
       cache.on('update', callbackMock);
 
@@ -988,6 +992,7 @@ describe('editable calendars', () => {
       } as any;
 
       cache = new EventCache(mockPlugin);
+      cache.reset();
       const syncCalendarSpy = jest.spyOn(cache, 'syncCalendar').mockImplementation(() => {});
 
       // Act: Call populate and wait for completion
