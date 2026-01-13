@@ -276,6 +276,7 @@ export async function renderCalendar(
 
       const views = isNarrow
         ? {
+            dayGridMonth: 'Month',
             timeGrid3Days: '3 Days',
             timeGridDay: 'Day',
             listWeek: 'List'

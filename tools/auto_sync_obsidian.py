@@ -31,8 +31,8 @@ from watchdog.events import FileSystemEventHandler
 
 # === CONFIG ===
 ADB_PATH = r"D:\ProgramFiles\platform-tools\adb"
-LOCAL_PLUGIN_PATH = r"D:\Codes\plugin-full-calendar\obsidian-dev-vault\.obsidian\plugins\Full-Calender"
-ANDROID_PLUGIN_PATH = "/sdcard/Documents/Obsidian/Dev test obsidian/.obsidian/plugins/Full-Calender"
+LOCAL_PLUGIN_PATH = r"D:\Codes\plugin-full-calendar\obsidian-dev-vault\.obsidian\plugins\plugin-full-calendar"
+ANDROID_PLUGIN_PATH = "/sdcard/Documents/Obsidian/Dev test obsidian/.obsidian/plugins/plugin-full-calendar"
 
 EXCLUDE_FILES = ['.hotreload', '.DS_Store', 'Thumbs.db']
 

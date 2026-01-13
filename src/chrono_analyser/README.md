@@ -1,5 +1,5 @@
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-green.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![Version](https://img.shields.io/badge/Version-v_0.10.12-blue)](https://youfoundjk.github.io/Time-Analyser-Full-Calender/)
+[![Version](https://img.shields.io/badge/Version-v_0.10.12-blue)](https://youfoundjk.github.io/Time-Analyser-Full-Calendar/)
 
 # Chrono Analyser Subproject
 

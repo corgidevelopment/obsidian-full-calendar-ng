@@ -11,8 +11,8 @@ Full Calendar is open to contributions, and we’re excited to have you here! Th
 To develop locally, set up your development vault and plugin directory:
 
 ```bash
-mkdir -p .obsidian/.plugins/plugin-full-calender/
-cp manifest.json .obsidian/.plugins/plugin-full-calender/manifest.json
+mkdir -p .obsidian/.plugins/full-calendar-remastered/
+cp manifest.json .obsidian/.plugins/full-calendar-remastered/manifest.json
 ````
 
 *Currently this folder already exists and will contain the minimified builds accordingly the latest tags (this is done to simplify the obsidian community plugin release process).

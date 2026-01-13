@@ -624,12 +624,12 @@ export class CalendarView extends ItemView {
           if (!this.plugin.cache.isEventEditable(info.event.id)) {
             // Get the calendar name from settings
             const eventDetails = this.plugin.cache.store.getEventDetails(info.event.id);
-            const calendarName = eventDetails
+            const calendarName = eventDetails 
               ? this.plugin.settings.calendarSources.find(
                   (cal: CalendarInfo) => cal.id === eventDetails.calendarId
                 )?.name || 'Unknown'
               : 'Unknown';
-
+            
             new Notice(`This event belongs to a read-only calendar ("${calendarName}")`);
             return;
           }

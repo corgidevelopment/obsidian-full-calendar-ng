@@ -16,6 +16,7 @@ const INITIAL_VIEW_OPTIONS = {
     listWeek: 'settings.viewOptions.list'
   },
   MOBILE: {
+    dayGridMonth: 'settings.viewOptions.month',
     timeGrid3Days: 'settings.viewOptions.threeDays',
     timeGridDay: 'settings.viewOptions.day',
     listWeek: 'settings.viewOptions.list'

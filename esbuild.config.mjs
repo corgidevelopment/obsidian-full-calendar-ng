@@ -58,7 +58,7 @@ async function build() {
         setup(build) {
           build.onEnd(() => {
 
-            const cssOutputDir = "obsidian-dev-vault/.obsidian/plugins/Full-Calender";
+            const cssOutputDir = "obsidian-dev-vault/.obsidian/plugins/full-calendar-remastered";
             const oldPath = path.join(cssOutputDir, "main.css");
             const newPath = path.join(cssOutputDir, "styles.css");
 
@@ -72,7 +72,7 @@ async function build() {
         }
       }
     ],
-    outfile: "obsidian-dev-vault/.obsidian/plugins/Full-Calender/main.js",
+    outfile: "obsidian-dev-vault/.obsidian/plugins/full-calendar-remastered/main.js",
   });
 
   if (!prod) {

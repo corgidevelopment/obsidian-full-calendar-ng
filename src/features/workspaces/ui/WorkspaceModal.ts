@@ -121,6 +121,7 @@ export class WorkspaceModal extends Modal {
     // Mobile view
     const mobileViewOptions: { [key: string]: string } = {
       '': t('modals.workspace.fields.desktopView.label'),
+      dayGridMonth: t('settings.viewOptions.month'),
       timeGrid3Days: t('settings.viewOptions.threeDays'),
       timeGridDay: t('settings.viewOptions.day'),
       listWeek: t('settings.viewOptions.list')
