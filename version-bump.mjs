@@ -16,5 +16,5 @@ writeFileSync("versions.json", JSON.stringify(versions, null, "\t"));
 // Copy manifest.json to the Obsidian plugin directory
 copyFileSync(
   "manifest.json",
-  "obsidian-dev-vault/.obsidian/plugins/Full-Calender/manifest.json"
+  "obsidian-dev-vault/.obsidian/plugins/plugin-full-calendar/manifest.json"
 );

@@ -19,12 +19,94 @@ import ical from 'ical.js';
 import { OFCEvent, validateEvent } from '../../types';
 
 /**
+ * Converts an iCal date string (YYYYMMDD or YYYYMMDDTHHMMSSZ) to ISO extended format.
+ * This ensures FullCalendar receives dates in the format it expects.
+ */
+function convertICalDateToISO(dateStr: string, isDateOnly: boolean = false): string | null {
+  // Handle YYYYMMDD format (date only)
+  if (dateStr.length === 8 && /^\d{8}$/.test(dateStr)) {
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Handle YYYYMMDDTHHMMSSZ format (date-time with UTC)
+  if (dateStr.length === 16 && dateStr.endsWith('Z') && /^\d{8}T\d{6}Z$/.test(dateStr)) {
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    const hour = dateStr.substring(9, 11);
+    const minute = dateStr.substring(11, 13);
+    const second = dateStr.substring(13, 15);
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
+  }
+  
+  // Handle YYYYMMDDTHHMMSS format (date-time without timezone)
+  if (dateStr.length === 15 && /^\d{8}T\d{6}$/.test(dateStr)) {
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    const hour = dateStr.substring(9, 11);
+    const minute = dateStr.substring(11, 13);
+    const second = dateStr.substring(13, 15);
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+  }
+  
+  return null;
+}
+
+/**
  * Converts an ical.js Time object into a Luxon DateTime object.
  * This version uses .toJSDate() to get a baseline moment in time and then
  * applies the original timezone from the iCal data.
+ * Added validation to handle invalid dates that might come from malformed iCal data.
  */
 function icalTimeToLuxon(t: ical.Time): DateTime {
-  const jsDate = t.toJSDate();
+  let jsDate: Date;
+  
+  try {
+    jsDate = t.toJSDate();
+    
+    // Validate the Date object - check if it's invalid
+    if (isNaN(jsDate.getTime())) {
+      // If the Date is invalid, try to parse the raw string value
+      const rawValue = t.toString();
+      if (rawValue) {
+        const isoDate = convertICalDateToISO(rawValue, t.isDate);
+        if (isoDate) {
+          // Parse the ISO date string with Luxon
+          const parsed = DateTime.fromISO(isoDate, { zone: t.timezone === 'Z' ? 'utc' : t.timezone });
+          if (parsed.isValid) {
+            return parsed;
+          }
+        }
+      }
+      
+      console.warn(
+        `Full Calendar ICS Parser: Invalid date from ical.js Time object. Raw value: ${rawValue || 'unknown'}`
+      );
+      // Return a fallback invalid DateTime - this will be caught later
+      return DateTime.invalid('Invalid date from ical.js');
+    }
+  } catch (err) {
+    // If toJSDate() throws an error, try to parse the raw value
+    const rawValue = t.toString();
+    const isoDate = convertICalDateToISO(rawValue, t.isDate);
+    if (isoDate) {
+      const parsed = DateTime.fromISO(isoDate, { zone: t.timezone === 'Z' ? 'utc' : t.timezone });
+      if (parsed.isValid) {
+        return parsed;
+      }
+    }
+    
+    console.warn(
+      `Full Calendar ICS Parser: Error converting ical.js Time to Date. Raw value: ${rawValue || 'unknown'}`,
+      err
+    );
+    return DateTime.invalid('Error converting ical.js Time');
+  }
+  
   // The timezone property on ical.Time is what we need.
   // It can be 'Z' for UTC or an IANA identifier like 'Asia/Kolkata'.
   // We use setZone to ensure the DateTime object has the correct zone,
@@ -40,7 +122,20 @@ function icalTimeToLuxon(t: ical.Time): DateTime {
     console.warn(
       `Full Calendar ICS Parser: Invalid timezone identifier "${zone}". Falling back to UTC.`
     );
-    return DateTime.fromJSDate(jsDate, { zone: 'utc' });
+    const utcDt = DateTime.fromJSDate(jsDate, { zone: 'utc' });
+    if (!utcDt.isValid) {
+      // If even UTC fails, try parsing the raw value
+      const rawValue = t.toString();
+      const isoDate = convertICalDateToISO(rawValue, t.isDate);
+      if (isoDate) {
+        const parsed = DateTime.fromISO(isoDate, { zone: 'utc' });
+        if (parsed.isValid) {
+          return parsed;
+        }
+      }
+      return DateTime.invalid('Invalid date after timezone conversion');
+    }
+    return utcDt;
   }
 
   return zonedDt;
@@ -74,14 +169,32 @@ function specifiesEnd(iCalEvent: ical.Event) {
 }
 
 // MODIFICATION: Remove settings parameter from icsToOFC
-function icsToOFC(input: ical.Event): OFCEvent {
+function icsToOFC(input: ical.Event): OFCEvent | null {
   const summary = input.summary || '';
 
   // Simplified: just use the title directly
   const eventData = { title: summary };
 
   const startDate = icalTimeToLuxon(input.startDate);
+  
+  // Validate start date - if invalid, skip this event
+  if (!startDate.isValid) {
+    console.warn(
+      `Full Calendar ICS Parser: Skipping event "${summary}" due to invalid start date. Reason: ${startDate.invalidReason}`
+    );
+    return null;
+  }
+  
   const endDate = input.endDate ? icalTimeToLuxon(input.endDate) : startDate;
+  
+  // Validate end date - if invalid, use start date
+  const validEndDate = endDate.isValid ? endDate : startDate;
+  if (!endDate.isValid && input.endDate) {
+    console.warn(
+      `Full Calendar ICS Parser: Event "${summary}" has invalid end date, using start date instead.`
+    );
+  }
+  
   const uid = input.uid;
   const isAllDay = input.startDate.isDate;
 
@@ -91,13 +204,30 @@ function icsToOFC(input: ical.Event): OFCEvent {
 
   if (input.isRecurring()) {
     const rrule = rrulestr(input.component.getFirstProperty('rrule').getFirstValue().toString());
-    const exdates = input.component.getAllProperties('exdate').map(exdateProp => {
-      const exdate = exdateProp.getFirstValue();
-      return icalTimeToLuxon(exdate).toISODate();
-    });
+    const exdates = input.component.getAllProperties('exdate')
+      .map(exdateProp => {
+        const exdate = exdateProp.getFirstValue();
+        const exdateLuxon = icalTimeToLuxon(exdate);
+        if (!exdateLuxon.isValid) {
+          console.warn(
+            `Full Calendar ICS Parser: Skipping invalid EXDATE for event "${summary}"`
+          );
+          return null;
+        }
+        return exdateLuxon.toISODate();
+      })
+      .filter((d): d is string => d !== null);
 
-    const startDateISO = getLuxonDate(startDate)!;
-    const endDateISO = getLuxonDate(endDate)!;
+    const startDateISO = getLuxonDate(startDate);
+    const endDateISO = getLuxonDate(validEndDate);
+    
+    // Ensure we have valid ISO dates
+    if (!startDateISO) {
+      console.warn(
+        `Full Calendar ICS Parser: Could not convert start date to ISO for event "${summary}"`
+      );
+      return null;
+    }
 
     return {
       type: 'rrule',
@@ -105,28 +235,37 @@ function icsToOFC(input: ical.Event): OFCEvent {
       title: eventData.title,
       id: `ics::${uid}::${startDateISO}::recurring`,
       rrule: rrule.toString(),
-      skipDates: exdates.flatMap(d => (d ? [d] : [])),
+      skipDates: exdates,
       startDate: startDateISO,
-      endDate: startDateISO !== endDateISO ? endDateISO : null,
+      endDate: endDateISO && startDateISO !== endDateISO ? endDateISO : null,
       timezone,
       ...(isAllDay
         ? { allDay: true }
         : {
             allDay: false,
             startTime: getLuxonTime(startDate)!,
-            endTime: getLuxonTime(endDate)!
+            endTime: getLuxonTime(validEndDate)!
           })
     };
   } else {
     const date = getLuxonDate(startDate);
+    
+    // Ensure we have a valid date
+    if (!date) {
+      console.warn(
+        `Full Calendar ICS Parser: Could not convert start date to ISO for event "${summary}"`
+      );
+      return null;
+    }
+    
     let finalEndDate: string | null | undefined = null;
     if (specifiesEnd(input)) {
       if (isAllDay) {
         // For all-day events, ICS end date is exclusive. Make it inclusive by subtracting one day.
-        const inclusiveEndDate = endDate.minus({ days: 1 });
+        const inclusiveEndDate = validEndDate.minus({ days: 1 });
         finalEndDate = getLuxonDate(inclusiveEndDate);
       } else {
-        finalEndDate = getLuxonDate(endDate);
+        finalEndDate = getLuxonDate(validEndDate);
       }
     }
 
@@ -142,18 +281,49 @@ function icsToOFC(input: ical.Event): OFCEvent {
         : {
             allDay: false,
             startTime: getLuxonTime(startDate)!,
-            endTime: getLuxonTime(endDate)!
+            endTime: getLuxonTime(validEndDate)!
           })
     };
   }
 }
 
+/**
+ * Pre-processes ICS text to normalize date formats.
+ * Converts YYYYMMDD and YYYYMMDDTHHMMSSZ formats to ensure proper parsing.
+ */
+function preprocessICSText(text: string): string {
+  let correctedText = text;
+  
+  // Handle DTSTART:YYYYMMDD (date only, missing VALUE=DATE)
+  correctedText = correctedText.replace(/DTSTART:(\d{8})(\r?\n|$)/gm, 'DTSTART;VALUE=DATE:$1$2');
+  
+  // Handle DTEND:YYYYMMDD (date only, missing VALUE=DATE)
+  correctedText = correctedText.replace(/DTEND:(\d{8})(\r?\n|$)/gm, 'DTEND;VALUE=DATE:$1$2');
+  
+  // Handle EXDATE:YYYYMMDD (date only, missing VALUE=DATE)
+  correctedText = correctedText.replace(/EXDATE[^:]*:(\d{8})(\r?\n|$)/gm, (match, date) => {
+    // Preserve any parameters before the colon
+    const prefix = match.substring(0, match.indexOf(':'));
+    return `${prefix};VALUE=DATE:${date}${match.endsWith('\r\n') ? '\r\n' : match.endsWith('\n') ? '\n' : ''}`;
+  });
+  
+  // Handle RECURRENCE-ID:YYYYMMDD (date only, missing VALUE=DATE)
+  correctedText = correctedText.replace(/RECURRENCE-ID[^:]*:(\d{8})(\r?\n|$)/gm, (match, date) => {
+    const prefix = match.substring(0, match.indexOf(':'));
+    return `${prefix};VALUE=DATE:${date}${match.endsWith('\r\n') ? '\r\n' : match.endsWith('\n') ? '\n' : ''}`;
+  });
+  
+  // Note: YYYYMMDDTHHMMSSZ format should be handled correctly by ical.js,
+  // but we ensure it's properly formatted if needed
+  
+  return correctedText;
+}
+
 // MODIFICATION: Remove settings parameter from getEventsFromICS
 export function getEventsFromICS(text: string): OFCEvent[] {
-  // FIX: Pre-process the text to explicitly mark all-day events with VALUE=DATE.
-  // This prevents the ical.js parser from incorrectly interpreting them as
-  // malformed date-time values (e.g., "2025-08-13T::").
-  const correctedText = text.replace(/DTSTART:(\d{8})$/gm, 'DTSTART;VALUE=DATE:$1');
+  // Pre-process the text to normalize date formats
+  // This ensures VALUE=DATE:YYYYMMDD and YYYYMMDDTHHMMSSZ formats are properly handled
+  const correctedText = preprocessICSText(text);
 
   const jCalData = ical.parse(correctedText); // Use the corrected text
   const component = new ical.Component(jCalData);
@@ -180,12 +350,16 @@ export function getEventsFromICS(text: string): OFCEvent[] {
     });
 
   const baseEvents = Object.fromEntries(
-    events.filter(e => e.recurrenceId === null).map(e => [e.uid, icsToOFC(e)])
+    events
+      .filter(e => e.recurrenceId === null)
+      .map(e => [e.uid, icsToOFC(e)])
+      .filter(([uid, event]) => event !== null) as [string, OFCEvent][]
   );
 
   const recurrenceExceptions = events
     .filter(e => e.recurrenceId !== null)
-    .map((e): [string, OFCEvent] => [e.uid, icsToOFC(e)]);
+    .map((e): [string, OFCEvent | null] => [e.uid, icsToOFC(e)])
+    .filter(([uid, event]) => event !== null) as [string, OFCEvent][];
 
   for (const [uid, event] of recurrenceExceptions) {
     const baseEvent = baseEvents[uid];

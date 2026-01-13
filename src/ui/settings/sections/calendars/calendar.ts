@@ -341,7 +341,10 @@ export async function renderCalendar(
     : null;
 
   const cal = new CalendarCtor(containerEl, {
-    schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
+    // Only include schedulerLicenseKey when resource-timeline plugin is loaded
+    ...(showResourceViews && resourceTimelinePlugin
+      ? { schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source' }
+      : {}),
     customButtons: customButtonConfig,
     // timeZone: settings?.timeZone,
     plugins: [
