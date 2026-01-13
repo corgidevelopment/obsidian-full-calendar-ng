@@ -148,6 +148,19 @@ function convertICalDateToISO(dateStr: string, isDateOnly: boolean = false): str
  * Added validation to handle invalid dates that might come from malformed iCal data.
  */
 function icalTimeToLuxon(t: ical.Time): DateTime {
+  // FAST PATH: Handle date-only (floating) values directly to avoid timezone conversion shifts.
+  // We explicitly create the DateTime in UTC to preserve the exact date regardless of local system time.
+  if (t.isDate) {
+    return DateTime.fromObject(
+      {
+        year: t.year,
+        month: t.month,
+        day: t.day
+      },
+      { zone: 'utc' }
+    );
+  }
+
   let jsDate: Date;
 
   try {

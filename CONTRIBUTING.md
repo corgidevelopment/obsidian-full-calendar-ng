@@ -2,6 +2,18 @@
 
 Full Calendar is open to contributions, and we’re excited to have you here! This guide will help you get set up for local development.
 
+## Important Information for Contributors:
+
+- **Respect code architecture:** Please follow the established architecture and modular design of the project. Avoid placing code arbitrarily; keep changes organized and maintainable.
+
+- **Dont Modify test files:** Do **not** modify any existing `.test` files. You may add new tests, but existing tests should remain unchanged. This allows core maintainers to easily identify breaking changes and ensures they are responsible for updating tests if needed.
+
+- **Build configuration:** Avoid changing build configuration files unless absolutely necessary. Sudden build changes can disrupt other contributors, as many have their own development setups.
+
+- **Document your changes:** Update documentation (README, docs, or code comments) when you add features or change existing behavior, so that other collaborators can easily catch up.
+
+- **Test your changes:** Add or update tests for your code. Make sure all tests pass before submitting a PR. If some tests do not pass and you have good reason to believe the tests themselves are incorrect, mention this in your PR description, but do not change the tests (core maintainers will handle test updates).
+
 ---
 
 ## 🚀 Getting Started

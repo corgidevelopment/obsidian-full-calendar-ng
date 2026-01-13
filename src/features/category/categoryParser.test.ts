@@ -105,7 +105,8 @@ describe('EventEnhancer.enhance', () => {
   it('should enhance event when advanced categorization is enabled', () => {
     const settings: FullCalendarSettings = {
       ...DEFAULT_SETTINGS,
-      enableAdvancedCategorization: true
+      enableAdvancedCategorization: true,
+      categorySettings: [{ name: 'Work', color: 'red' }]
     };
 
     const enhancer = new EventEnhancer(settings);

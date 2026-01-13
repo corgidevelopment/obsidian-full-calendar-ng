@@ -33,7 +33,14 @@ describe('DailyNoteCalendar', () => {
   });
 
   describe('enhanceEvent (logic layer)', () => {
-    const settingsWithCategory = { ...DEFAULT_SETTINGS, enableAdvancedCategorization: true };
+    const settingsWithCategory = {
+      ...DEFAULT_SETTINGS,
+      enableAdvancedCategorization: true,
+      categorySettings: [
+        { name: 'Work', color: 'blue' },
+        { name: 'Chores', color: 'green' }
+      ]
+    };
     const settingsWithoutCategory = { ...DEFAULT_SETTINGS, enableAdvancedCategorization: false };
 
     it('should return event as-is when categorization is off', () => {
