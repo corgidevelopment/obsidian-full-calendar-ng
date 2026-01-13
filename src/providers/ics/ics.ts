@@ -19,6 +19,90 @@ import ical from 'ical.js';
 import { OFCEvent, validateEvent } from '../../types';
 
 /**
+ * Maps Windows timezone identifiers to IANA timezone identifiers.
+ * Some ICS files (especially from Outlook/Exchange) use Windows timezone names
+ * instead of IANA identifiers, which Luxon requires.
+ */
+function mapWindowsTimezoneToIANA(windowsTz: string): string | null {
+  const windowsToIANA: Record<string, string> = {
+    // Western Europe
+    'W. Europe Standard Time': 'Europe/Berlin',
+    'Central Europe Standard Time': 'Europe/Budapest',
+    'E. Europe Standard Time': 'Europe/Bucharest',
+    'Russian Standard Time': 'Europe/Moscow',
+    'GMT Standard Time': 'Europe/London',
+    'Greenwich Standard Time': 'Europe/London',
+    // Americas
+    'Eastern Standard Time': 'America/New_York',
+    'Central Standard Time': 'America/Chicago',
+    'Mountain Standard Time': 'America/Denver',
+    'Pacific Standard Time': 'America/Los_Angeles',
+    'Alaskan Standard Time': 'America/Anchorage',
+    'Hawaiian Standard Time': 'Pacific/Honolulu',
+    'Atlantic Standard Time': 'America/Halifax',
+    'Central America Standard Time': 'America/Guatemala',
+    'Mexico Standard Time': 'America/Mexico_City',
+    'SA Pacific Standard Time': 'America/Bogota',
+    'SA Western Standard Time': 'America/Caracas',
+    'SA Eastern Standard Time': 'America/Sao_Paulo',
+    'Pacific SA Standard Time': 'America/Santiago',
+    // Asia
+    'Tokyo Standard Time': 'Asia/Tokyo',
+    'Korea Standard Time': 'Asia/Seoul',
+    'China Standard Time': 'Asia/Shanghai',
+    'India Standard Time': 'Asia/Kolkata',
+    'Singapore Standard Time': 'Asia/Singapore',
+    'W. Australia Standard Time': 'Australia/Perth',
+    'AUS Eastern Standard Time': 'Australia/Sydney',
+    'New Zealand Standard Time': 'Pacific/Auckland',
+    // Middle East
+    'Arab Standard Time': 'Asia/Riyadh',
+    'Israel Standard Time': 'Asia/Jerusalem',
+    'Turkey Standard Time': 'Europe/Istanbul',
+    // Africa
+    'South Africa Standard Time': 'Africa/Johannesburg',
+    'Egypt Standard Time': 'Africa/Cairo'
+  };
+
+  return windowsToIANA[windowsTz] || null;
+}
+
+/**
+ * Normalizes a timezone identifier to an IANA timezone identifier.
+ * Handles UTC ('Z'), Windows timezone identifiers, and IANA identifiers.
+ */
+function normalizeTimezone(zone: string | undefined | null): string {
+  // Handle undefined, null, or empty strings
+  if (!zone || zone.trim() === '') {
+    return 'utc';
+  }
+
+  // Handle UTC
+  if (zone === 'Z' || zone.toLowerCase() === 'utc') {
+    return 'utc';
+  }
+
+  // Check if it's already a valid IANA timezone
+  try {
+    const testDt = DateTime.now().setZone(zone);
+    if (testDt.isValid) {
+      return zone;
+    }
+  } catch {
+    // Not a valid IANA timezone, continue to Windows mapping
+  }
+
+  // Try to map Windows timezone to IANA
+  const mapped = mapWindowsTimezoneToIANA(zone);
+  if (mapped) {
+    return mapped;
+  }
+
+  // Return original if no mapping found (will be handled by caller)
+  return zone;
+}
+
+/**
  * Converts an iCal date string (YYYYMMDD or YYYYMMDDTHHMMSSZ) to ISO extended format.
  * This ensures FullCalendar receives dates in the format it expects.
  */
@@ -30,7 +114,7 @@ function convertICalDateToISO(dateStr: string, isDateOnly: boolean = false): str
     const day = dateStr.substring(6, 8);
     return `${year}-${month}-${day}`;
   }
-  
+
   // Handle YYYYMMDDTHHMMSSZ format (date-time with UTC)
   if (dateStr.length === 16 && dateStr.endsWith('Z') && /^\d{8}T\d{6}Z$/.test(dateStr)) {
     const year = dateStr.substring(0, 4);
@@ -41,7 +125,7 @@ function convertICalDateToISO(dateStr: string, isDateOnly: boolean = false): str
     const second = dateStr.substring(13, 15);
     return `${year}-${month}-${day}T${hour}:${minute}:${second}Z`;
   }
-  
+
   // Handle YYYYMMDDTHHMMSS format (date-time without timezone)
   if (dateStr.length === 15 && /^\d{8}T\d{6}$/.test(dateStr)) {
     const year = dateStr.substring(0, 4);
@@ -52,7 +136,7 @@ function convertICalDateToISO(dateStr: string, isDateOnly: boolean = false): str
     const second = dateStr.substring(13, 15);
     return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
   }
-  
+
   return null;
 }
 
@@ -60,14 +144,15 @@ function convertICalDateToISO(dateStr: string, isDateOnly: boolean = false): str
  * Converts an ical.js Time object into a Luxon DateTime object.
  * This version uses .toJSDate() to get a baseline moment in time and then
  * applies the original timezone from the iCal data.
+ * Handles Windows timezone identifiers by mapping them to IANA identifiers.
  * Added validation to handle invalid dates that might come from malformed iCal data.
  */
 function icalTimeToLuxon(t: ical.Time): DateTime {
   let jsDate: Date;
-  
+
   try {
     jsDate = t.toJSDate();
-    
+
     // Validate the Date object - check if it's invalid
     if (isNaN(jsDate.getTime())) {
       // If the Date is invalid, try to parse the raw string value
@@ -76,13 +161,15 @@ function icalTimeToLuxon(t: ical.Time): DateTime {
         const isoDate = convertICalDateToISO(rawValue, t.isDate);
         if (isoDate) {
           // Parse the ISO date string with Luxon
-          const parsed = DateTime.fromISO(isoDate, { zone: t.timezone === 'Z' ? 'utc' : t.timezone });
+          const parsed = DateTime.fromISO(isoDate, {
+            zone: t.timezone === 'Z' ? 'utc' : t.timezone
+          });
           if (parsed.isValid) {
             return parsed;
           }
         }
       }
-      
+
       console.warn(
         `Full Calendar ICS Parser: Invalid date from ical.js Time object. Raw value: ${rawValue || 'unknown'}`
       );
@@ -99,19 +186,19 @@ function icalTimeToLuxon(t: ical.Time): DateTime {
         return parsed;
       }
     }
-    
+
     console.warn(
       `Full Calendar ICS Parser: Error converting ical.js Time to Date. Raw value: ${rawValue || 'unknown'}`,
       err
     );
     return DateTime.invalid('Error converting ical.js Time');
   }
-  
+
   // The timezone property on ical.Time is what we need.
-  // It can be 'Z' for UTC or an IANA identifier like 'Asia/Kolkata'.
-  // We use setZone to ensure the DateTime object has the correct zone,
-  // without changing the underlying moment in time.
-  const zone = t.timezone === 'Z' ? 'utc' : t.timezone;
+  // It can be 'Z' for UTC, a Windows identifier like 'W. Europe Standard Time',
+  // an IANA identifier like 'Asia/Kolkata', or undefined/null.
+  const rawZone = t.timezone === 'Z' ? 'utc' : t.timezone || undefined;
+  const zone = normalizeTimezone(rawZone);
 
   // Attempt to set the zone from the ICS file.
   const zonedDt = DateTime.fromJSDate(jsDate).setZone(zone);
@@ -120,7 +207,7 @@ function icalTimeToLuxon(t: ical.Time): DateTime {
   // If so, fall back to UTC, which is the old behavior.
   if (!zonedDt.isValid) {
     console.warn(
-      `Full Calendar ICS Parser: Invalid timezone identifier "${zone}". Falling back to UTC.`
+      `Full Calendar ICS Parser: Invalid timezone identifier "${rawZone}". Falling back to UTC.`
     );
     const utcDt = DateTime.fromJSDate(jsDate, { zone: 'utc' });
     if (!utcDt.isValid) {
@@ -136,6 +223,13 @@ function icalTimeToLuxon(t: ical.Time): DateTime {
       return DateTime.invalid('Invalid date after timezone conversion');
     }
     return utcDt;
+  }
+
+  // Log if we had to map a Windows timezone
+  if (rawZone !== zone && rawZone !== 'utc') {
+    console.log(
+      `Full Calendar ICS Parser: Mapped Windows timezone "${rawZone}" to IANA timezone "${zone}".`
+    );
   }
 
   return zonedDt;
@@ -176,7 +270,7 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
   const eventData = { title: summary };
 
   const startDate = icalTimeToLuxon(input.startDate);
-  
+
   // Validate start date - if invalid, skip this event
   if (!startDate.isValid) {
     console.warn(
@@ -184,9 +278,9 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
     );
     return null;
   }
-  
+
   const endDate = input.endDate ? icalTimeToLuxon(input.endDate) : startDate;
-  
+
   // Validate end date - if invalid, use start date
   const validEndDate = endDate.isValid ? endDate : startDate;
   if (!endDate.isValid && input.endDate) {
@@ -194,7 +288,7 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
       `Full Calendar ICS Parser: Event "${summary}" has invalid end date, using start date instead.`
     );
   }
-  
+
   const uid = input.uid;
   const isAllDay = input.startDate.isDate;
 
@@ -204,14 +298,13 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
 
   if (input.isRecurring()) {
     const rrule = rrulestr(input.component.getFirstProperty('rrule').getFirstValue().toString());
-    const exdates = input.component.getAllProperties('exdate')
+    const exdates = input.component
+      .getAllProperties('exdate')
       .map(exdateProp => {
         const exdate = exdateProp.getFirstValue();
         const exdateLuxon = icalTimeToLuxon(exdate);
         if (!exdateLuxon.isValid) {
-          console.warn(
-            `Full Calendar ICS Parser: Skipping invalid EXDATE for event "${summary}"`
-          );
+          console.warn(`Full Calendar ICS Parser: Skipping invalid EXDATE for event "${summary}"`);
           return null;
         }
         return exdateLuxon.toISODate();
@@ -220,7 +313,7 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
 
     const startDateISO = getLuxonDate(startDate);
     const endDateISO = getLuxonDate(validEndDate);
-    
+
     // Ensure we have valid ISO dates
     if (!startDateISO) {
       console.warn(
@@ -249,7 +342,7 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
     };
   } else {
     const date = getLuxonDate(startDate);
-    
+
     // Ensure we have a valid date
     if (!date) {
       console.warn(
@@ -257,7 +350,7 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
       );
       return null;
     }
-    
+
     let finalEndDate: string | null | undefined = null;
     if (specifiesEnd(input)) {
       if (isAllDay) {
@@ -293,29 +386,29 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
  */
 function preprocessICSText(text: string): string {
   let correctedText = text;
-  
+
   // Handle DTSTART:YYYYMMDD (date only, missing VALUE=DATE)
   correctedText = correctedText.replace(/DTSTART:(\d{8})(\r?\n|$)/gm, 'DTSTART;VALUE=DATE:$1$2');
-  
+
   // Handle DTEND:YYYYMMDD (date only, missing VALUE=DATE)
   correctedText = correctedText.replace(/DTEND:(\d{8})(\r?\n|$)/gm, 'DTEND;VALUE=DATE:$1$2');
-  
+
   // Handle EXDATE:YYYYMMDD (date only, missing VALUE=DATE)
   correctedText = correctedText.replace(/EXDATE[^:]*:(\d{8})(\r?\n|$)/gm, (match, date) => {
     // Preserve any parameters before the colon
     const prefix = match.substring(0, match.indexOf(':'));
     return `${prefix};VALUE=DATE:${date}${match.endsWith('\r\n') ? '\r\n' : match.endsWith('\n') ? '\n' : ''}`;
   });
-  
+
   // Handle RECURRENCE-ID:YYYYMMDD (date only, missing VALUE=DATE)
   correctedText = correctedText.replace(/RECURRENCE-ID[^:]*:(\d{8})(\r?\n|$)/gm, (match, date) => {
     const prefix = match.substring(0, match.indexOf(':'));
     return `${prefix};VALUE=DATE:${date}${match.endsWith('\r\n') ? '\r\n' : match.endsWith('\n') ? '\n' : ''}`;
   });
-  
+
   // Note: YYYYMMDDTHHMMSSZ format should be handled correctly by ical.js,
   // but we ensure it's properly formatted if needed
-  
+
   return correctedText;
 }
 

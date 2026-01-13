@@ -126,9 +126,9 @@ export function dateEndpointsToFrontmatter(
     ...(allDay
       ? {}
       : {
-          startTime: getTime(start),
-          endTime: getTime(end)
-        })
+        startTime: getTime(start),
+        endTime: getTime(end)
+      })
   };
 }
 
@@ -197,19 +197,11 @@ export function toEventInput(
       frontmatter.timezone || settings.displayTimezone || DateTime.local().zoneName;
 
     // Use a recent default start date to avoid massive recurrence expansions when startRecur is absent.
-    let startRecurDate =
+    const startRecurDate =
       frontmatter.startRecur ||
       DateTime.local().startOf('year').toISODate() ||
       DateTime.local().toISODate() ||
       '2025-01-01';
-
-    // Ensure the date string is in ISO format (YYYY-MM-DD)
-    // Handle cases where date might be in YYYYMMDD format
-    if (/^\d{8}$/.test(startRecurDate)) {
-      // Convert YYYYMMDD to YYYY-MM-DD
-      startRecurDate = `${startRecurDate.substring(0, 4)}-${startRecurDate.substring(4, 6)}-${startRecurDate.substring(6, 8)}`;
-    }
-
     let dtstart: DateTime;
 
     // 2  Build the local start-of-series DateTime
@@ -225,14 +217,6 @@ export function toEventInput(
         second: 0,
         millisecond: 0
       });
-    }
-
-    // Validate dtstart
-    if (!dtstart.isValid) {
-      console.warn(
-        `Full Calendar: Invalid startRecur date "${frontmatter.startRecur || startRecurDate}" for recurring event "${frontmatter.title}". Returning null.`
-      );
-      return null;
     }
 
     // 3  RRULE string (plus UNTIL if endRecur exists)
@@ -264,21 +248,7 @@ export function toEventInput(
     // END REPLACEMENT
 
     if (frontmatter.endRecur) {
-      // Ensure the date string is in ISO format
-      let isoEndRecur = frontmatter.endRecur;
-      if (/^\d{8}$/.test(frontmatter.endRecur)) {
-        // Convert YYYYMMDD to YYYY-MM-DD
-        isoEndRecur = `${frontmatter.endRecur.substring(0, 4)}-${frontmatter.endRecur.substring(4, 6)}-${frontmatter.endRecur.substring(6, 8)}`;
-      }
-
-      const endLocal = DateTime.fromISO(isoEndRecur, { zone: displayZone }).endOf('day');
-
-      // Validate endRecur date
-      if (!endLocal.isValid) {
-        console.warn(
-          `Full Calendar: Invalid endRecur date "${frontmatter.endRecur}" for recurring event "${frontmatter.title}". Ignoring endRecur.`
-        );
-      }
+      const endLocal = DateTime.fromISO(frontmatter.endRecur, { zone: displayZone }).endOf('day');
 
       // Only add UNTIL if it occurs on/after the first generated instance
       const firstOccurDate = rrulestr(`RRULE:${rruleString}`, {
@@ -300,40 +270,19 @@ export function toEventInput(
     // 5  EXDATEs – also anchored to the same zone
     const exdateStrings = (frontmatter.skipDates || [])
       .map((skipDate: string) => {
-        // Ensure the date string is in ISO format
-        let isoSkipDate = skipDate;
-        if (/^\d{8}$/.test(skipDate)) {
-          // Convert YYYYMMDD to YYYY-MM-DD
-          isoSkipDate = `${skipDate.substring(0, 4)}-${skipDate.substring(4, 6)}-${skipDate.substring(6, 8)}`;
-        }
-
         if (frontmatter.allDay) {
-          const exDt = DateTime.fromISO(isoSkipDate, { zone: displayZone }).startOf('day');
-          if (!exDt.isValid) {
-            console.warn(
-              `Full Calendar: Invalid skip date "${skipDate}" for recurring event. Skipping.`
-            );
-            return null;
-          }
+          const exDt = DateTime.fromISO(skipDate, { zone: displayZone }).startOf('day');
           return `EXDATE;TZID=${displayZone}:${exDt.toFormat("yyyyMMdd'T'HHmmss")}`;
         } else {
           const startTimeDt = parseTime(frontmatter.startTime);
           if (!startTimeDt) return null;
 
-          const exDt = DateTime.fromISO(isoSkipDate, { zone: displayZone }).set({
+          const exDt = DateTime.fromISO(skipDate, { zone: displayZone }).set({
             hour: startTimeDt.hours,
             minute: startTimeDt.minutes,
             second: 0,
             millisecond: 0
           });
-
-          if (!exDt.isValid) {
-            console.warn(
-              `Full Calendar: Invalid skip date "${skipDate}" for recurring event. Skipping.`
-            );
-            return null;
-          }
-
           return `EXDATE;TZID=${displayZone}:${exDt.toFormat("yyyyMMdd'T'HHmmss")}`;
         }
       })
@@ -399,35 +348,38 @@ export function toEventInput(
       console.log('[FC DEBUG] displayZone:', displayZone);
     }
 
-    // Ensure startDate is in ISO format
-    let isoStartDate = fm.startDate;
-    if (isoStartDate && /^\d{8}$/.test(isoStartDate)) {
-      // Convert YYYYMMDD to YYYY-MM-DD
-      isoStartDate = `${isoStartDate.substring(0, 4)}-${isoStartDate.substring(4, 6)}-${isoStartDate.substring(6, 8)}`;
-    }
-
     // Parse the event time in its source timezone first
     const dtstartStr = frontmatter.allDay
       ? null
-      : combineDateTimeStrings(isoStartDate, fm.startTime);
+      : combineDateTimeStrings(fm.startDate, fm.startTime);
     if (!frontmatter.allDay && !dtstartStr) {
       return null;
     }
 
     const dtInSource = frontmatter.allDay
-      ? DateTime.fromISO(isoStartDate, { zone: sourceZone })
+      ? DateTime.fromISO(fm.startDate, { zone: sourceZone })
       : DateTime.fromISO(dtstartStr!, { zone: sourceZone });
 
-    // Validate dtInSource
+    // Validate that the source date is valid
     if (!dtInSource.isValid) {
-      console.warn(
-        `Full Calendar: Invalid startDate "${fm.startDate}" for rrule event "${frontmatter.title}". Returning null.`
+      console.error(
+        `Invalid start date for rrule event "${frontmatter.title}": ${dtInSource.invalidReason}`,
+        { startDate: fm.startDate, startTime: fm.startTime, sourceZone }
       );
       return null;
     }
 
     // Convert to display timezone to get the correct display time
     const dtInDisplay = dtInSource.setZone(displayZone);
+
+    // Validate that the display date is valid
+    if (!dtInDisplay.isValid) {
+      console.error(
+        `Invalid date after timezone conversion for rrule event "${frontmatter.title}": ${dtInDisplay.invalidReason}`,
+        { sourceZone, displayZone }
+      );
+      return null;
+    }
 
     // Calculate the day offset: how many days the date shifts when converting timezones
     // This is CRITICAL for cross-timezone events that cross day boundaries
@@ -481,36 +433,38 @@ export function toEventInput(
 
     // Construct exdates - these need to be in "fake UTC" format where the local time
     // in the display timezone is stored in UTC components (matching the monkeypatch behavior)
-    const exdate = fm.skipDates
+    // For all-day events, skip dates are just dates without times
+    const exdate = (fm.skipDates || [])
+      .filter((d: string) => d && d.trim() !== '') // Filter out empty/invalid dates
       .map((d: string) => {
-        // Ensure the date string is in ISO format (YYYY-MM-DD)
-        // Handle cases where date might be in YYYYMMDD format
-        let isoDate = d;
-        if (/^\d{8}$/.test(d)) {
-          // Convert YYYYMMDD to YYYY-MM-DD
-          isoDate = `${d.substring(0, 4)}-${d.substring(4, 6)}-${d.substring(6, 8)}`;
-        }
-
-        // Parse the skip date - handle all-day vs timed events differently
-        let exInSource: DateTime;
+        // For all-day events, skip dates don't have times
         if (frontmatter.allDay) {
-          // For all-day events, just use the date without time
-          exInSource = DateTime.fromISO(isoDate, { zone: sourceZone }).startOf('day');
-        } else if (fm.startTime) {
-          // For timed events, combine date with start time
-          exInSource = DateTime.fromISO(`${isoDate}T${fm.startTime}`, { zone: sourceZone });
-        } else {
-          // No start time available, use start of day
-          console.warn(
-            `Full Calendar: No startTime for timed event "${frontmatter.title}", using start of day for skip date "${d}".`
-          );
-          exInSource = DateTime.fromISO(isoDate, { zone: sourceZone }).startOf('day');
+          const exDate = DateTime.fromISO(d, { zone: displayZone });
+          if (!exDate.isValid) {
+            console.warn(`Invalid skip date "${d}" for all-day event: ${exDate.invalidReason}`);
+            return null;
+          }
+          // For all-day events, use midnight in the display timezone
+          const fakeUtc = new Date(Date.UTC(exDate.year, exDate.month - 1, exDate.day, 0, 0, 0, 0));
+          if (isNaN(fakeUtc.getTime())) {
+            console.warn(`Invalid Date object created from all-day skip date "${d}"`);
+            return null;
+          }
+          return fakeUtc.toISOString();
         }
 
-        // Validate the parsed date
+        // For timed events, parse the skip date with the event's start time
+        if (!fm.startTime) {
+          console.warn(`Missing startTime for timed event skip date "${d}"`);
+          return null;
+        }
+
+        const exInSource = DateTime.fromISO(`${d}T${fm.startTime}`, { zone: sourceZone });
+
+        // Validate that the source date is valid
         if (!exInSource.isValid) {
           console.warn(
-            `Full Calendar: Invalid skip date "${d}" for event "${frontmatter.title}". Skipping.`
+            `Invalid skip date "${d}" with start time "${fm.startTime}" in timezone "${sourceZone}": ${exInSource.invalidReason}`
           );
           return null;
         }
@@ -518,62 +472,37 @@ export function toEventInput(
         // Convert to display timezone to get the local time
         const exInDisplay = exInSource.setZone(displayZone);
 
-        // Validate the converted date
+        // Validate that the display date is valid
         if (!exInDisplay.isValid) {
           console.warn(
-            `Full Calendar: Invalid date after timezone conversion for skip date "${d}". Skipping.`
-          );
-          return null;
-        }
-
-        // Validate DateTime components before creating Date
-        if (
-          isNaN(exInDisplay.year) ||
-          isNaN(exInDisplay.month) ||
-          isNaN(exInDisplay.day) ||
-          isNaN(exInDisplay.hour) ||
-          isNaN(exInDisplay.minute) ||
-          isNaN(exInDisplay.second) ||
-          isNaN(exInDisplay.millisecond)
-        ) {
-          console.warn(
-            `Full Calendar: Invalid DateTime components for skip date "${d}". Skipping.`
+            `Invalid date after timezone conversion from "${sourceZone}" to "${displayZone}": ${exInDisplay.invalidReason}`
           );
           return null;
         }
 
         // Create a "fake UTC" date where the local time is stored in UTC components
         // This matches how the monkeypatch stores times for FullCalendar
-        const utcTimestamp = Date.UTC(
-          exInDisplay.year,
-          exInDisplay.month - 1, // JS months are 0-indexed
-          exInDisplay.day,
-          exInDisplay.hour,
-          exInDisplay.minute,
-          exInDisplay.second,
-          exInDisplay.millisecond
+        const fakeUtc = new Date(
+          Date.UTC(
+            exInDisplay.year,
+            exInDisplay.month - 1, // JS months are 0-indexed
+            exInDisplay.day,
+            exInDisplay.hour,
+            exInDisplay.minute,
+            exInDisplay.second,
+            exInDisplay.millisecond
+          )
         );
 
-        // Validate the UTC timestamp before creating Date
-        if (isNaN(utcTimestamp)) {
-          console.warn(`Full Calendar: Invalid UTC timestamp for skip date "${d}". Skipping.`);
-          return null;
-        }
-
-        const fakeUtc = new Date(utcTimestamp);
-
-        // Validate the Date object before calling toISOString()
+        // Validate that the resulting Date is valid before calling toISOString()
         if (isNaN(fakeUtc.getTime())) {
-          console.warn(`Full Calendar: Invalid Date created from skip date "${d}". Skipping.`);
+          console.warn(
+            `Invalid Date object created from skip date "${d}" with components: year=${exInDisplay.year}, month=${exInDisplay.month}, day=${exInDisplay.day}`
+          );
           return null;
         }
 
-        try {
-          return fakeUtc.toISOString();
-        } catch (err) {
-          console.warn(`Full Calendar: Error converting skip date "${d}" to ISO string:`, err);
-          return null;
-        }
+        return fakeUtc.toISOString();
       })
       .flatMap((d: string | null) => (d ? [d] : []));
 
@@ -603,28 +532,17 @@ export function toEventInput(
         const endTime = parseTime(frontmatter.endTime);
         if (endTime) {
           // Parse in source timezone to get correct duration
-          // Use the already validated isoStartDate
-          let endDate = frontmatter.endDate;
-          if (endDate && /^\d{8}$/.test(endDate)) {
-            // Convert YYYYMMDD to YYYY-MM-DD
-            endDate = `${endDate.substring(0, 4)}-${endDate.substring(4, 6)}-${endDate.substring(6, 8)}`;
-          }
-
           let startDt = DateTime.fromISO(
-            combineDateTimeStrings(isoStartDate, frontmatter.startTime)!,
+            combineDateTimeStrings(frontmatter.startDate, frontmatter.startTime)!,
             { zone: sourceZone }
           );
           let endDt = DateTime.fromISO(
-            combineDateTimeStrings(endDate || isoStartDate, frontmatter.endTime)!,
+            combineDateTimeStrings(
+              frontmatter.endDate || frontmatter.startDate,
+              frontmatter.endTime
+            )!,
             { zone: sourceZone }
           );
-
-          // Validate dates
-          if (!startDt.isValid || !endDt.isValid) {
-            console.warn(
-              `Full Calendar: Invalid date(s) for duration calculation in rrule event "${frontmatter.title}". Skipping duration.`
-            );
-          }
 
           if (endDt < startDt) {
             endDt = endDt.plus({ days: 1 });
@@ -679,42 +597,13 @@ export function toEventInput(
       let adjustedEndDate: string | undefined;
 
       if (frontmatter.endDate) {
-        // Ensure the date string is in ISO format
-        let isoEndDate = frontmatter.endDate;
-        if (/^\d{8}$/.test(frontmatter.endDate)) {
-          // Convert YYYYMMDD to YYYY-MM-DD
-          isoEndDate = `${frontmatter.endDate.substring(0, 4)}-${frontmatter.endDate.substring(4, 6)}-${frontmatter.endDate.substring(6, 8)}`;
-        }
-
         // OFCEvent has an inclusive endDate. FullCalendar needs an exclusive one.
         // Add one day to any multi-day all-day event's end date.
-        const endDateDt = DateTime.fromISO(isoEndDate);
-        if (endDateDt.isValid) {
-          adjustedEndDate = endDateDt.plus({ days: 1 }).toISODate() ?? undefined;
-        } else {
-          console.warn(
-            `Full Calendar: Invalid endDate "${frontmatter.endDate}" for event "${frontmatter.title}". Ignoring.`
-          );
-        }
+        adjustedEndDate =
+          DateTime.fromISO(frontmatter.endDate).plus({ days: 1 }).toISODate() ?? undefined;
       }
 
-      // Ensure the start date is in ISO format
-      let isoStartDate = frontmatter.date;
-      if (/^\d{8}$/.test(frontmatter.date)) {
-        // Convert YYYYMMDD to YYYY-MM-DD
-        isoStartDate = `${frontmatter.date.substring(0, 4)}-${frontmatter.date.substring(4, 6)}-${frontmatter.date.substring(6, 8)}`;
-      }
-
-      // Validate the start date
-      const startDateDt = DateTime.fromISO(isoStartDate);
-      if (!startDateDt.isValid) {
-        console.warn(
-          `Full Calendar: Invalid date "${frontmatter.date}" for event "${frontmatter.title}". Returning null.`
-        );
-        return null;
-      }
-
-      baseEvent.start = isoStartDate;
+      baseEvent.start = frontmatter.date;
       baseEvent.end = adjustedEndDate;
       baseEvent.extendedProps = {
         ...baseEvent.extendedProps,
@@ -776,28 +665,28 @@ export function fromEventApi(event: EventApi, newResource?: string): OFCEvent {
     ...(event.allDay
       ? { allDay: true }
       : {
-          allDay: false,
-          startTime: getTime(event.start as Date),
-          endTime: getTime(event.end as Date)
-        }),
+        allDay: false,
+        startTime: getTime(event.start as Date),
+        endTime: getTime(event.end as Date)
+      }),
 
     ...(isRecurring
       ? {
-          type: 'recurring' as const,
-          endDate: null,
-          daysOfWeek: event.extendedProps.daysOfWeek.map((i: number) => DAYS[i]),
-          startRecur: event.extendedProps.startRecur && getDate(event.extendedProps.startRecur),
-          endRecur: event.extendedProps.endRecur && getDate(event.extendedProps.endRecur),
-          skipDates: [], // Default to empty as exception info is unavailable
-          isTask: event.extendedProps.isTask
-        }
+        type: 'recurring' as const,
+        endDate: null,
+        daysOfWeek: event.extendedProps.daysOfWeek.map((i: number) => DAYS[i]),
+        startRecur: event.extendedProps.startRecur && getDate(event.extendedProps.startRecur),
+        endRecur: event.extendedProps.endRecur && getDate(event.extendedProps.endRecur),
+        skipDates: [], // Default to empty as exception info is unavailable
+        isTask: event.extendedProps.isTask
+      }
       : {
-          type: 'single',
-          date: startDate,
-          ...(startDate !== endDate ? { endDate } : { endDate: null }),
-          completed: event.extendedProps.isTask
-            ? (event.extendedProps.taskCompleted ?? false)
-            : event.extendedProps.taskCompleted
-        })
+        type: 'single',
+        date: startDate,
+        ...(startDate !== endDate ? { endDate } : { endDate: null }),
+        completed: event.extendedProps.isTask
+          ? (event.extendedProps.taskCompleted ?? false)
+          : event.extendedProps.taskCompleted
+      })
   };
 }

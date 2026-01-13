@@ -15,10 +15,19 @@
  * The format is `Category - SubCategory - Title`. A sub-category is only parsed
  * if at least two ` - ` delimiters are present.
  *
+ * Only splits the title if the parsed category exists in the defined categories.
+ * This prevents false positives like "Foo - Bar" from being split when "Marko"
+ * is not a defined category.
+ *
  * @param fullTitle The complete title string from the event source.
+ * @param definedCategories Optional set of defined category names. If provided,
+ *   the title will only be split if the parsed category exists in this set.
  * @returns An object containing the parsed `category`, `subCategory`, and `title`.
  */
-export function parseTitle(fullTitle: string): {
+export function parseTitle(
+  fullTitle: string,
+  definedCategories?: Set<string>
+): {
   category: string | undefined;
   subCategory: string | undefined;
   title: string;
@@ -33,7 +42,16 @@ export function parseTitle(fullTitle: string): {
 
     // Ensure parts are not empty strings
     if (category && subCategory && title) {
-      return { category, subCategory, title };
+      // Only split if category is defined (or no definedCategories provided for backward compatibility)
+      if (!definedCategories || definedCategories.has(category)) {
+        return { category, subCategory, title };
+      } else {
+        // Category detected but not defined - log and return full title
+        console.log(
+          `[Full Calendar] Category "${category}" detected in title but not defined. Showing full title: "${fullTitle}"`
+        );
+        return { category: undefined, subCategory: undefined, title: fullTitle };
+      }
     }
   }
 
@@ -44,11 +62,20 @@ export function parseTitle(fullTitle: string): {
 
     // Ensure parts are not empty strings
     if (category && title) {
-      return { category, subCategory: undefined, title };
+      // Only split if category is defined (or no definedCategories provided for backward compatibility)
+      if (!definedCategories || definedCategories.has(category)) {
+        return { category, subCategory: undefined, title };
+      } else {
+        // Category detected but not defined - log and return full title
+        console.log(
+          `[Full Calendar] Category "${category}" detected in title but not defined. Showing full title: "${fullTitle}"`
+        );
+        return { category: undefined, subCategory: undefined, title: fullTitle };
+      }
     }
   }
 
-  // Case: "Title only" or invalid format
+  // Case: "Title only" or invalid format or category not defined
   return { category: undefined, subCategory: undefined, title: fullTitle };
 }
 

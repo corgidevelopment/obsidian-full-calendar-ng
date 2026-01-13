@@ -100,13 +100,19 @@ export async function bulkUpdateCategories(
     return;
   }
 
+  // Create a set of defined category names for validation
+  const definedCategories = new Set(plugin.settings.categorySettings.map(cat => cat.name));
+
   // Processor for Full Note calendars
   const fullNoteProcessor = async (file: TFile) => {
     await plugin.app.fileManager.processFrontMatter(file, frontmatter => {
       const event = validateEvent(frontmatter);
       if (!event || !event.title) return;
 
-      const { category: existingCategory, title: cleanTitle } = parseTitle(event.title);
+      const { category: existingCategory, title: cleanTitle } = parseTitle(
+        event.title,
+        definedCategories
+      );
       if (existingCategory && !force) return;
 
       const newCategory = categoryProvider(file);
@@ -137,7 +143,7 @@ export async function bulkUpdateCategories(
           const existingEvent = getInlineEventFromLine(line, {});
           if (!existingEvent) continue;
 
-          const { category: existingCategory } = parseTitle(existingEvent.title);
+          const { category: existingCategory } = parseTitle(existingEvent.title, definedCategories);
           if (existingCategory && !force) continue;
 
           const newCategory = categoryProvider(file);
@@ -154,7 +160,7 @@ export async function bulkUpdateCategories(
             category: finalCategory,
             subCategory: finalSubCategory,
             title: finalTitle
-          } = parseTitle(newFullTitle);
+          } = parseTitle(newFullTitle, definedCategories);
 
           const eventWithNewCategory: OFCEvent = {
             ...existingEvent,
@@ -205,7 +211,7 @@ export async function bulkRemoveCategories(plugin: FullCalendarPlugin): Promise<
 
     await plugin.app.fileManager.processFrontMatter(file, frontmatter => {
       if (!frontmatter.title) return;
-      const { category, title: cleanTitle } = parseTitle(frontmatter.title);
+      const { category, title: cleanTitle } = parseTitle(frontmatter.title, knownCategories);
       if (category && knownCategories.has(category)) {
         frontmatter.title = cleanTitle;
       }
@@ -240,7 +246,10 @@ export async function bulkRemoveCategories(plugin: FullCalendarPlugin): Promise<
           const eventWithCategory = getInlineEventFromLine(line, {});
           if (!eventWithCategory) continue;
 
-          const { category, title: cleanTitle } = parseTitle(eventWithCategory.title);
+          const { category, title: cleanTitle } = parseTitle(
+            eventWithCategory.title,
+            knownCategories
+          );
           if (!category || !knownCategories.has(category)) continue;
 
           const eventWithoutCategory: OFCEvent = {

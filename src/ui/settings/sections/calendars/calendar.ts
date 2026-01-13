@@ -228,7 +228,7 @@ export async function renderCalendar(
 
   const footerToolbar = isNarrow
     ? {
-        left: 'today,navigate,prev,next',
+        left: 'workspace,today,navigate,prev,next',
         right: rightToolbarGroup // Analysis is already filtered out for narrow views.
       }
     : false;

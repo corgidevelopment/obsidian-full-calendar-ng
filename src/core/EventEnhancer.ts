@@ -43,7 +43,9 @@ export class EventEnhancer {
     // 1. First, parse categories from the title if the feature is enabled.
     let categorizedEvent = rawEvent;
     if (this.settings.enableAdvancedCategorization) {
-      const { category, subCategory, title } = parseTitle(rawEvent.title);
+      // Create a set of defined category names for validation
+      const definedCategories = new Set(this.settings.categorySettings.map(cat => cat.name));
+      const { category, subCategory, title } = parseTitle(rawEvent.title, definedCategories);
       categorizedEvent = {
         ...rawEvent,
         title,

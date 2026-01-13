@@ -23,13 +23,11 @@ export function renderGoogleSettings(
     .setName(t('google.customCredentials.enable.label'))
     .setDesc(t('google.customCredentials.enable.description'))
     .addToggle(toggle => {
-      toggle
-        .setValue(plugin.settings.useCustomGoogleClient)
-        .onChange(async value => {
-          plugin.settings.useCustomGoogleClient = value;
-          await plugin.saveSettings();
-          rerender();
-        });
+      toggle.setValue(plugin.settings.useCustomGoogleClient).onChange(async value => {
+        plugin.settings.useCustomGoogleClient = value;
+        await plugin.saveSettings();
+        rerender();
+      });
     });
 
   // Custom credentials inputs (only shown when toggle is enabled)
@@ -38,12 +36,10 @@ export function renderGoogleSettings(
       .setName(t('google.customCredentials.clientId.label'))
       .setDesc(t('google.customCredentials.clientId.description'))
       .addText(text => {
-        text
-          .setValue(plugin.settings.googleClientId)
-          .onChange(async value => {
-            plugin.settings.googleClientId = value;
-            await plugin.saveSettings();
-          });
+        text.setValue(plugin.settings.googleClientId).onChange(async value => {
+          plugin.settings.googleClientId = value;
+          await plugin.saveSettings();
+        });
       });
 
     new Setting(containerEl)
@@ -51,12 +47,10 @@ export function renderGoogleSettings(
       .setDesc(t('google.customCredentials.clientSecret.description'))
       .addText(text => {
         text.inputEl.type = 'password';
-        text
-          .setValue(plugin.settings.googleClientSecret)
-          .onChange(async value => {
-            plugin.settings.googleClientSecret = value;
-            await plugin.saveSettings();
-          });
+        text.setValue(plugin.settings.googleClientSecret).onChange(async value => {
+          plugin.settings.googleClientSecret = value;
+          await plugin.saveSettings();
+        });
       });
   }
 

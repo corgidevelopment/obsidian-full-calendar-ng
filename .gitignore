@@ -29,3 +29,6 @@ docs/**/.*
 **/instructions
 exported*
 .DS_Store
+
+# Local vault configuration (private)
+.vault-config.json
