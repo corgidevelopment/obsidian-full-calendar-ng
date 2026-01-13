@@ -544,6 +544,20 @@
   },
   "google": {
     "title": "Google Accounts",
+    "customCredentials": {
+      "enable": {
+        "label": "Use custom Google Cloud credentials",
+        "description": "Use your own OAuth Client ID and Secret instead of the default. Required until the plugin is verified by Google."
+      },
+      "clientId": {
+        "label": "Client ID",
+        "description": "Your Google OAuth 2.0 Client ID"
+      },
+      "clientSecret": {
+        "label": "Client Secret",
+        "description": "Your Google OAuth 2.0 Client Secret"
+      }
+    },
     "noAccounts": "No Google accounts connected. Add a calendar source to connect an account.",
     "accountDescription": "Connected account. ID: {{id}}",
     "buttons": {

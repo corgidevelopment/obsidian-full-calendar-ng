@@ -18,6 +18,48 @@ export function renderGoogleSettings(
 
   new Setting(containerEl).setName(t('google.title')).setHeading();
 
+  // Custom credentials toggle
+  new Setting(containerEl)
+    .setName(t('google.customCredentials.enable.label'))
+    .setDesc(t('google.customCredentials.enable.description'))
+    .addToggle(toggle => {
+      toggle
+        .setValue(plugin.settings.useCustomGoogleClient)
+        .onChange(async value => {
+          plugin.settings.useCustomGoogleClient = value;
+          await plugin.saveSettings();
+          rerender();
+        });
+    });
+
+  // Custom credentials inputs (only shown when toggle is enabled)
+  if (plugin.settings.useCustomGoogleClient) {
+    new Setting(containerEl)
+      .setName(t('google.customCredentials.clientId.label'))
+      .setDesc(t('google.customCredentials.clientId.description'))
+      .addText(text => {
+        text
+          .setValue(plugin.settings.googleClientId)
+          .onChange(async value => {
+            plugin.settings.googleClientId = value;
+            await plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName(t('google.customCredentials.clientSecret.label'))
+      .setDesc(t('google.customCredentials.clientSecret.description'))
+      .addText(text => {
+        text.inputEl.type = 'password';
+        text
+          .setValue(plugin.settings.googleClientSecret)
+          .onChange(async value => {
+            plugin.settings.googleClientSecret = value;
+            await plugin.saveSettings();
+          });
+      });
+  }
+
   const accounts = plugin.settings.googleAccounts || [];
 
   if (accounts.length === 0) {
