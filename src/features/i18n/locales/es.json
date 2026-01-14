@@ -640,6 +640,20 @@
       "failed": "Error al conectar la cuenta de Google. Verifique la consola de desarrollador para más detalles."
     },
     "title": "Cuentas de Google",
+    "customCredentials": {
+      "enable": {
+        "label": "Usar credenciales personalizadas de Google Cloud",
+        "description": "Utiliza tu propio ID de cliente OAuth y secreto en lugar de los predeterminados. El complemento está actualmente verificado por Google, pero aún puedes usar esta opción."
+      },
+      "clientId": {
+        "label": "ID de Cliente",
+        "description": "Tu ID de cliente Google OAuth 2.0"
+      },
+      "clientSecret": {
+        "label": "Secreto de Cliente",
+        "description": "Tu secreto de cliente Google OAuth 2.0"
+      }
+    },
     "noAccounts": "No hay cuentas de Google conectadas. Agrega una fuente de calendario para conectar una cuenta.",
     "accountDescription": "Cuenta conectada. ID: {{id}}",
     "buttons": {

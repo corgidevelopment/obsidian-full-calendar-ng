@@ -662,6 +662,20 @@
       "failed": "Verbindung zum Google-Konto fehlgeschlagen. Überprüfen Sie die Entwicklerkonsole auf Details."
     },
     "title": "Google-Konten",
+    "customCredentials": {
+      "enable": {
+        "label": "Eigene Google Cloud-Zugangsdaten verwenden",
+        "description": "Verwenden Sie Ihre eigene OAuth-Client-ID und Ihr Secret anstelle der Standardwerte. Das Plugin ist derzeit von Google verifiziert, Sie können diese Option jedoch trotzdem nutzen."
+      },
+      "clientId": {
+        "label": "Client-ID",
+        "description": "Ihre Google OAuth 2.0 Client-ID"
+      },
+      "clientSecret": {
+        "label": "Client-Secret",
+        "description": "Ihr Google OAuth 2.0 Client-Secret"
+      }
+    },
     "noAccounts": "Keine Google-Konten verbunden. Fügen Sie eine Kalenderquelle hinzu, um ein Konto zu verbinden.",
     "accountDescription": "Verbundenes Konto. ID: {{id}}",
     "buttons": {

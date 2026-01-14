@@ -4,6 +4,12 @@ This page highlights the latest major features and improvements to help you get 
 For a detailed version-by-version breakdown, see the [Changelog](changelog.md).
 
 
+## ✅ CalDAV Two-Way Sync
+
+You asked, we delivered. CalDAV calendars now support full two-way synchronization. Create, modify, and delete events from your private iCloud, Fastmail, or self-hosted CalDAV servers directly within Obsidian.
+
+---
+
 ## ✅ CalDAV validation & Google recurrence fixes
 
 CalDAV imports now verify that the URL is a real calendar collection via PROPFIND, with clearer errors when a non-calendar endpoint is pasted. Google Calendar recurring events respect their source timezone, hide deleted instances reliably, and the mobile OAuth flow opens a safe placeholder tab to avoid popup blockers.

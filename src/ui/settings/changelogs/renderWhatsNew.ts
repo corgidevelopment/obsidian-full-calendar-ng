@@ -38,17 +38,15 @@ export function renderWhatsNew(containerEl: HTMLElement, onShowChangelog: () => 
   const latestVersion = changelogData[0];
 
   const headerEl = whatsNewContainer.createDiv('full-calendar-whats-new-header');
-  new Setting(headerEl).setName(t('settings.changelog.whatsNew')).setHeading();
+  new Setting(headerEl)
+    .setName(t('settings.changelog.whatsNew'))
+    .setHeading()
+    .setDesc(`Version ${latestVersion.version}`);
   new Setting(headerEl).addExtraButton(button => {
     button
       .setIcon('ellipsis')
       .setTooltip(t('settings.changelog.viewFull'))
       .onClick(onShowChangelog);
-  });
-
-  whatsNewContainer.createEl('p', {
-    text: `Version ${latestVersion.version}`,
-    cls: 'full-calendar-whats-new-version'
   });
 
   whatsNewContainer.createEl('hr', { cls: 'settings-view-new-divider' });

@@ -9,11 +9,11 @@ Calendars are automatically re-fetched from their source at most every five minu
 
 ---
 
-## Read-only and timezone behavior
+## Two-Way Sync and Timezone Behavior
 
-- CalDAV calendars are read-only inside Obsidian.
-- Events are parsed with their source timezone and converted to your Display Timezone for viewing.
-- Cancellations/exceptions present on the server are respected.
+- **Two-Way Sync:** CalDAV calendars now support full two-way synchronization. Changes made in Obsidian are pushed to the server, and remote changes are pulled in periodically.
+- **Timezones:** Events are parsed with their source timezone and converted to your Display Timezone for viewing.
+- **Cancellations:** Cancellations/exceptions present on the server are respected.
 
 ## Using with Advanced Categories
 

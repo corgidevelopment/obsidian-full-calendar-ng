@@ -14,6 +14,41 @@ export interface Version {
 // Add new versions to the TOP of this array.
 export const changelogData: Version[] = [
   {
+    version: '0.12.6',
+    changes: [
+      {
+        type: 'new',
+        title: 'Full CalDAV Two-Way Sync',
+        description:
+          'CalDAV calendars now support two-way synchronization. Create, edit, and delete events directly in Obsidian.'
+      },
+      {
+        type: 'new',
+        title: 'Mobile Improvements',
+        description:
+          'Workspaces and Monthly View are now fully supported on mobile devices with an improved UI.'
+      },
+      {
+        type: 'new',
+        title: 'Rich Read-Only Modal',
+        description:
+          'The event viewer for read-only events now displays full details including descriptions and attendees.'
+      },
+      {
+        type: 'improvement',
+        title: 'ICS Parsing Hardening',
+        description:
+          'Robust parsing for Outlook/Exchange timezones, better date validation, and crash prevention for invalid ICS feeds.'
+      },
+      {
+        type: 'fix',
+        title: 'Google Calendar Credentials Menu',
+        description:
+          'Fixed an issue where the Google Calendar settings menu for credentials was not displaying correctly.'
+      }
+    ]
+  },
+  {
     version: '0.12.5',
     changes: [
       {

@@ -697,7 +697,7 @@
     "customCredentials": {
       "enable": {
         "label": "Use custom Google Cloud credentials",
-        "description": "Use your own OAuth Client ID and Secret instead of the default. Required until the plugin is verified by Google."
+        "description": "Use your own OAuth Client ID and Secret instead of the default. Plugin currently stands verified by Google, but you may still use this option."
       },
       "clientId": {
         "label": "Client ID",

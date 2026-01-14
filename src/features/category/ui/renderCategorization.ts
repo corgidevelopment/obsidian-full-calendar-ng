@@ -17,7 +17,6 @@ export function renderCategorizationSettings(
   plugin: FullCalendarPlugin,
   rerender: () => void
 ): void {
-  new Setting(containerEl).setName(t('settings.categorization.title')).setHeading();
   const fragment = document.createDocumentFragment();
   fragment.appendText(`${t('settings.categorization.learnMore')} `);
   fragment.createEl('a', {
@@ -25,8 +24,11 @@ export function renderCategorizationSettings(
     href: 'https://youfoundjk.github.io/plugin-full-calendar/events/categories'
   });
   fragment.appendText('.');
-  const learnMoreP = containerEl.createEl('p', { cls: 'full-calendar-whats-new-version' });
-  learnMoreP.appendChild(fragment);
+
+  new Setting(containerEl)
+    .setName(t('settings.categorization.title'))
+    .setHeading()
+    .setDesc(fragment);
 
   new Setting(containerEl)
     .setName(t('settings.categorization.enable.label'))

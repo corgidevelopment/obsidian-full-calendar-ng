@@ -640,6 +640,20 @@
       "failed": "Connessione all'account Google fallita. Controlla la console sviluppatori per i dettagli."
     },
     "title": "Account Google",
+    "customCredentials": {
+      "enable": {
+        "label": "Usa credenziali Google Cloud personalizzate",
+        "description": "Usa il tuo Client ID e Secret OAuth invece di quelli predefiniti. Il plugin è attualmente verificato da Google, ma puoi comunque usare questa opzione."
+      },
+      "clientId": {
+        "label": "Client ID",
+        "description": "Il tuo Client ID Google OAuth 2.0"
+      },
+      "clientSecret": {
+        "label": "Client Secret",
+        "description": "Il tuo Client Secret Google OAuth 2.0"
+      }
+    },
     "noAccounts": "Nessun account Google collegato. Aggiungi una fonte calendario per collegare un account.",
     "accountDescription": "Account collegato. ID: {{id}}",
     "buttons": {

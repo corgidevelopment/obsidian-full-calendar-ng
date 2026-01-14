@@ -662,6 +662,20 @@
       "failed": "Échec de la connexion au compte Google. Vérifiez la console développeur pour plus de détails."
     },
     "title": "Comptes Google",
+    "customCredentials": {
+      "enable": {
+        "label": "Utiliser des identifiants Google Cloud personnalisés",
+        "description": "Utilisez votre propre identifiant client OAuth et secret au lieu de ceux par défaut. Le plugin est actuellement vérifié par Google, mais vous pouvez tout de même utiliser cette option."
+      },
+      "clientId": {
+        "label": "Identifiant Client",
+        "description": "Votre identifiant client Google OAuth 2.0"
+      },
+      "clientSecret": {
+        "label": "Secret Client",
+        "description": "Votre secret client Google OAuth 2.0"
+      }
+    },
     "noAccounts": "Aucun compte Google connecté. Ajoutez une source de calendrier pour connecter un compte.",
     "accountDescription": "Compte connecté. ID : {{id}}",
     "buttons": {
