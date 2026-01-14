@@ -15,6 +15,7 @@ import FullCalendarPlugin from '../../../main';
 import * as http from 'http';
 import * as url from 'url';
 import { GoogleAuthManager } from './GoogleAuthManager';
+import { t } from '../../../features/i18n/i18n';
 
 // =================================================================================================
 // CONSTANTS
@@ -131,7 +132,7 @@ export async function startGoogleLogin(plugin: FullCalendarPlugin): Promise<void
   if (isMobile) {
     mobileWindow = window.open('about:blank', '_blank');
     if (!mobileWindow) {
-      new Notice('Popup blocked. Please allow popups for Obsidian.');
+      new Notice(t('google.auth.popupBlocked'));
       return;
     }
   }
@@ -148,7 +149,7 @@ export async function startGoogleLogin(plugin: FullCalendarPlugin): Promise<void
   const redirectUri = isMobile ? MOBILE_REDIRECT_URI : DESKTOP_REDIRECT_URI;
 
   if (settings.useCustomGoogleClient && (!clientId || !settings.googleClientSecret)) {
-    new Notice('Custom Google Client ID and Secret must be set in the plugin settings.');
+    new Notice(t('google.auth.customCredsMissing'));
     // Close the mobile window if we opened one
     if (mobileWindow) {
       mobileWindow.close();
@@ -183,7 +184,7 @@ export async function exchangeCodeForToken(
   plugin: FullCalendarPlugin
 ): Promise<void> {
   if (!pkce || state !== pkce.state) {
-    new Notice('Google authentication failed. State mismatch.');
+    new Notice(t('google.auth.stateMismatch'));
     console.error('State mismatch during OAuth callback.');
     return;
   }
@@ -254,9 +255,9 @@ export async function exchangeCodeForToken(
     });
     // --- END REPLACEMENT BLOCK ---
 
-    new Notice('Successfully connected Google Account!');
+    new Notice(t('google.auth.success'));
   } catch (e) {
-    new Notice('Failed to connect Google Account. Check the developer console for details.');
+    new Notice(t('google.auth.failed'));
     if (e instanceof Error) {
       console.error('Error during token exchange:', e.message);
     } else {

@@ -85,7 +85,7 @@ export class ProviderRegistry {
   }
 
   public updateSources(newSources: CalendarInfo[]): void {
-    this.sources = newSources;
+    this.sources = [...newSources];
     // Instances will be re-initialized from main.ts
   }
 

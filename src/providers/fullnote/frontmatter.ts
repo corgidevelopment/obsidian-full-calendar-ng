@@ -62,11 +62,18 @@ export function replaceFrontmatter(page: string, newFrontmatter: string): string
   return `---\n${newFrontmatter.trim()}\n---${contents}`;
 }
 
-type PrintableAtom = Array<number | string> | number | string | boolean | null;
+type PrintableAtom =
+  | Record<string, any>
+  | Array<number | string>
+  | number
+  | string
+  | boolean
+  | null;
 
 function stringifyYamlLine(k: string, v: PrintableAtom): string {
   if (v === null) return `${k}:`;
   if (Array.isArray(v)) return `${k}: [${v.join(',')}]`;
+  if (typeof v === 'object') return `${k}: ${JSON.stringify(v)}`;
   return `${k}: ${v}`;
 }
 

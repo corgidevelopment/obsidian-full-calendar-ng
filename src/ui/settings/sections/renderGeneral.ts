@@ -89,15 +89,4 @@ export function renderGeneralSettings(
         await plugin.saveSettings();
       });
     });
-
-  new Setting(containerEl)
-    .setName(t('settings.general.enableReminders.label'))
-    .setDesc(t('settings.general.enableReminders.description'))
-    .addToggle(toggle => {
-      toggle.setValue(plugin.settings.enableReminders).onChange(async value => {
-        plugin.settings.enableReminders = value;
-        await plugin.saveSettings();
-        rerender();
-      });
-    });
 }

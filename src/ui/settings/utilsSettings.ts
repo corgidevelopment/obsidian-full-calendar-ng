@@ -7,6 +7,7 @@
 import { Notice } from 'obsidian';
 import { FullCalendarSettings, GoogleAccount } from '../../types/settings'; // Add GoogleAccount import
 import { CalendarInfo, generateCalendarId } from '../../types/calendar_settings';
+import { t } from '../../features/i18n/i18n';
 
 /**
  * Performs all necessary migrations and sanitizations on a loaded settings object.
@@ -57,7 +58,9 @@ export function migrateAndSanitizeSettings(settings: unknown): {
       endTime: '17:00'
     },
     enableBackgroundEvents: raw.enableBackgroundEvents ?? true,
-    enableReminders: raw.enableReminders ?? false,
+    enableReminders: raw.enableReminders ?? true,
+    enableDefaultReminder: raw.enableDefaultReminder ?? true,
+    defaultReminderMinutes: raw.defaultReminderMinutes ?? 10,
     workspaces: raw.workspaces || [],
     activeWorkspace: raw.activeWorkspace ?? null,
     showEventInStatusBar: (raw as Partial<FullCalendarSettings>).showEventInStatusBar ?? false,
@@ -67,7 +70,8 @@ export function migrateAndSanitizeSettings(settings: unknown): {
     slotMaxTime: raw.slotMaxTime ?? '24:00',
     weekends: raw.weekends ?? true,
     hiddenDays: raw.hiddenDays ?? [],
-    dayMaxEvents: raw.dayMaxEvents ?? false
+    dayMaxEvents: raw.dayMaxEvents ?? false,
+    currentVersion: raw.currentVersion ?? null
   } as FullCalendarSettings & { calendarSources: (CalendarInfo | GoogleSourceWithAuth)[] } & {
     googleAuth?: LegacyGoogleAuth;
   };
@@ -185,7 +189,7 @@ export function sanitizeInitialView(settings: FullCalendarSettings): FullCalenda
     !settings.enableAdvancedCategorization &&
     settings.initialView.desktop.startsWith('resourceTimeline')
   ) {
-    new Notice('Timeline view is disabled. Resetting default desktop view to "Week".', 5000);
+    new Notice(t('settings.utils.timelineDisabled'), 5000);
     return {
       ...settings,
       initialView: {

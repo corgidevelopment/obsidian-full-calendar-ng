@@ -1,0 +1,110 @@
+/* Global Styles */
+
+/* Helper Classes */
+.u-clickable-accent {
+  cursor: pointer;
+  color: var(--text-accent);
+}
+
+.u-flex-1 {
+  flex: 1;
+}
+
+.u-w-full {
+  width: 100%;
+}
+
+.u-flex-grow-1 {
+  flex-grow: 1;
+}
+
+/* Event Details Modal */
+.full-calendar-event-details {
+  padding: 0 10px;
+}
+
+.event-details-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.event-details-icon-box {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--background-modifier-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.event-details-title {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.event-details-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  align-items: flex-start;
+}
+
+.event-details-icon {
+  color: var(--text-muted);
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.event-details-content {
+  flex-grow: 1;
+  word-break: break-word;
+}
+
+.event-details-content.description {
+  white-space: pre-wrap;
+}
+
+.event-details-action {
+  margin-left: 15px;
+  color: var(--text-accent);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9em;
+}
+
+.event-details-action:hover {
+  text-decoration: underline;
+}
+
+.event-link {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.event-link:hover {
+  text-decoration: underline;
+}
+
+.upcoming-instances {
+  background-color: var(--background-secondary);
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.upcoming-instances ul {
+  margin: 5px 0 0 20px;
+  padding: 0;
+}
+
+.u-muted {
+  color: var(--text-muted);
+}

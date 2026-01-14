@@ -1,4 +1,58 @@
 {
+  "chrono": {
+    "ui": {
+      "title": "Configurer les groupes d'analyse",
+      "description": "Créez des groupes pour catégoriser vos activités. Le moteur utilisera ces règles pour générer des analyses personnalisées.",
+      "save": "Enregistrer la configuration",
+      "cancel": "Annuler",
+      "addGroup": "Ajouter un nouveau groupe d'analyse",
+      "groupName": "Nom du groupe",
+      "groupNamePlaceholder": "ex: Travail",
+      "deleteGroup": "Supprimer ce groupe",
+      "persona": {
+        "name": "Analyser en tant que Persona",
+        "desc": "Choisissez le modèle analytique à appliquer à ce groupe.",
+        "productivity": "🎯 Productivité",
+        "wellness": "❤️ Bien-être & Routine",
+        "none": "⚪ (Ignorer dans le tableau de bord)"
+      },
+      "hierarchies": {
+        "name": "Hiérarchies correspondantes",
+        "desc": "ex: Calendrier de travail, Calendrier personnel",
+        "add": "Ajouter une hiérarchie..."
+      },
+      "projects": {
+        "name": "Projets correspondants",
+        "desc": "ex: Projet Phoenix, Rapport T4",
+        "add": "Ajouter un projet..."
+      },
+      "mutedProjects": {
+        "name": "Projets ignorés",
+        "desc": "Ignorer des projets spécifiques (sensible à la casse, correspondance exacte) pour les exclure des vérifications de cohérence des habitudes.",
+        "add": "Ajouter un projet ignoré..."
+      },
+      "subprojectKeywords": {
+        "name": "Mots-clés de sous-projets correspondants",
+        "desc": "Ajoutez des mots-clés qui correspondront s'ils sont trouvés n'importe où dans un sous-projet.",
+        "placeholder": "ex: design\nrecherche\nréunion"
+      },
+      "mutedSubprojectKeywords": {
+        "name": "Mots-clés de sous-projets ignorés",
+        "desc": "Ignorer les activités par mot-clé. Si un sous-projet contient l'un de ces mots-clés (insensible à la casse), il sera exclu des vérifications de cohérence des habitudes.",
+        "placeholder": "ex: terminé\narchives\nvieux"
+      },
+      "unsavedChanges": {
+        "title": "Modifications non enregistrées",
+        "message": "Vous avez des modifications non enregistrées. Voulez-vous les enregistrer avant de fermer ?",
+        "saveAndClose": "Enregistrer et fermer",
+        "discard": "Ignorer les modifications"
+      },
+      "folderSelectPlaceholder": "Sélectionnez un dossier avec vos fichiers de suivi du temps...",
+      "errors": {
+        "groupExists": "Le nom de groupe \"{{name}}\" existe déjà."
+      }
+    }
+  },
   "commands": {
     "newEvent": "Nouvel événement",
     "resetCache": "Réinitialiser le cache d'événements",
@@ -34,6 +88,34 @@
       "noNotesFound": "Aucune note d'événement local trouvée à décatégoriser.",
       "progress": "Décatégorisation des notes d'événement : {{index}}/{{total}}",
       "complete": "Décatégorisation en masse terminée."
+    },
+    "tasks": {
+      "createViaPlugin": "Utilisez l'interface du plugin Tasks pour créer de nouvelles tâches.",
+      "defaultValidation": "Cette tâche ne peut pas être planifiée à cette date.",
+      "scheduledNoModal": "Tâche planifiée, mais impossible d'ouvrir le modal d'édition de Tasks.",
+      "apiUnavailable": "API du plugin Obsidian Tasks non disponible."
+    }
+  },
+  "eventCache": {
+    "errors": {
+      "calendarNotFound": "Impossible d'ajouter l'événement : calendrier avec ID {{calendarId}} introuvable.",
+      "providerNotFound": "Impossible d'ajouter l'événement : fournisseur pour le type {{type}} introuvable.",
+      "readOnly": "Impossible d'ajouter l'événement à un calendrier en lecture seule.",
+      "createFailed": "Échec de la création de l'événement. La modification a été annulée.",
+      "deleteFailed": "Échec de la suppression de l'événement. La modification a été annulée.",
+      "updateFailed": "Échec de la mise à jour de l'événement. La modification a été annulée."
+    }
+  },
+  "recurEvents": {
+    "notices": {
+      "promotingChildren": "Promotion de {{count}} enfant(s).",
+      "deletedAndPromoted": "Événement récurrent supprimé et enfants promus.",
+      "deletingWithChildren": "Suppression de l'événement récurrent et de ses {{count}} surcharge(s) enfant(s)...",
+      "deletedAll": "Événement récurrent et tous ses enfants supprimés avec succès.",
+      "preservingTiming": "Préservation du timing de l'événement modifié et annulation de la tâche.",
+      "revertingControl": "Retour au contrôle de la séquence de l'événement récurrent principal.",
+      "updatingChildren": "Mise à jour de {{count}} enfant(s) pour correspondre au nouveau titre parent.",
+      "updateError": "Erreur lors de la mise à jour de l'événement récurrent. Certains enfants n'ont peut-être pas été mis à jour."
     }
   },
   "ribbon": {
@@ -254,8 +336,8 @@
       "copyName": "{{name}} Copie"
     },
     "quickStart": {
-  "title": "Démarrage rapide : Ajoutez votre premier calendrier",
-  "description": "Pour commencer, ajoutez une source de calendrier en utilisant le bouton \"+\" dans la section \"Gérer les calendriers\"."
+      "title": "Démarrage rapide : Ajoutez votre premier calendrier",
+      "description": "Pour commencer, ajoutez une source de calendrier en utilisant le bouton \"+\" dans la section \"Gérer les calendriers\"."
     },
     "viewOptions": {
       "day": "Jour",
@@ -274,9 +356,34 @@
       "thursday": "Jeudi",
       "friday": "Vendredi",
       "saturday": "Samedi"
+    },
+    "changelog": {
+      "whatsNew": "Quoi de neuf",
+      "viewFull": "Voir le journal des modifications complet"
+    },
+    "utils": {
+      "timelineDisabled": "La vue chronologique est désactivée. Réinitialisation de la vue de bureau par défaut à \"Semaine\"."
+    },
+    "warnings": {
+      "oneDailyNote": "Une seule note quotidienne est autorisée."
     }
   },
   "modals": {
+    "reminder": {
+      "snoozeFor": "Reporter de",
+      "dismiss": "Ignorer",
+      "openNote": "Ouvrir la note",
+      "snooze": "Reporter",
+      "snoozeWarningTitle": "⚠️ Reporter déplace l'événement",
+      "snoozeWarningBody": "Ceci est un rappel par défaut. Reporter déplacera l'heure de début de l'événement vers l'avant.",
+      "presets": {
+        "5m": "5 minutes",
+        "10m": "10 minutes",
+        "15m": "15 minutes",
+        "30m": "30 minutes",
+        "1h": "1 heure"
+      }
+    },
     "editEvent": {
       "title": {
         "new": "Nouvel événement",
@@ -358,8 +465,8 @@
       }
     },
     "deleteRecurring": {
-  "title": "Supprimer l'événement récurrent",
-  "description": "Ceci est un événement récurrent. Que souhaitez-vous faire de toutes ses futures instances \"override\" (c'est-à-dire les événements que vous avez déplacés ou modifiés) ?",
+      "title": "Supprimer l'événement récurrent",
+      "description": "Ceci est un événement récurrent. Que souhaitez-vous faire de toutes ses futures instances \"override\" (c'est-à-dire les événements que vous avez déplacés ou modifiés) ?",
       "deleteInstance": {
         "name": "Supprimer uniquement cette instance",
         "description": "Supprimer uniquement l'instance du {{date}}. Cela sautera cette date dans la récurrence.",
@@ -427,6 +534,9 @@
           "description": "Sélectionnez les catégories à inclure/exclure (laisser vide pour tout afficher)",
           "noCategories": "Aucune catégorie configurée. Configurez les catégories dans les paramètres de catégorisation.",
           "requiresAdvanced": "Le filtrage par catégorie nécessite l'activation de la catégorisation avancée dans les paramètres principaux."
+        },
+        "notices": {
+          "enableBases": "Veuillez d'abord activer le plugin Obsidian Bases."
         },
         "overrideBusinessHours": {
           "label": "Remplacer les heures de travail",
@@ -542,6 +652,15 @@
     }
   },
   "google": {
+    "auth": {
+      "expired": "L'authentification Google a expiré. Veuillez reconnecter votre compte.",
+      "authFailed": "Impossible d'authentifier le calendrier. Veuillez essayer de l'ajouter à nouveau dans les paramètres.",
+      "popupBlocked": "Popup bloqué. Veuillez autoriser les popups pour Obsidian.",
+      "customCredsMissing": "L'ID client Google et le secret personnalisés doivent être définis dans les paramètres du plugin.",
+      "stateMismatch": "L'authentification Google a échoué. Discordance d'état (State mismatch).",
+      "success": "Compte Google connecté avec succès !",
+      "failed": "Échec de la connexion au compte Google. Vérifiez la console développeur pour plus de détails."
+    },
     "title": "Comptes Google",
     "noAccounts": "Aucun compte Google connecté. Ajoutez une source de calendrier pour connecter un compte.",
     "accountDescription": "Compte connecté. ID : {{id}}",
@@ -585,6 +704,9 @@
       "title": "Événement se terminant bientôt",
       "body": "{{title}} se termine à {{time}}"
     },
-    "allDaySuffix": "(Toute la journée)"
+    "allDaySuffix": "(Toute la journée)",
+    "inMinutes": "(Dans {{mins}} minutes)",
+    "failed": "Full Calendar : Échec de la création de la notification de bureau.",
+    "errorBody": "Full Calendar : Impossible d'afficher la notification de bureau. Vérifiez la console pour les erreurs."
   }
 }

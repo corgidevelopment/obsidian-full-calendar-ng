@@ -86,7 +86,8 @@ export const TasksConfigComponent: React.FC<TasksConfigComponentProps> = ({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            style={{ marginLeft: '10px' }}
+            style={{}}
+            className="u-ml-10px"
           >
             {t('settings.calendars.tasks.cancel')}
           </button>

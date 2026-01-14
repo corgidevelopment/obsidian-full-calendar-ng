@@ -233,8 +233,7 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
               {t('google.buttons.backToAccounts')}
             </button>
             <button
-              className="mod-cta"
-              style={{ marginLeft: 'auto' }}
+              className="mod-cta u-ml-auto"
               onClick={handleSave}
               disabled={selection.size === 0}
             >

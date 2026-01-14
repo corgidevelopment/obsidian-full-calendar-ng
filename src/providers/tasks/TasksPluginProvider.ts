@@ -24,6 +24,7 @@ import { TasksConfigComponent } from './TasksConfigComponent';
 import React from 'react';
 import { ParsedUndatedTask } from './typesTask';
 import { DateTime } from 'luxon';
+import { t } from '../../features/i18n/i18n';
 
 // CHANGE: Define Scheduled emoji instead of Due
 const getScheduledDateEmoji = (): string => '⏳';
@@ -514,7 +515,7 @@ export class TasksPluginProvider implements CalendarProvider<TasksProviderConfig
 
   // --- REPLACE createEvent and updateEvent with new versions ---
   async createEvent(event: OFCEvent): Promise<EditableEventResponse> {
-    new Notice('Use the Tasks plugin interface to create new tasks.');
+    new Notice(t('notices.tasks.createViaPlugin'));
     throw new Error(
       'Full Calendar cannot create tasks directly. Please use the Tasks plugin modal or commands.'
     );
@@ -532,7 +533,7 @@ export class TasksPluginProvider implements CalendarProvider<TasksProviderConfig
     const newDate = DateTime.fromISO(newEvent.date).toJSDate();
     const validation = await this.canBeScheduledAt(newEvent, newDate);
     if (!validation.isValid) {
-      new Notice(validation.reason || 'This task cannot be scheduled on this date.');
+      new Notice(validation.reason || t('notices.tasks.defaultValidation'));
       throw new Error(validation.reason || 'This task cannot be scheduled on this date.');
     }
 
@@ -584,14 +585,14 @@ export class TasksPluginProvider implements CalendarProvider<TasksProviderConfig
         await this.replaceTaskInFile(task.filePath, task.lineNumber, [editedTaskLine]);
       }
     } else {
-      new Notice('Task scheduled, but could not open Tasks edit modal.');
+      new Notice(t('notices.tasks.scheduledNoModal'));
     }
   }
 
   public async editInProviderUI(eventId: string): Promise<void> {
     const tasksApi = (this.plugin.app as any).plugins.plugins['obsidian-tasks-plugin']?.apiV1;
     if (!tasksApi) {
-      new Notice('Obsidian Tasks plugin API not available.');
+      new Notice(t('notices.tasks.apiUnavailable'));
       return;
     }
 

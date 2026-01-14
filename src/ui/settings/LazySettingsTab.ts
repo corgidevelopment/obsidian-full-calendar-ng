@@ -49,4 +49,11 @@ export class LazySettingsTab extends PluginSettingTab {
     // Only call hide if the tab has been loaded
     this.actualTab?.hide();
   }
+
+  async showChangelog(): Promise<void> {
+    const tab = await this.ensureActualTab();
+    // Ensure container is linked (though display() usually handles this from Obsidian)
+    (tab as PluginSettingTab).containerEl = this.containerEl;
+    tab.showChangelog();
+  }
 }

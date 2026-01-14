@@ -1,4 +1,58 @@
 {
+  "chrono": {
+    "ui": {
+      "title": "Insight-Gruppen konfigurieren",
+      "description": "Erstellen Sie Gruppen, um Ihre Aktivitäten zu kategorisieren. Die Engine verwendet diese Regeln, um personalisierte Erkenntnisse zu generieren.",
+      "save": "Konfiguration speichern",
+      "cancel": "Abbrechen",
+      "addGroup": "Neue Insight-Gruppe hinzufügen",
+      "groupName": "Gruppenname",
+      "groupNamePlaceholder": "z. B. Arbeit",
+      "deleteGroup": "Diese Gruppe löschen",
+      "persona": {
+        "name": "Als Persona analysieren",
+        "desc": "Wählen Sie das Analysemodell für diese Gruppe.",
+        "productivity": "🎯 Produktivität",
+        "wellness": "❤️ Wohlbefinden & Routine",
+        "none": "⚪ (Im Dashboard ignorieren)"
+      },
+      "hierarchies": {
+        "name": "Übereinstimmende Hierarchien",
+        "desc": "z. B. Arbeitskalender, Persönlicher Kalender",
+        "add": "Hierarchie hinzufügen..."
+      },
+      "projects": {
+        "name": "Übereinstimmende Projekte",
+        "desc": "z. B. Projekt Phoenix, Q4 Bericht",
+        "add": "Projekt hinzufügen..."
+      },
+      "mutedProjects": {
+        "name": "Stummgeschaltete Projekte",
+        "desc": "Bestimmte Projekte stummschalten (Groß-/Kleinschreibung beachten, exakte Übereinstimmung), um sie von den Gewohnheitskonsistenzprüfungen auszuschließen.",
+        "add": "Stummgeschaltetes Projekt hinzufügen..."
+      },
+      "subprojectKeywords": {
+        "name": "Übereinstimmende Unterprojekt-Schlüsselwörter",
+        "desc": "Fügen Sie Schlüsselwörter hinzu, die übereinstimmen, wenn sie irgendwo in einem Unterprojekt gefunden werden.",
+        "placeholder": "z. B. design\nforschung\nmeeting"
+      },
+      "mutedSubprojectKeywords": {
+        "name": "Stummgeschaltete Unterprojekt-Schlüsselwörter",
+        "desc": "Aktivitäten nach Schlüsselwort stummschalten. Wenn ein Unterprojekt eines dieser (Groß-/Kleinschreibung ignorieren) Schlüsselwörter enthält, wird es von den Gewohnheitskonsistenzprüfungen ausgeschlossen.",
+        "placeholder": "z. B. erledigt\narchiv\nalt"
+      },
+      "unsavedChanges": {
+        "title": "Ungespeicherte Änderungen",
+        "message": "Sie haben ungespeicherte Änderungen. Möchten Sie diese vor dem Schließen speichern?",
+        "saveAndClose": "Speichern und schließen",
+        "discard": "Änderungen verwerfen"
+      },
+      "folderSelectPlaceholder": "Wählen Sie einen Ordner mit Ihren Zeiterfassungsdateien...",
+      "errors": {
+        "groupExists": "Gruppenname \"{{name}}\" existiert bereits."
+      }
+    }
+  },
   "commands": {
     "newEvent": "Neues Ereignis",
     "resetCache": "Ereignis-Cache zurücksetzen",
@@ -34,6 +88,34 @@
       "noNotesFound": "Keine lokalen Ereignisnotizen zum Dekategorisieren gefunden.",
       "progress": "Ereignisnotizen werden dekategorisiert: {{index}}/{{total}}",
       "complete": "Massen-Dekategorisierung abgeschlossen."
+    },
+    "tasks": {
+      "createViaPlugin": "Verwenden Sie die Benutzeroberfläche des Tasks-Plugins, um neue Aufgaben zu erstellen.",
+      "defaultValidation": "Diese Aufgabe kann an diesem Datum nicht geplant werden.",
+      "scheduledNoModal": "Aufgabe geplant, aber Tasks-Bearbeitungsmodal konnte nicht geöffnet werden.",
+      "apiUnavailable": "Obsidian Tasks Plugin API nicht verfügbar."
+    }
+  },
+  "eventCache": {
+    "errors": {
+      "calendarNotFound": "Ereignis kann nicht hinzugefügt werden: Kalender mit ID {{calendarId}} nicht gefunden.",
+      "providerNotFound": "Ereignis kann nicht hinzugefügt werden: Provider für Typ {{type}} nicht gefunden.",
+      "readOnly": "Ereignis kann nicht zu einem schreibgeschützten Kalender hinzugefügt werden.",
+      "createFailed": "Fehler beim Erstellen des Ereignisses. Änderung wurde rückgängig gemacht.",
+      "deleteFailed": "Fehler beim Löschen des Ereignisses. Änderung wurde rückgängig gemacht.",
+      "updateFailed": "Fehler beim Aktualisieren des Ereignisses. Änderung wurde rückgängig gemacht."
+    }
+  },
+  "recurEvents": {
+    "notices": {
+      "promotingChildren": "Befördere {{count}} untergeordnete Ereignis(se).",
+      "deletedAndPromoted": "Wiederkehrendes Ereignis gelöscht und untergeordnete befördert.",
+      "deletingWithChildren": "Lösche wiederkehrendes Ereignis und seine {{count}} untergeordnete(n) Überschreibung(en)...",
+      "deletedAll": "Wiederkehrendes Ereignis und alle untergeordneten erfolgreich gelöscht.",
+      "preservingTiming": "Behalte geänderte Ereigniszeit bei und setze Aufgabe zurück.",
+      "revertingControl": "Kehre zur Hauptsequenz des wiederkehrenden Ereignisses zurück.",
+      "updatingChildren": "Aktualisiere Titel von {{count}} untergeordneten Ereignis(sen), um dem neuen übergeordneten Titel zu entsprechen.",
+      "updateError": "Fehler beim Aktualisieren des wiederkehrenden Ereignisses. Einige untergeordnete wurden möglicherweise nicht aktualisiert."
     }
   },
   "ribbon": {
@@ -255,7 +337,7 @@
     },
     "quickStart": {
       "title": "Schnellstart: Fügen Sie Ihren ersten Kalender hinzu",
-  "description": "Fügen Sie eine Kalenderquelle mit der \"+\"-Schaltfläche im Bereich 'Kalender verwalten' hinzu."
+      "description": "Fügen Sie eine Kalenderquelle mit der \"+\"-Schaltfläche im Bereich 'Kalender verwalten' hinzu."
     },
     "viewOptions": {
       "day": "Tag",
@@ -274,9 +356,34 @@
       "thursday": "Donnerstag",
       "friday": "Freitag",
       "saturday": "Samstag"
+    },
+    "changelog": {
+      "whatsNew": "Was ist neu",
+      "viewFull": "Vollständiges Änderungsprotokoll anzeigen"
+    },
+    "utils": {
+      "timelineDisabled": "Timeline-Ansicht ist deaktiviert. Standard-Desktop-Ansicht wird auf \"Woche\" zurückgesetzt."
+    },
+    "warnings": {
+      "oneDailyNote": "Nur eine tägliche Notiz ist erlaubt."
     }
   },
   "modals": {
+    "reminder": {
+      "snoozeFor": "Schlummern für",
+      "dismiss": "Verwerfen",
+      "openNote": "Notiz öffnen",
+      "snooze": "Schlummern",
+      "snoozeWarningTitle": "⚠️ Schlummern verschiebt Ereignis",
+      "snoozeWarningBody": "Dies ist eine Standarderinnerung. Schlummern verschiebt die Startzeit des Ereignisses nach vorne.",
+      "presets": {
+        "5m": "5 Minuten",
+        "10m": "10 Minuten",
+        "15m": "15 Minuten",
+        "30m": "30 Minuten",
+        "1h": "1 Stunde"
+      }
+    },
     "editEvent": {
       "title": {
         "new": "Neues Ereignis",
@@ -359,7 +466,7 @@
     },
     "deleteRecurring": {
       "title": "Wiederkehrendes Ereignis löschen",
-  "description": "Dies ist ein wiederkehrendes Ereignis. Was möchten Sie mit allen zukünftigen \"Override\"-Instanzen tun (d.h. Ereignisse, die Sie verschoben oder bearbeitet haben)?",
+      "description": "Dies ist ein wiederkehrendes Ereignis. Was möchten Sie mit allen zukünftigen \"Override\"-Instanzen tun (d.h. Ereignisse, die Sie verschoben oder bearbeitet haben)?",
       "deleteInstance": {
         "name": "Nur diese Instanz löschen",
         "description": "Nur die Instanz am {{date}} löschen. Dieses Datum wird in der Wiederholung übersprungen.",
@@ -427,6 +534,9 @@
           "description": "Wählen Sie Kategorien zum Ein-/Ausschließen (leer lassen, um alle anzuzeigen)",
           "noCategories": "Keine Kategorien konfiguriert. Konfigurieren Sie Kategorien in den Kategorisierungseinstellungen.",
           "requiresAdvanced": "Kategoriefilterung erfordert die Aktivierung der erweiterten Kategorisierung in den Haupteinstellungen."
+        },
+        "notices": {
+          "enableBases": "Bitte aktivieren Sie zuerst das Obsidian Bases Plugin."
         },
         "overrideBusinessHours": {
           "label": "Geschäftszeiten überschreiben",
@@ -542,6 +652,15 @@
     }
   },
   "google": {
+    "auth": {
+      "expired": "Google-Authentifizierung abgelaufen. Bitte verbinden Sie Ihr Konto erneut.",
+      "authFailed": "Kalender konnte nicht authentifiziert werden. Bitte versuchen Sie, ihn in den Einstellungen erneut hinzuzufügen.",
+      "popupBlocked": "Popup blockiert. Bitte erlauben Sie Popups für Obsidian.",
+      "customCredsMissing": "Benutzerdefinierte Google Client-ID und Secret müssen in den Plugin-Einstellungen festgelegt werden.",
+      "stateMismatch": "Google-Authentifizierung fehlgeschlagen. State-Mismatch.",
+      "success": "Google-Konto erfolgreich verbunden!",
+      "failed": "Verbindung zum Google-Konto fehlgeschlagen. Überprüfen Sie die Entwicklerkonsole auf Details."
+    },
     "title": "Google-Konten",
     "noAccounts": "Keine Google-Konten verbunden. Fügen Sie eine Kalenderquelle hinzu, um ein Konto zu verbinden.",
     "accountDescription": "Verbundenes Konto. ID: {{id}}",
@@ -585,6 +704,9 @@
       "title": "Ereignis endet bald",
       "body": "{{title}} endet um {{time}}"
     },
-    "allDaySuffix": "(Ganztägig)"
+    "allDaySuffix": "(Ganztägig)",
+    "inMinutes": "(In {{mins}} Minuten)",
+    "failed": "Full Calendar: Desktop-Benachrichtigung konnte nicht erstellt werden.",
+    "errorBody": "Full Calendar: Desktop-Benachrichtigung konnte nicht angezeigt werden. Überprüfen Sie die Konsole auf Fehler."
   }
 }

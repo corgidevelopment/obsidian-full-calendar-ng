@@ -71,6 +71,8 @@ export interface FullCalendarSettings {
   businessHours: BusinessHoursSettings;
   enableBackgroundEvents: boolean;
   enableReminders: boolean;
+  enableDefaultReminder: boolean;
+  defaultReminderMinutes: number;
   workspaces: WorkspaceSettings[];
   activeWorkspace: string | null; // Workspace ID, null means default view
   showEventInStatusBar: boolean;
@@ -81,6 +83,7 @@ export interface FullCalendarSettings {
   weekends?: boolean; // Whether to display weekends
   hiddenDays?: number[]; // Array of day numbers to hide (0=Sunday, 1=Monday, etc.)
   dayMaxEvents?: number | boolean; // Max events per day in month view (true = no limit, false = default, number = limit)
+  currentVersion: string | null;
 }
 
 export const DEFAULT_SETTINGS: FullCalendarSettings = {
@@ -109,7 +112,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
     endTime: '17:00'
   },
   enableBackgroundEvents: true,
-  enableReminders: false,
+  enableReminders: true,
   workspaces: [],
   activeWorkspace: null,
   showEventInStatusBar: false,
@@ -119,7 +122,10 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
   slotMaxTime: '24:00', // Show all hours by default
   weekends: true, // Show weekends by default
   hiddenDays: [], // Show all days by default
-  dayMaxEvents: false // Use FullCalendar default behavior
+  dayMaxEvents: false, // Use FullCalendar default behavior
+  enableDefaultReminder: true,
+  defaultReminderMinutes: 10,
+  currentVersion: null
 };
 
 // Utility functions for workspace management

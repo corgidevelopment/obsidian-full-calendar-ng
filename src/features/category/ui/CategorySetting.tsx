@@ -80,10 +80,10 @@ export const CategorySettingsManager = ({
   };
 
   return (
-    <div style={{ width: '100%' }}>
+    <div className="u-w-full">
       {localSettings.map((setting, index) => (
         <div className="setting-item" key={index}>
-          <div className="setting-item-control" style={{ flex: '1' }}>
+          <div className="setting-item-control u-flex-1">
             <input
               type="text"
               value={setting.name}
@@ -96,7 +96,7 @@ export const CategorySettingsManager = ({
               type="color"
               value={setting.color}
               onChange={e => updateCategoryColor(index, e.target.value)}
-              style={{ minWidth: '3rem' }}
+              className="u-min-w-3rem"
             />
           </div>
           <div className="setting-item-control">
@@ -107,7 +107,7 @@ export const CategorySettingsManager = ({
 
       {/* MODIFICATION: Use AutocompleteInput here */}
       <div className="setting-item">
-        <div className="setting-item-control" style={{ flex: '1' }}>
+        <div className="setting-item-control u-flex-1">
           <AutocompleteInput
             id="category-settings-autocomplete"
             value={newCategoryName}

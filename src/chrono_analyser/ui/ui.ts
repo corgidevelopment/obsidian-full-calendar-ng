@@ -1,6 +1,7 @@
 // src/chrono_analyser/modules/ui.ts
 
 import { App, Modal, Setting, TFolder, SuggestModal, Notice } from 'obsidian';
+import { t } from '../../features/i18n/i18n';
 
 // DATA STRUCTURES
 interface InsightRule {
@@ -275,9 +276,9 @@ export class InsightConfigModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass('chrono-analyser-modal');
-    contentEl.createEl('h2', { text: 'Configure Insight Groups' });
+    contentEl.createEl('h2', { text: t('chrono.ui.title') });
     contentEl.createEl('p', {
-      text: 'Create groups to categorize your activities. The engine will use these rules to generate personalized insights.'
+      text: t('chrono.ui.description')
     });
 
     // --- INITIALIZE THE STABLE CONTAINER ---
@@ -287,7 +288,7 @@ export class InsightConfigModal extends Modal {
     new Setting(contentEl)
       .addButton(btn =>
         btn
-          .setButtonText('Save Configuration')
+          .setButtonText(t('chrono.ui.save'))
           .setCta()
           .onClick(() => {
             // Prune any empty or invalid group names before saving
@@ -302,7 +303,7 @@ export class InsightConfigModal extends Modal {
             this.close();
           })
       )
-      .addButton(btn => btn.setButtonText('Cancel').onClick(() => this.close()));
+      .addButton(btn => btn.setButtonText(t('chrono.ui.cancel')).onClick(() => this.close()));
 
     // Track original config for unsaved changes
     this.originalConfigString = JSON.stringify(this.config);
@@ -324,7 +325,7 @@ export class InsightConfigModal extends Modal {
       }
     }
     new Setting(container).addButton(btn =>
-      btn.setButtonText('Add New Insight Group').onClick(() => {
+      btn.setButtonText(t('chrono.ui.addGroup')).onClick(() => {
         const newGroupName = `New Group ${Object.keys(this.config.insightGroups).length + 1}`;
         this.config.insightGroups[newGroupName] = {
           persona: 'productivity', // <-- ADD persona to new groups
@@ -361,11 +362,11 @@ export class InsightConfigModal extends Modal {
     });
 
     const nameSetting = new Setting(groupContainer)
-      .setName('Group Name')
+      .setName(t('chrono.ui.groupName'))
       .addText(text => {
         text
           .setValue(currentGroupName)
-          .setPlaceholder('e.g., Work')
+          .setPlaceholder(t('chrono.ui.groupNamePlaceholder'))
           .setDisabled(!isExpanded)
           .onChange(() => {
             this.checkForUnsavedChanges();
@@ -384,7 +385,7 @@ export class InsightConfigModal extends Modal {
             return;
           }
           if (this.config.insightGroups[newNameTrimmed]) {
-            new Notice(`Group name "${newNameTrimmed}" already exists.`);
+            new Notice(t('chrono.ui.errors.groupExists', { name: newNameTrimmed }));
             text.inputEl.value = currentGroupName;
             return;
           }
@@ -400,7 +401,7 @@ export class InsightConfigModal extends Modal {
       .addExtraButton(btn => {
         btn
           .setIcon('trash')
-          .setTooltip('Delete this group')
+          .setTooltip(t('chrono.ui.deleteGroup'))
           .setDisabled(!isExpanded)
           // REMOVE 'evt' and 'stopPropagation'
           .onClick(() => {
@@ -432,13 +433,13 @@ export class InsightConfigModal extends Modal {
 
     // --- ADD Persona Dropdown ---
     new Setting(foldableContent)
-      .setName('Analyze as Persona')
-      .setDesc('Choose the analytical model to apply to this group.')
+      .setName(t('chrono.ui.persona.name'))
+      .setDesc(t('chrono.ui.persona.desc'))
       .setDisabled(!isExpanded)
       .addDropdown(dd => {
-        dd.addOption('productivity', '🎯 Productivity')
-          .addOption('wellness', '❤️ Wellness & Routine')
-          .addOption('none', '⚪ (Ignore in Dashboard)')
+        dd.addOption('productivity', t('chrono.ui.persona.productivity'))
+          .addOption('wellness', t('chrono.ui.persona.wellness'))
+          .addOption('none', t('chrono.ui.persona.none'))
           .setValue(persona || 'productivity')
           .onChange(value => {
             // Type-safe assignment using proper type guard
@@ -451,39 +452,39 @@ export class InsightConfigModal extends Modal {
 
     this.createTagInput(
       foldableContent,
-      'Matching Hierarchies',
-      'e.g., Work Calendar, Personal Calendar',
-      'Add hierarchy...',
+      t('chrono.ui.hierarchies.name'),
+      t('chrono.ui.hierarchies.desc'),
+      t('chrono.ui.hierarchies.add'),
       rules.hierarchies || [],
       this.knownHierarchies,
       () => this.checkForUnsavedChanges()
     );
     this.createTagInput(
       foldableContent,
-      'Matching Projects',
-      'e.g., Project Phoenix, Q4 Report',
-      'Add project...',
+      t('chrono.ui.projects.name'),
+      t('chrono.ui.projects.desc'),
+      t('chrono.ui.projects.add'),
       rules.projects || [],
       this.knownProjects,
       () => this.checkForUnsavedChanges()
     );
     this.createTagInput(
       foldableContent,
-      'Muted Projects',
-      'Mute specific projects (case-sensitive, exact match) to exclude them from Habit Consistency checks.',
-      'Add muted project...',
+      t('chrono.ui.mutedProjects.name'),
+      t('chrono.ui.mutedProjects.desc'),
+      t('chrono.ui.mutedProjects.add'),
       rules.mutedProjects || [],
       this.knownProjects,
       () => this.checkForUnsavedChanges()
     );
 
     new Setting(foldableContent)
-      .setName('Matching Sub-project Keywords')
-      .setDesc('Add keywords that will match if found anywhere in a sub-project.')
+      .setName(t('chrono.ui.subprojectKeywords.name'))
+      .setDesc(t('chrono.ui.subprojectKeywords.desc'))
       .addTextArea(text => {
         text
           .setValue((rules.subprojectKeywords || []).join('\n'))
-          .setPlaceholder('eg., design\nresearch\nmeeting')
+          .setPlaceholder(t('chrono.ui.subprojectKeywords.placeholder'))
           .setDisabled(!isExpanded)
           .onChange(value => {
             rules.subprojectKeywords = value
@@ -495,14 +496,12 @@ export class InsightConfigModal extends Modal {
       });
 
     new Setting(foldableContent)
-      .setName('Muted Sub-project Keywords')
-      .setDesc(
-        'Mute activities by keyword. If a sub-project contains any of these (case-insensitive) keywords, it will be excluded from Habit Consistency checks.'
-      )
+      .setName(t('chrono.ui.mutedSubprojectKeywords.name'))
+      .setDesc(t('chrono.ui.mutedSubprojectKeywords.desc'))
       .addTextArea(text => {
         text
           .setValue((rules.mutedSubprojectKeywords || []).join('\n'))
-          .setPlaceholder('e.g., completed\narchive\nold')
+          .setPlaceholder(t('chrono.ui.mutedSubprojectKeywords.placeholder'))
           .setDisabled(!isExpanded)
           .onChange(value => {
             rules.mutedSubprojectKeywords = value
@@ -596,15 +595,15 @@ export class InsightConfigModal extends Modal {
   private showConfirmationModal() {
     const confirmationModal = new Modal(this.app);
     confirmationModal.contentEl.addClass('chrono-analyser-modal');
-    confirmationModal.contentEl.createEl('h2', { text: 'Unsaved Changes' });
+    confirmationModal.contentEl.createEl('h2', { text: t('chrono.ui.unsavedChanges.title') });
     confirmationModal.contentEl.createEl('p', {
-      text: 'You have unsaved changes. Would you like to save them before closing?'
+      text: t('chrono.ui.unsavedChanges.message')
     });
 
     new Setting(confirmationModal.contentEl)
       .addButton(btn =>
         btn
-          .setButtonText('Save and Close')
+          .setButtonText(t('chrono.ui.unsavedChanges.saveAndClose'))
           .setCta()
           .onClick(() => {
             this.isSaving = true;
@@ -614,7 +613,7 @@ export class InsightConfigModal extends Modal {
           })
       )
       .addButton(btn =>
-        btn.setButtonText('Discard Changes').onClick(() => {
+        btn.setButtonText(t('chrono.ui.unsavedChanges.discard')).onClick(() => {
           this.isSaving = true;
           confirmationModal.close();
           this.close();
@@ -636,7 +635,7 @@ export class FolderSuggestModal extends SuggestModal<TFolder> {
     private onChoose: (folder: TFolder) => void
   ) {
     super(app);
-    this.setPlaceholder('Select a folder with your time tracking files...');
+    this.setPlaceholder(t('chrono.ui.folderSelectPlaceholder'));
   }
   getSuggestions(query: string): TFolder[] {
     const queryLower = query.toLowerCase();

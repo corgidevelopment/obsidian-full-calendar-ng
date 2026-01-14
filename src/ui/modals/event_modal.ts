@@ -24,9 +24,11 @@ import ReactModal from '../ReactModal';
 import { Notice } from 'obsidian';
 import { OFCEvent } from '../../types';
 import { EditEvent } from './EditEvent';
+import { EventDetails } from './EventDetails';
 import FullCalendarPlugin from '../../main';
 import { ConfirmModal } from './ConfirmModal';
 import { openFileForEvent } from '../../utils/eventActions';
+import { t } from '../../features/i18n/i18n';
 
 export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Partial<OFCEvent>) {
   const calendars = plugin.providerRegistry
@@ -47,7 +49,7 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
     .filter((c): c is NonNullable<typeof c> => !!c);
 
   if (calendars.length === 0) {
-    new Notice('Cannot create event: No writable calendars are available.');
+    new Notice(t('modals.event.errors.createNoCalendars'));
     return;
   }
 
@@ -71,7 +73,7 @@ export function launchCreateModal(plugin: FullCalendarPlugin, partialEvent: Part
           await plugin.cache.addEvent(calendarId, data);
         } catch (e) {
           if (e instanceof Error) {
-            new Notice('Error when creating event: ' + e.message);
+            new Notice(t('modals.event.errors.createError', { message: e.message }));
             console.error(e);
           }
         }
@@ -123,8 +125,8 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
     const onAttemptEditInherited = () => {
       new ConfirmModal(
         plugin.app,
-        'Edit Parent Event?',
-        'This property is inherited from the parent recurring event. Would you like to open the parent to make changes?',
+        t('modals.event.confirmations.editParentTitle'),
+        t('modals.event.confirmations.editParentMessage'),
         async () => {
           if (eventToEdit.type === 'single' && eventToEdit.recurringEventId) {
             const parentLocalId = eventToEdit.recurringEventId;
@@ -134,7 +136,7 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
               closeModal();
               launchEditModal(plugin, parentSessionId);
             } else {
-              new Notice('Could not find the parent recurring event.');
+              new Notice(t('modals.event.errors.parentNotFound'));
             }
           }
         }
@@ -153,13 +155,15 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
         try {
           const newCalendarSettingsId = calendars[calendarIndex].id;
           const oldCalendarSettingsId = eventDetails.calendarId;
+
           if (newCalendarSettingsId !== oldCalendarSettingsId) {
-            new Notice('Moving events between calendars is not yet supported.');
+            await plugin.cache.moveEventToCalendar(eventId, newCalendarSettingsId, data);
+          } else {
+            await plugin.cache.updateEventWithId(eventId, data);
           }
-          await plugin.cache.updateEventWithId(eventId, data);
         } catch (e) {
           if (e instanceof Error) {
-            new Notice('Error when updating event: ' + e.message);
+            new Notice(t('modals.event.errors.updateError', { message: e.message }));
             console.error(e);
           }
         }
@@ -175,12 +179,46 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
           closeModal();
         } catch (e) {
           if (e instanceof Error) {
-            new Notice('Error when deleting event: ' + e.message);
+            new Notice(t('modals.event.errors.deleteError', { message: e.message }));
             console.error(e);
           }
         }
       },
       onAttemptEditInherited // Pass the new handler as a prop
+    });
+  }).open();
+}
+
+export function launchEventDetailsModal(plugin: FullCalendarPlugin, eventId: string) {
+  const event = plugin.cache.getEventById(eventId);
+  if (!event) {
+    new Notice(t('modals.event.errors.eventNotFound'));
+    return;
+  }
+  const eventDetails = plugin.cache.store.getEventDetails(eventId);
+  if (!eventDetails) {
+    new Notice(t('modals.event.errors.detailsNotFound'));
+    return;
+  }
+
+  const calendarId = eventDetails.calendarId;
+  const calendar = plugin.providerRegistry.getSource(calendarId);
+  const calendarName =
+    calendar && calendar.name ? calendar.name : t('modals.event.misc.unknownCalendar');
+  const location = eventDetails.location;
+
+  new ReactModal(plugin.app, async closeModal => {
+    return React.createElement(EventDetails, {
+      event,
+      calendarName,
+      location,
+      onClose: () => closeModal(),
+      onOpenNote: location
+        ? async () => {
+            await openFileForEvent(plugin.cache, plugin.app, eventId);
+            closeModal();
+          }
+        : undefined
     });
   }).open();
 }

@@ -1,4 +1,58 @@
 {
+  "chrono": {
+    "ui": {
+      "title": "Configure Insight Groups",
+      "description": "Create groups to categorize your activities. The engine will use these rules to generate personalized insights.",
+      "save": "Save Configuration",
+      "cancel": "Cancel",
+      "addGroup": "Add New Insight Group",
+      "groupName": "Group Name",
+      "groupNamePlaceholder": "e.g., Work",
+      "deleteGroup": "Delete this group",
+      "persona": {
+        "name": "Analyze as Persona",
+        "desc": "Choose the analytical model to apply to this group.",
+        "productivity": "🎯 Productivity",
+        "wellness": "❤️ Wellness & Routine",
+        "none": "⚪ (Ignore in Dashboard)"
+      },
+      "hierarchies": {
+        "name": "Matching Hierarchies",
+        "desc": "e.g., Work Calendar, Personal Calendar",
+        "add": "Add hierarchy..."
+      },
+      "projects": {
+        "name": "Matching Projects",
+        "desc": "e.g., Project Phoenix, Q4 Report",
+        "add": "Add project..."
+      },
+      "mutedProjects": {
+        "name": "Muted Projects",
+        "desc": "Mute specific projects (case-sensitive, exact match) to exclude them from Habit Consistency checks.",
+        "add": "Add muted project..."
+      },
+      "subprojectKeywords": {
+        "name": "Matching Sub-project Keywords",
+        "desc": "Add keywords that will match if found anywhere in a sub-project.",
+        "placeholder": "eg., design\nresearch\nmeeting"
+      },
+      "mutedSubprojectKeywords": {
+        "name": "Muted Sub-project Keywords",
+        "desc": "Mute activities by keyword. If a sub-project contains any of these (case-insensitive) keywords, it will be excluded from Habit Consistency checks.",
+        "placeholder": "e.g., completed\narchive\nold"
+      },
+      "unsavedChanges": {
+        "title": "Unsaved Changes",
+        "message": "You have unsaved changes. Would you like to save them before closing?",
+        "saveAndClose": "Save and Close",
+        "discard": "Discard Changes"
+      },
+      "folderSelectPlaceholder": "Select a folder with your time tracking files...",
+      "errors": {
+        "groupExists": "Group name \"{{name}}\" already exists."
+      }
+    }
+  },
   "commands": {
     "newEvent": "New Event",
     "resetCache": "Reset Event Cache",
@@ -34,7 +88,31 @@
       "noNotesFound": "No local event notes found to de-categorize.",
       "progress": "De-categorizing event notes: {{index}}/{{total}}",
       "complete": "Bulk de-categorization complete."
+    },
+    "tasks": {
+      "createViaPlugin": "Use the Tasks plugin interface to create new tasks.",
+      "defaultValidation": "This task cannot be scheduled on this date.",
+      "scheduledNoModal": "Task scheduled, but could not open Tasks edit modal.",
+      "apiUnavailable": "Obsidian Tasks plugin API not available."
     }
+  },
+  "eventCache": {
+    "calendarNotFound": "Cannot add event: calendar with ID {{calendarId}} not found.",
+    "providerNotFound": "Cannot add event: provider for type {{type}} not found.",
+    "readOnly": "Cannot add event to a read-only calendar.",
+    "createFailed": "Failed to create event. Change has been reverted.",
+    "deleteFailed": "Failed to delete event. Change has been reverted.",
+    "updateFailed": "Failed to update event. Change has been reverted."
+  },
+  "recurEvents": {
+    "promotingChildren": "Promoting {{count}} child event(s).",
+    "deletedAndPromoted": "Recurring event deleted and children promoted.",
+    "deletingWithChildren": "Deleting recurring event and its {{count}} child override(s)...",
+    "deletedAll": "Successfully deleted recurring event and all children.",
+    "preservingTiming": "Preserving modified event timing and uncompleting task.",
+    "revertingControl": "Reverting control to Main Recurring event sequence.",
+    "updatingChildren": "Updating {{count}} child event(s) to match new parent title.",
+    "updateError": "Error updating recurring event. Some children may not have been updated."
   },
   "ribbon": {
     "openCalendar": "Open Full Calendar"
@@ -56,10 +134,17 @@
       "clickToCreateEvent": {
         "label": "Click on a day in month view to create event",
         "description": "Switch off to open day view on click instead."
+      }
+    },
+    "reminders": {
+      "title": "Reminders",
+      "enableDefault": {
+        "label": "Enable default reminder",
+        "description": "Automatically add a reminder to new events."
       },
-      "enableReminders": {
-        "label": "Enable event reminders",
-        "description": "Show a desktop notification 10 minutes before an event starts."
+      "defaultTime": {
+        "label": "Default reminder time",
+        "description": "Minutes before event to remind (default: 10)"
       }
     },
     "appearance": {
@@ -275,9 +360,34 @@
       "thursday": "Thursday",
       "friday": "Friday",
       "saturday": "Saturday"
+    },
+    "changelog": {
+      "whatsNew": "What's new",
+      "viewFull": "View full changelog"
+    },
+    "utils": {
+      "timelineDisabled": "Timeline view is disabled. Resetting default desktop view to \"Week\"."
+    },
+    "warnings": {
+      "oneDailyNote": "Only one daily note is allowed."
     }
   },
   "modals": {
+    "reminder": {
+      "snoozeFor": "Snooze for",
+      "dismiss": "Dismiss",
+      "openNote": "Open Note",
+      "snooze": "Snooze",
+      "snoozeWarningTitle": "⚠️ Snoozing Moves Event",
+      "snoozeWarningBody": "This is a default reminder. Snoozing will move the event start time forward.",
+      "presets": {
+        "5m": "5 minutes",
+        "10m": "10 minutes",
+        "15m": "15 minutes",
+        "30m": "30 minutes",
+        "1h": "1 hour"
+      }
+    },
     "editEvent": {
       "title": {
         "new": "New Event",
@@ -287,6 +397,24 @@
         "openNote": "Open Note",
         "delete": "Delete",
         "save": "Save Event"
+      },
+      "errors": {
+        "createNoCalendars": "Cannot create event: No writable calendars are available.",
+        "createError": "Error when creating event: {{message}}",
+        "notFound": "Cannot edit event that doesn't exist.",
+        "eventNotFound": "Event not found.",
+        "detailsNotFound": "Event details not found.",
+        "parentNotFound": "Could not find the parent recurring event.",
+        "moveCalendarNotSupported": "Moving events between calendars is not yet supported.",
+        "updateError": "Error when updating event: {{message}}",
+        "deleteError": "Error when deleting event: {{message}}"
+      },
+      "confirmations": {
+        "editParentTitle": "Edit Parent Event?",
+        "editParentMessage": "This property is inherited from the parent recurring event. Would you like to open the parent to make changes?"
+      },
+      "misc": {
+        "unknownCalendar": "Unknown Calendar"
       },
       "fields": {
         "title": {
@@ -319,9 +447,19 @@
           "label": "Options",
           "allDay": "All day",
           "isTask": "Is a Task",
-          "completed": "Completed",
-          "endReminder": "Remind 10m before end",
-          "endReminderTooltip": "An end reminder requires a specific end time."
+          "completed": "Completed"
+        },
+        "notification": {
+          "label": "Notify:",
+          "mins": "Mins",
+          "select": "Select...",
+          "presets": {
+            "30m": "30 min",
+            "1h": "1 hour",
+            "6h": "6 hours",
+            "12h": "12 hours",
+            "24h": "24 hours"
+          }
         },
         "repeats": {
           "label": "Repeats",
@@ -428,6 +566,9 @@
           "description": "Select categories to include/exclude (leave empty to show all)",
           "noCategories": "No categories configured. Configure categories in the Categorization settings.",
           "requiresAdvanced": "Category filtering requires Advanced Categorization to be enabled in the main settings."
+        },
+        "notices": {
+          "enableBases": "Please enable the Obsidian Bases plugin first."
         },
         "overrideBusinessHours": {
           "label": "Override business hours",
@@ -543,6 +684,15 @@
     }
   },
   "google": {
+    "auth": {
+      "expired": "Google authentication expired. Please reconnect your account.",
+      "authFailed": "Could not authenticate calendar. Please try re-adding it in settings.",
+      "popupBlocked": "Popup blocked. Please allow popups for Obsidian.",
+      "customCredsMissing": "Custom Google Client ID and Secret must be set in the plugin settings.",
+      "stateMismatch": "Google authentication failed. State mismatch.",
+      "success": "Successfully connected Google Account!",
+      "failed": "Failed to connect Google Account. Check the developer console for details."
+    },
     "title": "Google Accounts",
     "customCredentials": {
       "enable": {
@@ -579,6 +729,36 @@
     "loading": "Loading..."
   },
   "ui": {
+    "view": {
+      "errors": {
+        "cacheNotLoaded": "Full Calendar event cache not loaded.",
+        "viewEnhancerNotInitialized": "Full Calendar view enhancer not initialized.",
+        "chronoAnalyserDesktopOnly": "The Chrono Analyser is only available on desktop.",
+        "chronoAnalyserFailed": "Failed to open Chrono Analyser. Please check the console.",
+        "modifyEventFailed": "Failed to modify event.",
+        "taskScheduleFailed": "Failed to schedule task: {{message}}",
+        "moveRecurringDayError": "Cannot move a recurring instance to a different day. Modify the time only or edit the main recurring event.",
+        "moveRecurringInstanceError": "Cannot move a recurring instance to a different day. You can only change the time."
+      },
+      "success": {
+        "deletedEvent": "Deleted event \"{{title}}\".",
+        "taskScheduled": "Task scheduled successfully"
+      },
+      "workspace": {
+        "switcherLabel": "Workspace"
+      },
+      "buttons": {
+        "analysis": "Analysis",
+        "defaultView": "Default View"
+      },
+      "contextMenu": {
+        "turnIntoTask": "Turn into task",
+        "removeCheckbox": "Remove checkbox",
+        "goToNote": "Go to note",
+        "delete": "Delete",
+        "noActions": "No actions available on remote events"
+      }
+    },
     "buttons": {
       "addCalendar": "Add Calendar"
     },
@@ -600,6 +780,9 @@
       "title": "Event Ending Soon",
       "body": "{{title}} ends at {{time}}"
     },
-    "allDaySuffix": "(All-day)"
+    "allDaySuffix": "(All-day)",
+    "inMinutes": "(In {{mins}} minutes)",
+    "failed": "Full Calendar: Failed to create desktop notification.",
+    "errorBody": "Full Calendar: Could not show desktop notification. Check console for errors."
   }
 }

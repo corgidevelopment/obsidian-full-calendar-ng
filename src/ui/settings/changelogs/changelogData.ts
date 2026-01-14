@@ -19,7 +19,8 @@ export const changelogData: Version[] = [
       {
         type: 'new',
         title: 'Obsidian Bases provider',
-        description: 'Add Bases as a calendar source (BETA).'
+        description:
+          'Add [Bases](https://youfoundjk.github.io/plugin-full-calendar/calendars/bases/) as a calendar source (BETA).'
       },
       {
         type: 'improvement',
@@ -31,13 +32,13 @@ export const changelogData: Version[] = [
         type: 'improvement',
         title: 'ChronoAnalyser data integrity',
         description:
-          'ChronoAnalyser now pulls from the main EventStore and parses category/project/subproject hierarchies correctly for accurate analysis.'
+          '[ChronoAnalyser](https://youfoundjk.github.io/plugin-full-calendar/chrono_analyser/introduction/) now pulls from the main EventStore and parses category/project/subproject hierarchies correctly for accurate analysis.'
       },
       {
         type: 'fix',
         title: 'CalDAV validation and parsing',
         description:
-          'CalDAVProvider now validates calendar collections with PROPFIND, parses calendar-data via DOMParser, adds JSDOM-backed tests, and surfaces clearer errors when URLs are invalid. (#193)'
+          '[CalDAVProvider](https://youfoundjk.github.io/plugin-full-calendar/calendars/caldav/) now validates calendar collections with PROPFIND, parses calendar-data via DOMParser, adds JSDOM-backed tests, and surfaces clearer errors when URLs are invalid. (#193)'
       },
       {
         type: 'fix',
@@ -54,12 +55,13 @@ export const changelogData: Version[] = [
         type: 'new',
         title: 'Multi-Language (i18n) Support',
         description:
-          'Full Calendar now supports multiple languages. The UI will automatically switch based on your Obsidian language setting. Developers can add new translations via the i18n system with type-safe keys.'
+          'Full Calendar now supports [multiple languages](https://youfoundjk.github.io/plugin-full-calendar/features/i18n/). The UI will automatically switch based on your Obsidian language setting. Developers can add new translations via the i18n system with type-safe keys.'
       },
       {
         type: 'improvement',
         title: 'Deep Task Provider 2.0',
-        description: 'Tasks Plugin integration is now much smoother and robust.'
+        description:
+          '[Tasks Plugin integration](https://youfoundjk.github.io/plugin-full-calendar/calendars/tasks-plugin-integration/) is now much smoother and robust.'
       },
       {
         type: 'fix',
@@ -76,7 +78,7 @@ export const changelogData: Version[] = [
         type: 'new',
         title: 'Tasks Provider Rearchitected for Performance and Precision',
         description:
-          "The Tasks provider now uses the official Tasks plugin's live cache for instant updates and performs surgical edits to preserve user metadata like links and tags. (#151, #155)"
+          "The [Tasks provider](https://youfoundjk.github.io/plugin-full-calendar/calendars/tasks-plugin-integration/) now uses the official Tasks plugin's live cache for instant updates and performs surgical edits to preserve user metadata like links and tags. (#151, #155)"
       },
       {
         type: 'improvement',

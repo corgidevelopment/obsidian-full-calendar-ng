@@ -5,11 +5,13 @@ exports[`ics tests parses all day event: BEGIN:VCALENDAR\\nPRODID:blah\\nX-WR-CA
   {
     "allDay": true,
     "date": "2023-02-26",
+    "description": "Description!",
     "endDate": null,
     "timezone": undefined,
     "title": "EVENT TITLE",
     "type": "single",
     "uid": "7389432083-0-40713-74006",
+    "url": "https://www.example.com",
   },
 ]
 `;
@@ -19,14 +21,17 @@ exports[`ics tests parses gcal ics file and categories: BEGIN:VCALENDAR\\nPRODID
   {
     "allDay": true,
     "date": "2022-03-02",
+    "description": "",
     "endDate": null,
     "timezone": undefined,
     "title": "All day event",
     "type": "single",
     "uid": "5r09pnnlktaqivstai5vlbqb1h@google.com",
+    "url": undefined,
   },
   {
     "allDay": false,
+    "description": "",
     "endDate": null,
     "endTime": "06:30",
     "id": "ics::5tt2avr2th0h65homv3b6jeqof@google.com::2022-03-01::recurring",
@@ -38,10 +43,12 @@ exports[`ics tests parses gcal ics file and categories: BEGIN:VCALENDAR\\nPRODID
     "title": "Work - Recurring event",
     "type": "rrule",
     "uid": "5tt2avr2th0h65homv3b6jeqof@google.com",
+    "url": undefined,
   },
   {
     "allDay": false,
     "date": "2022-02-28",
+    "description": "This is an example <i>event.</i>",
     "endDate": null,
     "endTime": "19:45",
     "startTime": "16:45",
@@ -49,10 +56,12 @@ exports[`ics tests parses gcal ics file and categories: BEGIN:VCALENDAR\\nPRODID
     "title": "Work - Project Alpha - Hello, iCal!",
     "type": "single",
     "uid": "40mdbe6fvc1rmd60n6r0c3go7e@google.com",
+    "url": undefined,
   },
   {
     "allDay": false,
     "date": "2022-02-19",
+    "description": "",
     "endDate": null,
     "endTime": "23:00",
     "startTime": "19:00",
@@ -60,15 +69,18 @@ exports[`ics tests parses gcal ics file and categories: BEGIN:VCALENDAR\\nPRODID
     "title": "Work on GCal Sync",
     "type": "single",
     "uid": "44hekcaaf0or7547vhqa772mqj@google.com",
+    "url": undefined,
   },
   {
     "allDay": true,
     "date": "2022-02-16",
+    "description": "",
     "endDate": null,
     "timezone": undefined,
     "title": "Announce Beta",
     "type": "single",
     "uid": "7ooluqb717vabebvc9gkc38c9l@google.com",
+    "url": undefined,
   },
 ]
 `;

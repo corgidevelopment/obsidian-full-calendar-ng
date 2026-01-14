@@ -190,6 +190,34 @@
     transition: color 0.2s ease-in-out;
 }
 
+
 .settings-footer-link:hover {
     color: var(--interactive-accent-hover);
+}
+
+.full-calendar-version-container.embedded {
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    margin-bottom: var(--size-4-4);
+    background-color: var(--background-primary);
+}
+
+.full-calendar-version-container.embedded .full-calendar-version-header {
+    background-color: var(--background-secondary);
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.full-calendar-whats-new-modal .full-calendar-version-content {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: var(--size-4-4);
+}
+
+.full-calendar-whats-new-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--size-4-2);
+    margin-top: var(--size-4-4);
+    padding-top: var(--size-4-4);
+    border-top: 1px solid var(--background-modifier-border);
 }

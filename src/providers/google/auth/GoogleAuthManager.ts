@@ -9,6 +9,7 @@ import FullCalendarPlugin from '../../../main';
 import { CalendarInfo } from '../../../types';
 import { GoogleAccount } from '../../../types/settings';
 import { generateCalendarId } from '../../../types/calendar_settings';
+import { t } from '../../../features/i18n/i18n';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const PROXY_REFRESH_URL = 'https://gcal-proxy-server.vercel.app/api/google/refresh';
@@ -42,7 +43,9 @@ export class GoogleAuthManager {
   ): Promise<string | null> {
     const { settings } = this.plugin;
     if (!authObj.refreshToken) {
-      console.error('No refresh token available.');
+      const email = 'email' in authObj ? authObj.email : 'unknown';
+      const id = 'id' in authObj ? authObj.id : 'unknown';
+      console.error(`No refresh token available. Account: ${email} (ID: ${id})`);
       return null;
     }
 
@@ -77,31 +80,46 @@ export class GoogleAuthManager {
         method: 'POST',
         url: tokenUrl,
         headers: requestHeaders,
-        body: requestBody
+        body: requestBody,
+        throw: false
       });
 
-      const data = response.json;
-      // Mutate the object that was passed in
-      authObj.accessToken = data.access_token;
-      authObj.expiryDate = Date.now() + data.expires_in * 1000;
+      if (response.status >= 200 && response.status < 300) {
+        const data = response.json;
+        // Mutate the object that was passed in
+        authObj.accessToken = data.access_token;
+        authObj.expiryDate = Date.now() + data.expires_in * 1000;
 
-      // Save settings to persist the new token
-      await this.plugin.saveSettings();
-      return data.access_token;
-    } catch (e) {
-      console.error('Failed to refresh Google access token:', e);
-
-      // For multi-account, we nullify the specific account's tokens to force re-auth.
-      if (!isLegacy && 'id' in authObj) {
-        const account = this.plugin.settings.googleAccounts.find(a => a.id === authObj.id);
-        if (account) {
-          account.accessToken = null;
-          account.refreshToken = null;
-          account.expiryDate = null;
-        }
+        // Save settings to persist the new token
+        await this.plugin.saveSettings();
+        return data.access_token;
       }
-      await this.plugin.saveSettings();
-      new Notice('Google authentication expired. Please reconnect your account.');
+
+      // If we get here, it's an error status from Google
+      console.error(
+        `Failed to refresh Google access token. Status: ${response.status} Body: ${response.text}`
+      );
+
+      // Only wipe credentials if it's a permanent auth error (400 Bad Request, 401 Unauthorized)
+      // This protects against 500s or other temporary issues where we shouldn't lose the user's login.
+      if (response.status === 400 || response.status === 401) {
+        if (!isLegacy && 'id' in authObj) {
+          const account = this.plugin.settings.googleAccounts.find(a => a.id === authObj.id);
+          if (account) {
+            account.accessToken = null;
+            account.refreshToken = null;
+            account.expiryDate = null;
+          }
+        }
+        await this.plugin.saveSettings();
+        new Notice(t('google.auth.expired'));
+      }
+      return null;
+    } catch (e) {
+      // This catch block will now mostly catch network errors (offline),
+      // since we set throw: false for HTTP status errors.
+      console.error('Network error during Google token refresh:', e);
+      // Do NOT wipe credentials here. Just return null so the fetch fails gracefully for now.
       return null;
     }
   }
@@ -118,7 +136,7 @@ export class GoogleAuthManager {
         'Google source is missing a googleAccountId. It may need to be re-added.',
         source
       );
-      new Notice('Could not authenticate calendar. Please try re-adding it in settings.');
+      new Notice(t('google.auth.authFailed'));
       return null;
     }
 

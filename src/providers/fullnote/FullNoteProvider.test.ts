@@ -330,4 +330,34 @@ describe('FullNoteCalendar Tests', () => {
     // File in similar but different path should not be relevant
     expect(calendar.isFileRelevant(fileInSimilarPath)).toBe(false);
   });
+
+  it('creates a recurring event with repeatOn', async () => {
+    const obsidian = makeApp(MockAppBuilder.make().done());
+    const calendar = new FullNoteProvider(
+      { directory: dirName, id: 'local_1' },
+      makePlugin({ enableAdvancedCategorization: true }), // Using advanced categorization to ensure we exercise that path too, though not strictly necessary
+      obsidian
+    );
+    const event = {
+      title: 'Monthly Meeting',
+      type: 'recurring',
+      startTime: '10:00',
+      endTime: '11:00',
+      repeatOn: { week: 2, weekday: 0 }, // 2nd Sunday
+      startRecur: '2022-01-01',
+      isTask: false
+    };
+
+    (obsidian.create as jest.Mock).mockReturnValue({
+      path: join(dirName, 'Monthly Meeting.md')
+    });
+
+    await calendar.createEvent(parseEvent(event));
+
+    expect(obsidian.create).toHaveBeenCalledTimes(1);
+    const [path, content] = (obsidian.create as jest.Mock).mock.calls[0];
+
+    // This expectation should FAIL currently because it will be [object Object]
+    expect(content).toContain('repeatOn: {"week":2,"weekday":0}');
+  });
 });

@@ -1,4 +1,58 @@
 {
+  "chrono": {
+    "ui": {
+      "title": "Configura Gruppi di Insight",
+      "description": "Crea gruppi per categorizzare le tue attività. Il motore utilizzerà queste regole per generare insight personalizzati.",
+      "save": "Salva configurazione",
+      "cancel": "Annulla",
+      "addGroup": "Aggiungi nuovo gruppo di insight",
+      "groupName": "Nome del gruppo",
+      "groupNamePlaceholder": "es: Lavoro",
+      "deleteGroup": "Elimina questo gruppo",
+      "persona": {
+        "name": "Analizza come Persona",
+        "desc": "Scegli il modello analitico da applicare a questo gruppo.",
+        "productivity": "🎯 Produttività",
+        "wellness": "❤️ Benessere & Routine",
+        "none": "⚪ (Ignora nella dashboard)"
+      },
+      "hierarchies": {
+        "name": "Gerarchie corrispondenti",
+        "desc": "es: Calendario di lavoro, Calendario personale",
+        "add": "Aggiungi gerarchia..."
+      },
+      "projects": {
+        "name": "Progetti corrispondenti",
+        "desc": "es: Progetto Phoenix, Report Q4",
+        "add": "Aggiungi progetto..."
+      },
+      "mutedProjects": {
+        "name": "Progetti silenziati",
+        "desc": "Silenzia progetti specifici (case-sensitive, corrispondenza esatta) per escluderli dai controlli di coerenza delle abitudini.",
+        "add": "Aggiungi progetto silenziato..."
+      },
+      "subprojectKeywords": {
+        "name": "Parole chiave dei sottoggetti corrispondenti",
+        "desc": "Aggiungi parole chiave che corrisponderanno se trovate ovunque in un sottoprogetto.",
+        "placeholder": "es: design\nricerca\nriunione"
+      },
+      "mutedSubprojectKeywords": {
+        "name": "Parole chiave dei sottoggetti silenziati",
+        "desc": "Silenzia le attività per parola chiave. Se un sottoprogetto contiene una di queste parole chiave (case-insensitive), verrà escluso dai controlli di coerenza delle abitudini.",
+        "placeholder": "es: completato\narchivio\nvecchio"
+      },
+      "unsavedChanges": {
+        "title": "Modifiche non salvate",
+        "message": "Hai modifiche non salvate. Vuoi salvarle prima di chiudere?",
+        "saveAndClose": "Salva e chiudi",
+        "discard": "Ignora modifiche"
+      },
+      "folderSelectPlaceholder": "Seleziona una cartella con i tuoi file di tracciamento del tempo...",
+      "errors": {
+        "groupExists": "Il nome del gruppo \"{{name}}\" esiste già."
+      }
+    }
+  },
   "commands": {
     "newEvent": "Nuovo Evento",
     "resetCache": "Reimposta Cache Eventi",
@@ -34,6 +88,12 @@
       "noNotesFound": "Nessuna nota evento locale trovata da decategorizzare.",
       "progress": "Decategorizzazione note evento: {{index}}/{{total}}",
       "complete": "Decategorizzazione massiva completata."
+    },
+    "tasks": {
+      "createViaPlugin": "Usa l'interfaccia del plugin Tasks per creare nuove attività.",
+      "defaultValidation": "Questa attività non può essere pianificata in questa data.",
+      "scheduledNoModal": "Attività pianificata, ma impossibile aprire il modale di modifica di Tasks.",
+      "apiUnavailable": "API del plugin Obsidian Tasks non disponibile."
     }
   },
   "ribbon": {
@@ -255,7 +315,7 @@
     },
     "quickStart": {
       "title": "Guida rapida: aggiungi il tuo primo calendario",
-  "description": "Per iniziare, aggiungi una fonte calendario usando il pulsante '+' nella sezione 'Gestisci calendari'."
+      "description": "Per iniziare, aggiungi una fonte calendario usando il pulsante '+' nella sezione 'Gestisci calendari'."
     },
     "viewOptions": {
       "day": "Giorno",
@@ -274,9 +334,34 @@
       "thursday": "Giovedì",
       "friday": "Venerdì",
       "saturday": "Sabato"
+    },
+    "changelog": {
+      "whatsNew": "Novità",
+      "viewFull": "Vedi il log delle modifiche completo"
+    },
+    "utils": {
+      "timelineDisabled": "La vista timeline è disabilitata. Ripristino della vista desktop predefinita a \"Settimana\"."
+    },
+    "warnings": {
+      "oneDailyNote": "È consentita solo una nota giornaliera."
     }
   },
   "modals": {
+    "reminder": {
+      "snoozeFor": "Posticipa di",
+      "dismiss": "Ignora",
+      "openNote": "Apri nota",
+      "snooze": "Posticipa",
+      "snoozeWarningTitle": "⚠️ Posticipare sposta l'evento",
+      "snoozeWarningBody": "Questo è un promemoria predefinito. Posticipare sposterà l'ora di inizio dell'evento in avanti.",
+      "presets": {
+        "5m": "5 minuti",
+        "10m": "10 minuti",
+        "15m": "15 minuti",
+        "30m": "30 minuti",
+        "1h": "1 ora"
+      }
+    },
     "editEvent": {
       "title": {
         "new": "Nuovo Evento",
@@ -359,7 +444,7 @@
     },
     "deleteRecurring": {
       "title": "Elimina Evento Ricorrente",
-  "description": "Questo è un evento ricorrente. Cosa vuoi fare con tutte le future istanze 'override' (cioè eventi che hai spostato o modificato)?",
+      "description": "Questo è un evento ricorrente. Cosa vuoi fare con tutte le future istanze 'override' (cioè eventi che hai spostato o modificato)?",
       "deleteInstance": {
         "name": "Elimina solo questa istanza",
         "description": "Elimina solo l'istanza del {{date}}. Questa data verrà saltata nella ricorrenza.",
@@ -427,6 +512,9 @@
           "description": "Seleziona le categorie da includere/escludere (lascia vuoto per mostrarle tutte)",
           "noCategories": "Nessuna categoria configurata. Configura le categorie nelle impostazioni di categorizzazione.",
           "requiresAdvanced": "Il filtro categoria richiede la categorizzazione avanzata abilitata nelle impostazioni principali."
+        },
+        "notices": {
+          "enableBases": "Si prega di abilitare prima il plugin Obsidian Bases."
         },
         "overrideBusinessHours": {
           "label": "Sovrascrivi orario lavorativo",
@@ -542,6 +630,15 @@
     }
   },
   "google": {
+    "auth": {
+      "expired": "Autenticazione Google scaduta. Riconnetti il tuo account.",
+      "authFailed": "Impossibile autenticare il calendario. Prova ad aggiungerlo di nuovo nelle impostazioni.",
+      "popupBlocked": "Popup bloccato. Consenti i popup per Obsidian.",
+      "customCredsMissing": "ID Client Google e Segreto personalizzati devono essere impostati nelle impostazioni del plugin.",
+      "stateMismatch": "Autenticazione Google fallita. State mismatch.",
+      "success": "Account Google connesso con successo!",
+      "failed": "Connessione all'account Google fallita. Controlla la console sviluppatori per i dettagli."
+    },
     "title": "Account Google",
     "noAccounts": "Nessun account Google collegato. Aggiungi una fonte calendario per collegare un account.",
     "accountDescription": "Account collegato. ID: {{id}}",
@@ -585,6 +682,9 @@
       "title": "Evento termina a breve",
       "body": "{{title}} termina alle {{time}}"
     },
-    "allDaySuffix": "(Tutto il giorno)"
+    "allDaySuffix": "(Tutto il giorno)",
+    "inMinutes": "(Tra {{mins}} minuti)",
+    "failed": "Full Calendar: Impossibile creare la notifica desktop.",
+    "errorBody": "Full Calendar: Impossibile mostrare la notifica desktop. Controlla la console per errori."
   }
 }

@@ -282,6 +282,11 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
   // Simplified: just use the title directly
   const eventData = { title: summary };
 
+  const description = input.component.getFirstProperty('description')?.getFirstValue();
+  const location = input.component.getFirstProperty('location')?.getFirstValue();
+  // Use extractEventUrl helper or input.component.getFirstProperty('url')
+  const url = extractEventUrl(input);
+
   const startDate = icalTimeToLuxon(input.startDate);
 
   // Validate start date - if invalid, skip this event
@@ -350,8 +355,10 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
         : {
             allDay: false,
             startTime: getLuxonTime(startDate)!,
-            endTime: getLuxonTime(validEndDate)!
-          })
+            endTime: getLuxonTime(endDate)!
+          }),
+      description,
+      url: url || (location && location.startsWith('http') ? location : undefined)
     };
   } else {
     const date = getLuxonDate(startDate);
@@ -387,8 +394,10 @@ function icsToOFC(input: ical.Event): OFCEvent | null {
         : {
             allDay: false,
             startTime: getLuxonTime(startDate)!,
-            endTime: getLuxonTime(validEndDate)!
-          })
+            endTime: getLuxonTime(endDate)!
+          }),
+      description,
+      url: url || (location && location.startsWith('http') ? location : undefined)
     };
   }
 }

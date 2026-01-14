@@ -19,6 +19,7 @@ import EventCache from '../../core/EventCache';
 import { StoredEvent } from '../../core/EventStore';
 import { toggleTask } from '../../types/tasks';
 import FullCalendarPlugin from '../../main';
+import { t } from '../../features/i18n/i18n';
 
 /**
  * Manages all complex business logic related to recurring events.
@@ -108,9 +109,10 @@ export class RecurringEventManager {
 
     const { calendarId, event: masterEvent } = masterEventDetails;
 
-    const masterLocalIdentifier = this.cache
-      .getGlobalIdentifier(masterEvent, calendarId)
-      ?.split('::')[2];
+    const globalId = this.cache.getGlobalIdentifier(masterEvent, calendarId);
+    if (!globalId) return [];
+    // Global ID is "CalendarID::Path". We want the filename from the path.
+    const masterLocalIdentifier = globalId.split('::').pop()?.split('/').pop();
     if (!masterLocalIdentifier) return [];
 
     return this.cache.store
@@ -128,7 +130,7 @@ export class RecurringEventManager {
       return;
     }
 
-    new Notice(`Promoting ${children.length} child event(s).`);
+    new Notice(t('notices.recurEvents.promotingChildren', { count: children.length }));
     for (const child of children) {
       await this.cache.processEvent(
         child.id,
@@ -143,12 +145,12 @@ export class RecurringEventManager {
     // Now delete the original master event
     await this.cache.deleteEvent(masterEventId, { force: true, silent: true });
     this.cache.flushUpdateQueue([], []);
-    new Notice('Recurring event deleted and children promoted.');
+    new Notice(t('notices.recurEvents.deletedAndPromoted'));
   }
 
   public async deleteAllRecurring(masterEventId: string): Promise<void> {
     const children = this.findRecurringChildren(masterEventId);
-    new Notice(`Deleting recurring event and its ${children.length} child override(s)...`);
+    new Notice(t('notices.recurEvents.deletingWithChildren', { count: children.length }));
 
     for (const child of children) {
       await this.cache.deleteEvent(child.id, { force: true, silent: true });
@@ -157,7 +159,7 @@ export class RecurringEventManager {
     // Finally, delete the master event itself
     await this.cache.deleteEvent(masterEventId, { force: true, silent: true });
     this.cache.flushUpdateQueue([], []);
-    new Notice('Successfully deleted recurring event and all children.');
+    new Notice(t('notices.recurEvents.deletedAll'));
   }
 
   /**
@@ -495,7 +497,7 @@ export class RecurringEventManager {
             this.hasModifiedTiming(clickedEventDetails.event, masterEvent, instanceDate)
           ) {
             // Timing has been modified, preserve the override but change completion status
-            new Notice('Preserving modified event timing and uncompleting task.');
+            new Notice(t('notices.recurEvents.preservingTiming'));
             await this.cache.updateEventWithId(
               eventId,
               toggleTask(clickedEventDetails.event, false)
@@ -506,7 +508,7 @@ export class RecurringEventManager {
       }
 
       // Original logic: delete the override to revert to main recurring sequence
-      new Notice('Reverting control to Main Recurring event sequence.');
+      new Notice(t('notices.recurEvents.revertingControl'));
       await this.cache.deleteEvent(eventId);
     }
   }
@@ -541,7 +543,7 @@ export class RecurringEventManager {
       return;
     }
 
-    new Notice(`Updating ${childrenToUpdate.length} child event(s) to match new parent title.`);
+    new Notice(t('notices.recurEvents.updatingChildren', { count: childrenToUpdate.length }));
 
     for (const childStoredEvent of childrenToUpdate) {
       const childDetails = this.cache.store.getEventDetails(childStoredEvent.id);
@@ -690,12 +692,113 @@ export class RecurringEventManager {
       });
     } catch (e) {
       console.error('Error during recurring parent rename operation:', e);
-      new Notice('Error updating recurring event. Some children may not have been updated.');
+      new Notice(t('notices.recurEvents.updateError'));
       // The finally block will still run to clean up.
     } finally {
       this.cache.isBulkUpdating = false;
       // Flush all queued updates for the parent and children together.
       this.cache.flushUpdateQueue([], []);
     }
+  }
+  /**
+   * Moves a recurring event (either a master or a specific instance) to a new calendar.
+   * - If moving a Master: Moves the master and all its children (overrides), updating links.
+   * - If moving a Child: Detaches it from the series and moves it as a standalone single event.
+   * @returns true if the event was handled by this manager, false if it's not a recurring event.
+   */
+  public async moveRecurringEvent(
+    eventId: string,
+    newCalendarId: string,
+    newEventData?: OFCEvent
+  ): Promise<boolean> {
+    const originalDetails = this.cache.store.getEventDetails(eventId);
+    if (!originalDetails) return false;
+    const { event: originalEvent } = originalDetails;
+
+    const eventToCreate = newEventData || originalEvent;
+
+    // === CASE 1: Moving a Child Instance (Override) ===
+    if (originalEvent.type === 'single' && originalEvent.recurringEventId) {
+      // 1. Create event in new calendar as a standalone event (remove recurring linkage)
+      const standaloneEvent = { ...eventToCreate };
+      delete standaloneEvent.recurringEventId;
+
+      await this.cache.addEvent(newCalendarId, standaloneEvent);
+
+      // 2. Detach from Old Master (add skip date)
+      await this.cache.deleteEvent(eventId);
+
+      return true;
+    }
+
+    // === CASE 2: Moving a Master Event ===
+    if (originalEvent.type === 'recurring' || originalEvent.type === 'rrule') {
+      const children = this.findRecurringChildren(eventId);
+
+      // 1. Create New Master in Destination
+      // We use addEvent which handles ID generation and storage.
+      const successful = await this.cache.addEvent(newCalendarId, eventToCreate);
+      if (!successful) throw new Error('Failed to create new master event in destination.');
+
+      // We need to find the NEW master event to get its linking ID (e.g. filename).
+      // Strategy: Since I can't easily get the return value from `cache.addEvent`,
+      // I will replicate its core steps here for the Master so I have the Location.
+      const [newMasterEvent, newMasterLocation] =
+        await this.plugin.providerRegistry.createEventInProvider(newCalendarId, eventToCreate);
+
+      // Add New Master to Cache
+      const newMasterId = this.cache.generateId();
+      const enhancedNewMaster = this.cache.enhancer.enhance(newMasterEvent);
+      this.cache.store.add({
+        calendarId: newCalendarId,
+        location: newMasterLocation,
+        id: newMasterId,
+        event: enhancedNewMaster
+      });
+      // Notify UI
+      this.cache.flushUpdateQueue(
+        [],
+        [
+          {
+            id: newMasterId,
+            event: enhancedNewMaster,
+            calendarId: newCalendarId
+          }
+        ]
+      );
+
+      // 2. Identify Link ID (Filename for Local)
+      // New Master Location has the path.
+      let newLinkId: string | undefined;
+      const config = this.plugin.providerRegistry.getSource(newCalendarId);
+      if (config && config.type === 'local' && newMasterLocation && newMasterLocation.file) {
+        // Local Calendar: Link ID is the filename
+        newLinkId = newMasterLocation.file.path.split('/').pop();
+      } else {
+        // Remote Calendar: Link ID might be UID or not supported for manual linking.
+        newLinkId = newMasterEvent.id;
+      }
+
+      if (children.length > 0 && newLinkId) {
+        new Notice(t('notices.recurEvents.movingChildren', { count: children.length }));
+
+        for (const child of children) {
+          const childEvent = child.event;
+          const newChildEvent = {
+            ...childEvent,
+            recurringEventId: newLinkId
+          };
+          // Add Child to New Calendar
+          await this.cache.addEvent(newCalendarId, newChildEvent);
+        }
+      }
+
+      // 3. Delete Old Series (Master + Children)
+      await this.deleteAllRecurring(eventId); // This deletes Master + Children from Old Calendar
+
+      return true;
+    }
+
+    return false;
   }
 }

@@ -22,6 +22,7 @@ import { toEventInput } from './core/interop';
 import { manageTimezone } from './features/Timezone';
 import { Notice, Plugin, TFile, App } from 'obsidian';
 import { initializeI18n, t } from './features/i18n/i18n';
+import './styles.css';
 
 // Heavy calendar classes are loaded lazily in the initializer map below
 import type { CalendarView } from './ui/view';
@@ -56,6 +57,9 @@ export default class FullCalendarPlugin extends Plugin {
 
   // To parse `data.json` file.`
   cache: EventCache = new EventCache(this);
+
+  // Keep a snapshot of the last saved settings to detect changes reliable
+  private _loadedSettings: string = '';
 
   processFrontmatter = toEventInput;
 
@@ -100,6 +104,7 @@ export default class FullCalendarPlugin extends Plugin {
     this.providerRegistry.registerBuiltInProviders();
 
     await this.loadSettings(); // This now handles setting and syncing
+
     await this.providerRegistry.initializeInstances();
 
     // Ensure Tasks Backlog view is available immediately if a Tasks calendar exists
@@ -317,6 +322,7 @@ export default class FullCalendarPlugin extends Plugin {
     const { settings: migratedSettings, needsSave } = migrateAndSanitizeSettings(loadedData);
 
     this.settings = migratedSettings;
+    this._loadedSettings = JSON.stringify(this.settings);
     this.cache.enhancer.updateSettings(this.settings);
 
     // Save back to disk if any migration or sanitization occurred.
@@ -324,6 +330,10 @@ export default class FullCalendarPlugin extends Plugin {
       new Notice(t('notices.settingsUpdated'));
       await this.saveData(this.settings);
     }
+
+    // Check if we need to show the changelog
+    const { checkAndShowWhatsNew } = await import('./ui/settings/changelogs/renderWhatsNew');
+    await checkAndShowWhatsNew(this);
   }
 
   /**
@@ -352,26 +362,36 @@ export default class FullCalendarPlugin extends Plugin {
     this.app.workspace.trigger('full-calendar:settings-updated', this.settings);
 
     // Compare old and new settings to determine which specific events to publish.
-    const newSourcesString = JSON.stringify(this.settings.calendarSources);
-    const oldSourcesString = JSON.stringify(oldSettings.calendarSources);
+    const newSettingsString = JSON.stringify(this.settings);
+
+    // Parse both to objects to compare specific fields without worrying about property order
+    const oldSettingsObj = this._loadedSettings ? JSON.parse(this._loadedSettings) : oldSettings;
+    const newSettingsObj = this.settings;
+
+    const newSourcesString = JSON.stringify(newSettingsObj.calendarSources);
+    const oldSourcesString = JSON.stringify(oldSettingsObj.calendarSources);
 
     if (newSourcesString !== oldSourcesString) {
       this.app.workspace.trigger('full-calendar:sources-changed');
     }
 
     const viewSettingsChanged =
-      oldSettings.firstDay !== this.settings.firstDay ||
-      oldSettings.timeFormat24h !== this.settings.timeFormat24h ||
-      JSON.stringify(oldSettings.initialView) !== JSON.stringify(this.settings.initialView) ||
-      oldSettings.activeWorkspace !== this.settings.activeWorkspace ||
-      JSON.stringify(oldSettings.businessHours) !== JSON.stringify(this.settings.businessHours) ||
-      oldSettings.enableAdvancedCategorization !== this.settings.enableAdvancedCategorization ||
-      JSON.stringify(oldSettings.categorySettings) !==
-        JSON.stringify(this.settings.categorySettings);
+      oldSettingsObj.firstDay !== newSettingsObj.firstDay ||
+      oldSettingsObj.timeFormat24h !== newSettingsObj.timeFormat24h ||
+      JSON.stringify(oldSettingsObj.initialView) !== JSON.stringify(newSettingsObj.initialView) ||
+      oldSettingsObj.activeWorkspace !== newSettingsObj.activeWorkspace ||
+      JSON.stringify(oldSettingsObj.businessHours) !==
+        JSON.stringify(newSettingsObj.businessHours) ||
+      oldSettingsObj.enableAdvancedCategorization !== newSettingsObj.enableAdvancedCategorization ||
+      JSON.stringify(oldSettingsObj.categorySettings) !==
+        JSON.stringify(newSettingsObj.categorySettings);
 
     if (viewSettingsChanged) {
       this.app.workspace.trigger('full-calendar:view-config-changed');
     }
+
+    // Update the snapshot
+    this._loadedSettings = newSettingsString;
 
     // This manual call is now redundant and will be removed.
     // if (this.notificationManager) {

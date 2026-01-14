@@ -46,6 +46,7 @@ import { OFCEvent, EventLocation } from '../types';
 import { CalendarProvider } from '../providers/Provider';
 import { EventEnhancer } from './EventEnhancer';
 import { TimeEngine, TimeState } from './TimeEngine';
+import { t } from '../features/i18n/i18n';
 
 export type CacheEntry = { event: OFCEvent; id: string; calendarId: string };
 
@@ -338,18 +339,18 @@ export default class EventCache {
     // Step 1: Get Provider, Config, and pre-flight checks
     const calendarInfo = this.plugin.providerRegistry.getSource(calendarId);
     if (!calendarInfo) {
-      new Notice(`Cannot add event: calendar with ID ${calendarId} not found.`);
+      new Notice(t('notices.eventCache.calendarNotFound', { calendarId }));
       return false;
     }
     // CORRECTED: Check capabilities through the registry, not by getting a provider instance.
     const capabilities = this.plugin.providerRegistry.getCapabilities(calendarId);
     if (!capabilities) {
-      new Notice(`Cannot add event: provider for type ${calendarInfo.type} not found.`);
+      new Notice(t('notices.eventCache.providerNotFound', { type: calendarInfo.type }));
       return false;
     }
 
     if (!capabilities.canCreate) {
-      new Notice(`Cannot add event to a read-only calendar.`);
+      new Notice(t('notices.eventCache.readOnly'));
       return false;
     }
 
@@ -435,7 +436,7 @@ export default class EventCache {
           this.flushUpdateQueue([optimisticId], []);
         }
 
-        new Notice('Failed to create event. Change has been reverted.');
+        new Notice(t('notices.eventCache.createFailed'));
         return false;
       }
     } finally {
@@ -548,7 +549,7 @@ export default class EventCache {
           this.flushUpdateQueue([], [cacheEntry]);
         }
 
-        new Notice('Failed to delete event. Change has been reverted.');
+        new Notice(t('notices.eventCache.deleteFailed'));
 
         // Propagate the error to the original caller.
         throw e;
@@ -721,7 +722,7 @@ export default class EventCache {
           this.flushUpdateQueue([eventId], [originalCacheEntry]);
         }
 
-        new Notice('Failed to update event. Change has been reverted.');
+        new Notice(t('notices.eventCache.updateFailed'));
         return false;
       }
     } finally {
@@ -785,19 +786,60 @@ export default class EventCache {
     this.flushUpdateQueue([], []);
   }
 
-  async moveEventToCalendar(eventId: string, newCalendarId: string): Promise<void> {
-    // TODO: This method needs to be re-implemented at the provider level.
-    // For now, it will be a no-op that logs a warning.
-    console.warn('Moving events between calendars is not fully supported in this version.');
-    const event = this._store.getEventById(eventId);
-    if (!event) {
+  async moveEventToCalendar(
+    eventId: string,
+    newCalendarId: string,
+    newEventData?: OFCEvent
+  ): Promise<void> {
+    const originalDetails = this._store.getEventDetails(eventId);
+    if (!originalDetails) {
       throw new Error(`Event with ID ${eventId} not found.`);
     }
 
-    // A simple re-implementation: delete from the old, add to the new.
-    // This is not atomic and may have side-effects, but it's a step forward.
-    await this.deleteEvent(eventId);
-    await this.addEvent(newCalendarId, event);
+    // 0. Try to delegate to RecurringEventManager
+    // We lazily load the manager if it's not present (though it should be initialized by now usually)
+    if (!this.recurringEventManager) {
+      const { RecurringEventManager } = await import(
+        '../features/recur_events/RecurringEventManager'
+      );
+      this.recurringEventManager = new RecurringEventManager(this, this._plugin);
+    }
+
+    // Check if it's a recurring event move
+    const isRecurringHandled = await this.recurringEventManager.moveRecurringEvent(
+      eventId,
+      newCalendarId,
+      newEventData
+    );
+    if (isRecurringHandled) {
+      return;
+    }
+
+    // 1. Add the event to the new calendar
+    // We pass the new event object if provided, otherwise the original one.
+    const eventToCreate = newEventData || originalDetails.event;
+
+    const success = await this.addEvent(newCalendarId, eventToCreate);
+
+    if (!success) {
+      throw new Error(`Failed to move event: Could not create event in destination calendar.`);
+    }
+
+    // 2. Delete from the old calendar
+    try {
+      // Logic check: if we are moving to the SAME calendar, we should probably just use updateEventWithId unless we really want to generate a new ID.
+      // But typically move is across calendars.
+      // If newCalendarId === originalDetails.calendarId, then this is just a fancy update that changes ID (unnecessary).
+      // But we will allow it if the caller insists.
+
+      await this.deleteEvent(eventId);
+    } catch (e) {
+      console.error('Failed to delete event from old calendar after moving it.', e);
+      new Notice(t('notices.eventCache.movePartialSuccess'));
+      // We do not rollback the creation because data safety is priority.
+      // Better to have a duplicate than to lose data.
+      throw e;
+    }
   }
 
   /**
