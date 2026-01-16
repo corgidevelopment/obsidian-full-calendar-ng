@@ -200,9 +200,9 @@ export function renderAppearanceSettings(
       dropdown.setValue(currentValue);
       dropdown.onChange(async value => {
         try {
-          plugin.settings.hiddenDays = JSON.parse(value);
+          plugin.settings.hiddenDays = JSON.parse(value) as number[];
           await plugin.saveSettings();
-        } catch (e) {
+        } catch {
           // Invalid JSON, keep current value
         }
       });

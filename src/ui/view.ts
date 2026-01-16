@@ -95,18 +95,23 @@ const VIEW_ZOOM_CONFIG: {
 };
 // END NEW CONFIGURATION
 
-function throttle<T extends (...args: any[]) => any>(func: T, limit: number): T {
-  let inThrottle: boolean;
-  let lastResult: ReturnType<T>;
+function throttle<TArgs extends unknown[], TReturn>(
+  func: (...args: TArgs) => TReturn,
+  limit: number
+): (...args: TArgs) => TReturn {
+  let inThrottle = false;
+  let lastResult: TReturn | undefined;
 
-  return function (this: ThisParameterType<T>, ...args: Parameters<T>): ReturnType<T> {
+  return function (this: ThisParameterType<typeof func>, ...args: TArgs): TReturn {
     if (!inThrottle) {
       inThrottle = true;
       setTimeout(() => (inThrottle = false), limit);
-      lastResult = func.apply(this, args);
+      const result = func.apply(this, args);
+      lastResult = result;
+      return result;
     }
-    return lastResult;
-  } as T;
+    return lastResult as TReturn;
+  };
 }
 
 export function getCalendarColors(color: string | null | undefined): {
@@ -228,7 +233,7 @@ export class CalendarView extends ItemView {
     await this.plugin.saveSettings();
     // Debounce re-render to avoid redundant reloads
     this.workspaceSwitchTimeout = setTimeout(() => {
-      this.onOpen(); // Re-render the calendar with new settings
+      void this.onOpen(); // Re-render the calendar with new settings
     }, 100);
   }
 
@@ -477,537 +482,557 @@ export class CalendarView extends ItemView {
    * event clicking, dragging, and creating new events). It also registers a
    * callback with the EventCache to listen for updates.
    */
-  async onOpen() {
-    const startTime = performance.now();
-    await this.plugin.loadSettings();
-    if (!this.plugin.cache) {
-      new Notice(t('ui.view.errors.cacheNotLoaded'));
-      return;
-    }
-    if (!this.plugin.cache.initialized) {
-      await this.plugin.cache.populate();
-    } else {
-      // console.log('Full Calendar: Cache already initialized.');
-    }
-
-    this.viewEnhancer = new ViewEnhancer(this.plugin.settings);
-
-    const container = this.containerEl.children[1];
-    container.empty();
-    let calendarEl = container.createEl('div');
-
-    this.registerDomEvent(
-      calendarEl,
-      'wheel',
-      (event: WheelEvent) => {
-        this.throttledZoom(event);
-      },
-      { passive: false }
-    );
-
-    if (
-      this.plugin.settings.calendarSources.filter((s: CalendarInfo) => s.type !== 'FOR_TEST_ONLY')
-        .length === 0
-    ) {
-      renderOnboarding(this.plugin, calendarEl);
-      return;
-    }
-
-    if (!this.viewEnhancer) {
-      // This should not happen if onOpen is called correctly.
-      new Notice(t('ui.view.errors.viewEnhancerNotInitialized'));
-      return;
-    }
-    const allSources = this.plugin.cache.getAllEvents();
-    const { sources, config: calendarConfig } = this.viewEnhancer.getEnhancedData(allSources);
-
-    if (this.fullCalendarView) {
-      this.fullCalendarView.destroy();
-      this.fullCalendarView = null;
-    }
-
-    // LAZY LOAD THE CALENDAR RENDERER HERE
-    const { renderCalendar } = await import('./settings/sections/calendars/calendar');
-    let currentViewType = '';
-    const handleViewChange = () => {
-      const newViewType = this.fullCalendarView?.view?.type || '';
-      const wasTimeline = currentViewType.includes('resourceTimeline');
-      const isTimeline = newViewType.includes('resourceTimeline');
-
-      if (wasTimeline !== isTimeline) {
-        if (isTimeline) {
-          if (!this.timelineResources) {
-            this.timelineResources = this.buildTimelineResources();
-            this.fullCalendarView?.setOption('resources', this.timelineResources);
-            this.fullCalendarView?.setOption('resourcesInitiallyExpanded', false);
-          }
-          this.addShadowEventsToView();
-        } else {
-          this.removeShadowEventsFromView();
-        }
+  onOpen(): Promise<void> {
+    return (async () => {
+      await this.plugin.loadSettings();
+      if (!this.plugin.cache) {
+        new Notice(t('ui.view.errors.cacheNotLoaded'));
+        return;
+      }
+      if (!this.plugin.cache.initialized) {
+        await this.plugin.cache.populate();
       }
 
-      // Apply the correct zoom level for the new view.
-      const configKey = this.findBestZoomConfigKey(newViewType);
-      if (configKey) {
-        const config = VIEW_ZOOM_CONFIG[configKey];
-        const zoomIndex = this.zoomIndexByView[configKey] ?? config.defaultIndex;
-        const zoomLevels = config.levels[zoomIndex];
+      this.viewEnhancer = new ViewEnhancer(this.plugin.settings);
 
-        // This ensures the view snaps to its stored/default zoom when changed.
-        this.fullCalendarView?.setOption('slotDuration', zoomLevels.slotDuration);
-        this.fullCalendarView?.setOption('slotLabelInterval', zoomLevels.slotLabelInterval);
-      }
+      const container = this.containerEl.children[1];
+      container.empty();
+      const calendarEl = container.createEl('div');
 
-      currentViewType = newViewType;
-    };
-
-    this.fullCalendarView = await renderCalendar(calendarEl, sources, {
-      // timeZone:
-      //   this.plugin.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      forceNarrow: this.inSidebar,
-      // resources added lazily when entering timeline view
-      enableAdvancedCategorization: this.plugin.settings.enableAdvancedCategorization,
-      onViewChange: handleViewChange,
-      initialView: calendarConfig.initialView, // Use workspace-aware initial view
-      businessHours: (() => {
-        // Use workspace business hours if set, otherwise use global settings
-        const businessHours = calendarConfig.businessHours || this.plugin.settings.businessHours;
-        return businessHours.enabled
-          ? {
-              daysOfWeek: businessHours.daysOfWeek,
-              startTime: businessHours.startTime,
-              endTime: businessHours.endTime
-            }
-          : false;
-      })(),
-      // Pass workspace-aware granular view settings
-      firstDay: calendarConfig.firstDay,
-      timeFormat24h: calendarConfig.timeFormat24h,
-      slotMinTime: calendarConfig.slotMinTime,
-      slotMaxTime: calendarConfig.slotMaxTime,
-      weekends: calendarConfig.weekends,
-      hiddenDays: calendarConfig.hiddenDays,
-      dayMaxEvents: calendarConfig.dayMaxEvents,
-      customButtons: {
-        workspace: {
-          text: this.getWorkspaceSwitcherText(),
-          click: (ev?: MouseEvent) => {
-            if (ev) this.showWorkspaceSwitcher(ev);
-          }
+      this.registerDomEvent(
+        calendarEl,
+        'wheel',
+        (event: WheelEvent) => {
+          this.throttledZoom(event);
         },
-        analysis: {
-          text: t('ui.view.buttons.analysis'),
-          click: async () => {
-            if (this.plugin.isMobile) {
-              new Notice(t('ui.view.errors.chronoAnalyserDesktopOnly'));
-              return;
-            }
-            try {
-              const { activateAnalysisView } = await import('../chrono_analyser/AnalysisView');
-              activateAnalysisView(this.plugin.app);
-            } catch (err) {
-              console.error('Full Calendar: Failed to activate Chrono Analyser view', err);
-              new Notice(t('ui.view.errors.chronoAnalyserFailed'));
-            }
-          }
-        }
-      },
-      eventClick: async info => {
-        try {
-          // Ctrl/Cmd + Click still opens the note directly.
-          if (info.jsEvent.getModifierState('Control') || info.jsEvent.getModifierState('Meta')) {
-            const { openFileForEvent } = await import('../utils/eventActions');
-            await openFileForEvent(this.plugin.cache, this.app, info.event.id);
-            return;
-          }
+        { passive: false }
+      );
 
-          if (!this.plugin.cache.isEventEditable(info.event.id)) {
-            const { launchEventDetailsModal } = await import('./modals/event_modal');
-            launchEventDetailsModal(this.plugin, info.event.id);
-            return;
-          }
-
-          // THE NEW DISPATCHING LOGIC
-          const eventDetails = this.plugin.cache.store.getEventDetails(info.event.id);
-          if (!eventDetails) return;
-
-          const { calendarId } = eventDetails;
-          const capabilities = this.plugin.providerRegistry.getCapabilities(calendarId);
-
-          // Check the new capability flag.
-          if (capabilities?.hasCustomEditUI) {
-            const provider = this.plugin.providerRegistry.getInstance(calendarId);
-            if (
-              provider &&
-              'editInProviderUI' in provider &&
-              typeof provider.editInProviderUI === 'function'
-            ) {
-              // Delegate to the provider's own UI.
-              await provider.editInProviderUI(info.event.id);
-            } else {
-              // This case indicates a developer error (capability is true but method is missing).
-              console.error(
-                `Provider for ${calendarId} claims hasCustomEditUI but method is not implemented.`
-              );
-              // Fallback to default modal as a safety measure.
-              const { launchEditModal } = await import('./modals/event_modal');
-              launchEditModal(this.plugin, info.event.id);
-            }
-          } else {
-            // Fallback to the default Full Calendar modal for all other providers.
-            const { launchEditModal } = await import('./modals/event_modal');
-            launchEditModal(this.plugin, info.event.id);
-          }
-        } catch (e) {
-          if (e instanceof Error) {
-            console.warn(e);
-            new Notice(e.message);
-          }
-        }
-      },
-      select: async (start, end, allDay, viewType) => {
-        if (viewType === 'dayGridMonth') {
-          // Month view will set the end day to the next day even on a single-day event.
-          // This is problematic when moving an event created in the month view to the
-          // time grid to give it a time.
-
-          // The fix is just to subtract 1 from the end date before processing.
-          end.setDate(end.getDate() - 1);
-        }
-        const partialEvent = dateEndpointsToFrontmatter(start, end, allDay);
-        try {
-          if (this.plugin.settings.clickToCreateEventFromMonthView || viewType !== 'dayGridMonth') {
-            const { launchCreateModal } = await import('./modals/event_modal');
-            launchCreateModal(this.plugin, partialEvent);
-          } else {
-            this.fullCalendarView?.changeView('timeGridDay');
-            this.fullCalendarView?.gotoDate(start);
-          }
-        } catch (e) {
-          if (e instanceof Error) {
-            console.error(e);
-            new Notice(e.message);
-          }
-        }
-      },
-      modifyEvent: async (newEvent, oldEvent, newResource) => {
-        try {
-          const originalEvent = this.plugin.cache.getEventById(oldEvent.id);
-          if (!originalEvent) {
-            throw new Error('Original event not found in cache.');
-          }
-
-          // ====================================================================
-          // NEW LOGIC: Prevent moving child overrides to a different day.
-          // ====================================================================
-          if (originalEvent.type === 'single' && originalEvent.recurringEventId) {
-            const oldDate = oldEvent.start ? DateTime.fromJSDate(oldEvent.start).toISODate() : null;
-            const newDate = newEvent.start ? DateTime.fromJSDate(newEvent.start).toISODate() : null;
-
-            if (oldDate && newDate && oldDate !== newDate) {
-              new Notice(t('ui.view.errors.moveRecurringDayError'), 6000);
-              return false; // Reverts the event to its original position.
-            }
-          }
-          // ====================================================================
-
-          // Check if the event being dragged is part of a recurring series.
-          // We must check the original event from the cache, because `oldEvent` from FullCalendar
-          // is just an instance and doesn't have our `type` property.
-          if (originalEvent.type === 'rrule' || originalEvent.type === 'recurring') {
-            // ====================================================================
-            // NEW LOGIC: Prevent moving the master instance to a different day.
-            // ====================================================================
-            const oldDate = oldEvent.start ? DateTime.fromJSDate(oldEvent.start).toISODate() : null;
-            const newDate = newEvent.start ? DateTime.fromJSDate(newEvent.start).toISODate() : null;
-
-            if (oldDate && newDate && oldDate !== newDate) {
-              new Notice(t('ui.view.errors.moveRecurringInstanceError'), 6000);
-              return false; // Revert the change.
-            }
-            // ====================================================================
-
-            if (!oldEvent.start) {
-              throw new Error('Recurring instance is missing original start date.');
-            }
-
-            // This is a recurring instance. We need to create an override.
-            const instanceDate = DateTime.fromJSDate(oldEvent.start).toISODate();
-            if (!instanceDate) {
-              throw new Error('Could not determine instance date from recurring event.');
-            }
-
-            const modifiedEvent = fromEventApi(newEvent, newResource);
-
-            await this.plugin.cache.modifyRecurringInstance(
-              oldEvent.id,
-              instanceDate,
-              modifiedEvent
-            );
-            // Return true because we have successfully handled the modification.
-            return true;
-          } else {
-            // This is a standard single event or an existing override.
-            // Let it update normally.
-            const didModify = await this.plugin.cache.updateEventWithId(
-              oldEvent.id,
-              fromEventApi(newEvent, newResource)
-            );
-            return !!didModify;
-          }
-        } catch (e: unknown) {
-          console.error(e);
-          if (e instanceof Error) {
-            new Notice(e.message);
-          } else {
-            new Notice(t('ui.view.errors.modifyEventFailed'));
-          }
-          return false;
-        }
-      },
-
-      eventMouseEnter: async info => {
-        try {
-          const location = this.plugin.cache.store.getEventDetails(info.event.id)?.location;
-          if (location) {
-            this.app.workspace.trigger('hover-link', {
-              event: info.jsEvent,
-              source: PLUGIN_SLUG,
-              hoverParent: calendarEl,
-              targetEl: info.jsEvent.target,
-              linktext: location.path,
-              sourcePath: location.path
-            });
-          }
-        } catch (e) {}
-      },
-      openContextMenuForEvent: async (e, mouseEvent) => {
-        const menu = new Menu();
-        if (!this.plugin.cache) {
-          return;
-        }
-        const event = this.plugin.cache.getEventById(e.id);
-        if (!event) {
-          return;
-        }
-
-        if (this.plugin.cache.isEventEditable(e.id)) {
-          const tasks = await import('../types/tasks');
-          if (!tasks.isTask(event)) {
-            menu.addItem(item =>
-              item.setTitle(t('ui.view.contextMenu.turnIntoTask')).onClick(async () => {
-                await this.plugin.cache.processEvent(e.id, e => tasks.toggleTask(e, false));
-              })
-            );
-          } else {
-            menu.addItem(item =>
-              item.setTitle(t('ui.view.contextMenu.removeCheckbox')).onClick(async () => {
-                await this.plugin.cache.processEvent(e.id, tasks.unmakeTask);
-              })
-            );
-          }
-          menu.addSeparator();
-          menu.addItem(item =>
-            item.setTitle(t('ui.view.contextMenu.goToNote')).onClick(() => {
-              if (!this.plugin.cache) {
-                return;
-              }
-              import('../utils/eventActions').then(({ openFileForEvent }) =>
-                openFileForEvent(this.plugin.cache, this.app, e.id)
-              );
-            })
-          );
-          menu.addItem(item =>
-            item.setTitle(t('ui.view.contextMenu.delete')).onClick(async () => {
-              if (!this.plugin.cache) {
-                return;
-              }
-              const event = this.plugin.cache.getEventById(e.id);
-              // If this is a recurring event, offer to delete only this instance
-              if (event && (event.type === 'recurring' || event.type === 'rrule') && e.start) {
-                const instanceDate =
-                  e.start instanceof Date ? e.start.toISOString().slice(0, 10) : undefined;
-                await this.plugin.cache.deleteEvent(e.id, { instanceDate });
-              } else {
-                await this.plugin.cache.deleteEvent(e.id);
-              }
-              new Notice(t('ui.view.success.deletedEvent', { title: e.title }));
-            })
-          );
-        } else {
-          menu.addItem(item => {
-            item.setTitle(t('ui.view.contextMenu.noActions')).setDisabled(true);
-          });
-        }
-
-        menu.showAtMouseEvent(mouseEvent);
-      },
-      toggleTask: async (eventApi, isDone) => {
-        const eventId = eventApi.id;
-        const eventDetails = this.plugin.cache.store.getEventDetails(eventId);
-        if (!eventDetails) return false;
-
-        const { event, calendarId } = eventDetails;
-        const provider = this.plugin.providerRegistry.getInstance(calendarId);
-
-        if (provider && provider.toggleComplete) {
-          // Provider has its own logic for toggling tasks.
-          return await provider.toggleComplete(eventId, isDone);
-        }
-
-        // Fallback to default logic for providers without a custom implementation.
-        const isRecurringSystem =
-          event.type === 'recurring' || event.type === 'rrule' || event.recurringEventId;
-
-        if (!isRecurringSystem) {
-          const { toggleTask } = await import('../types/tasks');
-          await this.plugin.cache.updateEventWithId(eventId, toggleTask(event, isDone));
-          return true;
-        }
-
-        if (!eventApi.start) return false;
-
-        const instanceDate = DateTime.fromJSDate(eventApi.start).toISODate();
-        if (!instanceDate) return false;
-
-        try {
-          await this.plugin.cache.toggleRecurringInstance(eventId, instanceDate, isDone);
-          return true;
-        } catch (e) {
-          if (e instanceof Error) {
-            new Notice(e.message);
-          }
-          return false;
-        }
-      },
-      dateRightClick: (date: Date, mouseEvent: MouseEvent) => {
-        // Set up date navigation after calendar is created if not already done
-        if (!this.dateNavigation && this.fullCalendarView) {
-          this.dateNavigation = createDateNavigation(this.fullCalendarView, calendarEl);
-        }
-        this.dateNavigation?.showDateContextMenu(mouseEvent, date);
-      },
-      viewRightClick: (mouseEvent: MouseEvent, calendar: any) => {
-        // Set up date navigation after calendar is created if not already done
-        if (!this.dateNavigation && this.fullCalendarView) {
-          this.dateNavigation = createDateNavigation(this.fullCalendarView, calendarEl);
-        }
-        this.dateNavigation?.showViewContextMenu(mouseEvent, calendar);
-      },
-      // Enable drag-and-drop from Tasks Backlog
-      drop: async (taskId: string, date: Date) => {
-        try {
-          if (!this.plugin.cache) {
-            throw new Error('Event cache not available');
-          }
-
-          // Guardrail: Validate before scheduling
-          const validation = await this.plugin.cache.validateTaskSchedule(taskId, date);
-          if (!validation.isValid) {
-            new Notice(validation.reason || 'This task cannot be scheduled on this date.');
-            return;
-          }
-
-          await this.plugin.cache.scheduleTask(taskId, date);
-          new Notice(t('ui.view.success.taskScheduled'));
-
-          // Refresh the backlog view to remove the newly scheduled task
-          const backlogLeaves = this.app.workspace.getLeavesOfType(TASKS_BACKLOG_VIEW_TYPE);
-          for (const leaf of backlogLeaves) {
-            if (leaf.view instanceof TasksBacklogView) {
-              leaf.view.refresh();
-            }
-          }
-
-          // Re-fetch events for the main calendar to show the new event
-          this.onOpen();
-
-          // COMMENTED OUT: Do not open edit dialog after drop from backlog
-          // if (window.tasksUI && typeof window.tasksUI.showEdit === 'function') {
-          //   window.tasksUI.showEdit(taskId);
-          // }
-        } catch (error) {
-          console.error('Failed to schedule task:', error);
-          const message = error instanceof Error ? error.message : 'Unknown error occurred';
-          new Notice(t('ui.view.errors.taskScheduleFailed', { message }));
-        }
-      }
-    });
-
-    // Initialize shadow events if starting in timeline view
-    currentViewType = this.fullCalendarView?.view?.type || '';
-    if (currentViewType.includes('resourceTimeline')) {
-      if (!this.timelineResources) {
-        this.timelineResources = this.buildTimelineResources();
-        this.fullCalendarView?.setOption('resources', this.timelineResources);
-        this.fullCalendarView?.setOption('resourcesInitiallyExpanded', false);
-      }
-      this.addShadowEventsToView();
-    }
-
-    window.fc = this.fullCalendarView ?? undefined;
-
-    // Initialize date navigation for the "Go To" button
-    if (this.fullCalendarView && !this.dateNavigation) {
-      this.dateNavigation = createDateNavigation(this.fullCalendarView, calendarEl);
-    }
-
-    this.registerDomEvent(this.containerEl, 'mouseenter', () => {
-      this.plugin.providerRegistry.revalidateRemoteCalendars();
-    });
-
-    if (this.callback) {
-      this.plugin.cache.off('update', this.callback);
-      this.callback = null;
-    }
-
-    // MODIFY THE CALLBACK:
-    this.callback = this.plugin.cache.on('update', info => {
-      if (!this.viewEnhancer || !this.fullCalendarView) {
+      if (
+        this.plugin.settings.calendarSources.filter((s: CalendarInfo) => s.type !== 'FOR_TEST_ONLY')
+          .length === 0
+      ) {
+        renderOnboarding(this.plugin, calendarEl);
         return;
       }
 
-      // handle resync event
-      if (info.type === 'resync') {
-        // DON'T call onOpen() - that resets everything!
-        // Instead, just refresh the event sources from the current cache state
+      if (!this.viewEnhancer) {
+        // This should not happen if onOpen is called correctly.
+        new Notice(t('ui.view.errors.viewEnhancerNotInitialized'));
+        return;
+      }
+      const allSources = this.plugin.cache.getAllEvents();
+      const { sources, config: calendarConfig } = this.viewEnhancer.getEnhancedData(allSources);
+
+      if (this.fullCalendarView) {
+        this.fullCalendarView.destroy();
+        this.fullCalendarView = null;
+      }
+
+      // LAZY LOAD THE CALENDAR RENDERER HERE
+      const { renderCalendar } = await import('./settings/sections/calendars/calendar');
+      let currentViewType = '';
+      const handleViewChange = () => {
+        const newViewType = this.fullCalendarView?.view?.type || '';
+        const wasTimeline = currentViewType.includes('resourceTimeline');
+        const isTimeline = newViewType.includes('resourceTimeline');
+
+        if (wasTimeline !== isTimeline) {
+          if (isTimeline) {
+            if (!this.timelineResources) {
+              this.timelineResources = this.buildTimelineResources();
+              this.fullCalendarView?.setOption('resources', this.timelineResources);
+              this.fullCalendarView?.setOption('resourcesInitiallyExpanded', false);
+            }
+            this.addShadowEventsToView();
+          } else {
+            this.removeShadowEventsFromView();
+          }
+        }
+
+        // Apply the correct zoom level for the new view.
+        const configKey = this.findBestZoomConfigKey(newViewType);
+        if (configKey) {
+          const config = VIEW_ZOOM_CONFIG[configKey];
+          const zoomIndex = this.zoomIndexByView[configKey] ?? config.defaultIndex;
+          const zoomLevels = config.levels[zoomIndex];
+
+          // This ensures the view snaps to its stored/default zoom when changed.
+          this.fullCalendarView?.setOption('slotDuration', zoomLevels.slotDuration);
+          this.fullCalendarView?.setOption('slotLabelInterval', zoomLevels.slotLabelInterval);
+        }
+
+        currentViewType = newViewType;
+      };
+
+      this.fullCalendarView = await renderCalendar(calendarEl, sources, {
+        // timeZone:
+        //   this.plugin.settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        forceNarrow: this.inSidebar,
+        // resources added lazily when entering timeline view
+        enableAdvancedCategorization: this.plugin.settings.enableAdvancedCategorization,
+        onViewChange: handleViewChange,
+        initialView: calendarConfig.initialView, // Use workspace-aware initial view
+        businessHours: (() => {
+          // Use workspace business hours if set, otherwise use global settings
+          const businessHours = calendarConfig.businessHours || this.plugin.settings.businessHours;
+          return businessHours.enabled
+            ? {
+                daysOfWeek: businessHours.daysOfWeek,
+                startTime: businessHours.startTime,
+                endTime: businessHours.endTime
+              }
+            : false;
+        })(),
+        // Pass workspace-aware granular view settings
+        firstDay: calendarConfig.firstDay,
+        timeFormat24h: calendarConfig.timeFormat24h,
+        slotMinTime: calendarConfig.slotMinTime,
+        slotMaxTime: calendarConfig.slotMaxTime,
+        weekends: calendarConfig.weekends,
+        hiddenDays: calendarConfig.hiddenDays,
+        dayMaxEvents: calendarConfig.dayMaxEvents,
+        customButtons: {
+          workspace: {
+            text: this.getWorkspaceSwitcherText(),
+            click: (ev?: MouseEvent) => {
+              if (ev) this.showWorkspaceSwitcher(ev);
+            }
+          },
+          analysis: {
+            text: t('ui.view.buttons.analysis'),
+            click: () => {
+              void (async () => {
+                if (this.plugin.isMobile) {
+                  new Notice(t('ui.view.errors.chronoAnalyserDesktopOnly'));
+                  return;
+                }
+                try {
+                  const { activateAnalysisView } = await import('../chrono_analyser/AnalysisView');
+                  await activateAnalysisView(this.plugin.app);
+                } catch (err) {
+                  console.error('Full Calendar: Failed to activate Chrono Analyser view', err);
+                  new Notice(t('ui.view.errors.chronoAnalyserFailed'));
+                }
+              })();
+            }
+          }
+        },
+        eventClick: info => {
+          void (async () => {
+            try {
+              // Ctrl/Cmd + Click still opens the note directly.
+              if (
+                info.jsEvent.getModifierState('Control') ||
+                info.jsEvent.getModifierState('Meta')
+              ) {
+                const { openFileForEvent } = await import('../utils/eventActions');
+                await openFileForEvent(this.plugin.cache, this.app, info.event.id);
+                return;
+              }
+
+              if (!this.plugin.cache.isEventEditable(info.event.id)) {
+                const { launchEventDetailsModal } = await import('./modals/event_modal');
+                launchEventDetailsModal(this.plugin, info.event.id);
+                return;
+              }
+
+              // THE NEW DISPATCHING LOGIC
+              const eventDetails = this.plugin.cache.store.getEventDetails(info.event.id);
+              if (!eventDetails) return;
+
+              const { calendarId } = eventDetails;
+              const capabilities = this.plugin.providerRegistry.getCapabilities(calendarId);
+
+              // Check the new capability flag.
+              if (capabilities?.hasCustomEditUI) {
+                const provider = this.plugin.providerRegistry.getInstance(calendarId);
+                if (
+                  provider &&
+                  'editInProviderUI' in provider &&
+                  typeof provider.editInProviderUI === 'function'
+                ) {
+                  await (
+                    provider as unknown as { editInProviderUI: (id: string) => Promise<void> }
+                  ).editInProviderUI(info.event.id);
+                } else {
+                  // This case indicates a developer error (capability is true but method is missing).
+                  console.error(
+                    `Provider for ${calendarId} claims hasCustomEditUI but method is not implemented.`
+                  );
+                  // Fallback to default modal as a safety measure.
+                  const { launchEditModal } = await import('./modals/event_modal');
+                  launchEditModal(this.plugin, info.event.id);
+                }
+              } else {
+                // Fallback to the default Full Calendar modal for all other providers.
+                const { launchEditModal } = await import('./modals/event_modal');
+                launchEditModal(this.plugin, info.event.id);
+              }
+            } catch (e) {
+              if (e instanceof Error) {
+                console.warn(e);
+                new Notice(e.message);
+              }
+            }
+          })();
+        },
+        select: async (start, end, allDay, viewType) => {
+          if (viewType === 'dayGridMonth') {
+            // Month view will set the end day to the next day even on a single-day event.
+            // This is problematic when moving an event created in the month view to the
+            // time grid to give it a time.
+
+            // The fix is just to subtract 1 from the end date before processing.
+            end.setDate(end.getDate() - 1);
+          }
+          const partialEvent = dateEndpointsToFrontmatter(start, end, allDay);
+          try {
+            if (
+              this.plugin.settings.clickToCreateEventFromMonthView ||
+              viewType !== 'dayGridMonth'
+            ) {
+              const { launchCreateModal } = await import('./modals/event_modal');
+              launchCreateModal(this.plugin, partialEvent);
+            } else {
+              this.fullCalendarView?.changeView('timeGridDay');
+              this.fullCalendarView?.gotoDate(start);
+            }
+          } catch (e) {
+            if (e instanceof Error) {
+              console.error(e);
+              new Notice(e.message);
+            }
+          }
+        },
+        modifyEvent: async (newEvent, oldEvent, newResource) => {
+          try {
+            const originalEvent = this.plugin.cache.getEventById(oldEvent.id);
+            if (!originalEvent) {
+              throw new Error('Original event not found in cache.');
+            }
+
+            // ====================================================================
+            // NEW LOGIC: Prevent moving child overrides to a different day.
+            // ====================================================================
+            if (originalEvent.type === 'single' && originalEvent.recurringEventId) {
+              const oldDate = oldEvent.start
+                ? DateTime.fromJSDate(oldEvent.start).toISODate()
+                : null;
+              const newDate = newEvent.start
+                ? DateTime.fromJSDate(newEvent.start).toISODate()
+                : null;
+
+              if (oldDate && newDate && oldDate !== newDate) {
+                new Notice(t('ui.view.errors.moveRecurringDayError'), 6000);
+                return false; // Reverts the event to its original position.
+              }
+            }
+            // ====================================================================
+
+            // Check if the event being dragged is part of a recurring series.
+            // We must check the original event from the cache, because `oldEvent` from FullCalendar
+            // is just an instance and doesn't have our `type` property.
+            if (originalEvent.type === 'rrule' || originalEvent.type === 'recurring') {
+              // ====================================================================
+              // NEW LOGIC: Prevent moving the master instance to a different day.
+              // ====================================================================
+              const oldDate = oldEvent.start
+                ? DateTime.fromJSDate(oldEvent.start).toISODate()
+                : null;
+              const newDate = newEvent.start
+                ? DateTime.fromJSDate(newEvent.start).toISODate()
+                : null;
+
+              if (oldDate && newDate && oldDate !== newDate) {
+                new Notice(t('ui.view.errors.moveRecurringInstanceError'), 6000);
+                return false; // Revert the change.
+              }
+              // ====================================================================
+
+              if (!oldEvent.start) {
+                throw new Error('Recurring instance is missing original start date.');
+              }
+
+              // This is a recurring instance. We need to create an override.
+              const instanceDate = DateTime.fromJSDate(oldEvent.start).toISODate();
+              if (!instanceDate) {
+                throw new Error('Could not determine instance date from recurring event.');
+              }
+
+              const modifiedEvent = fromEventApi(newEvent, newResource);
+
+              await this.plugin.cache.modifyRecurringInstance(
+                oldEvent.id,
+                instanceDate,
+                modifiedEvent
+              );
+              // Return true because we have successfully handled the modification.
+              return true;
+            } else {
+              // This is a standard single event or an existing override.
+              // Let it update normally.
+              const didModify = await this.plugin.cache.updateEventWithId(
+                oldEvent.id,
+                fromEventApi(newEvent, newResource)
+              );
+              return !!didModify;
+            }
+          } catch (e: unknown) {
+            console.error(e);
+            if (e instanceof Error) {
+              new Notice(e.message);
+            } else {
+              new Notice(t('ui.view.errors.modifyEventFailed'));
+            }
+            return false;
+          }
+        },
+
+        eventMouseEnter: info => {
+          try {
+            const location = this.plugin.cache.store.getEventDetails(info.event.id)?.location;
+            if (location) {
+              this.app.workspace.trigger('hover-link', {
+                event: info.jsEvent,
+                source: PLUGIN_SLUG,
+                hoverParent: calendarEl,
+                targetEl: info.jsEvent.target,
+                linktext: location.path,
+                sourcePath: location.path
+              });
+            }
+          } catch {
+            // Swallow hover-link errors to avoid interrupting hover flow.
+          }
+        },
+        openContextMenuForEvent: async (e, mouseEvent) => {
+          const menu = new Menu();
+          if (!this.plugin.cache) {
+            return;
+          }
+          const event = this.plugin.cache.getEventById(e.id);
+          if (!event) {
+            return;
+          }
+
+          if (this.plugin.cache.isEventEditable(e.id)) {
+            const tasks = await import('../types/tasks');
+            if (!tasks.isTask(event)) {
+              menu.addItem(item =>
+                item.setTitle(t('ui.view.contextMenu.turnIntoTask')).onClick(async () => {
+                  await this.plugin.cache.processEvent(e.id, e => tasks.toggleTask(e, false));
+                })
+              );
+            } else {
+              menu.addItem(item =>
+                item.setTitle(t('ui.view.contextMenu.removeCheckbox')).onClick(async () => {
+                  await this.plugin.cache.processEvent(e.id, tasks.unmakeTask);
+                })
+              );
+            }
+            menu.addSeparator();
+            menu.addItem(item =>
+              item.setTitle(t('ui.view.contextMenu.goToNote')).onClick(() => {
+                if (!this.plugin.cache) {
+                  return;
+                }
+                void import('../utils/eventActions').then(({ openFileForEvent }) =>
+                  openFileForEvent(this.plugin.cache, this.app, e.id)
+                );
+              })
+            );
+            menu.addItem(item =>
+              item.setTitle(t('ui.view.contextMenu.delete')).onClick(async () => {
+                if (!this.plugin.cache) {
+                  return;
+                }
+                const event = this.plugin.cache.getEventById(e.id);
+                // If this is a recurring event, offer to delete only this instance
+                if (event && (event.type === 'recurring' || event.type === 'rrule') && e.start) {
+                  const instanceDate =
+                    e.start instanceof Date ? e.start.toISOString().slice(0, 10) : undefined;
+                  await this.plugin.cache.deleteEvent(e.id, { instanceDate });
+                } else {
+                  await this.plugin.cache.deleteEvent(e.id);
+                }
+                new Notice(t('ui.view.success.deletedEvent', { title: e.title }));
+              })
+            );
+          } else {
+            menu.addItem(item => {
+              item.setTitle(t('ui.view.contextMenu.noActions')).setDisabled(true);
+            });
+          }
+
+          menu.showAtMouseEvent(mouseEvent);
+        },
+        toggleTask: async (eventApi, isDone) => {
+          const eventId = eventApi.id;
+          const eventDetails = this.plugin.cache.store.getEventDetails(eventId);
+          if (!eventDetails) return false;
+
+          const { event, calendarId } = eventDetails;
+          const provider = this.plugin.providerRegistry.getInstance(calendarId);
+
+          if (provider && provider.toggleComplete) {
+            // Provider has its own logic for toggling tasks.
+            return await provider.toggleComplete(eventId, isDone);
+          }
+
+          // Fallback to default logic for providers without a custom implementation.
+          const isRecurringSystem =
+            event.type === 'recurring' || event.type === 'rrule' || event.recurringEventId;
+
+          if (!isRecurringSystem) {
+            const { toggleTask } = await import('../types/tasks');
+            await this.plugin.cache.updateEventWithId(eventId, toggleTask(event, isDone));
+            return true;
+          }
+
+          if (!eventApi.start) return false;
+
+          const instanceDate = DateTime.fromJSDate(eventApi.start).toISODate();
+          if (!instanceDate) return false;
+
+          try {
+            await this.plugin.cache.toggleRecurringInstance(eventId, instanceDate, isDone);
+            return true;
+          } catch (e) {
+            if (e instanceof Error) {
+              new Notice(e.message);
+            }
+            return false;
+          }
+        },
+        dateRightClick: (date: Date, mouseEvent: MouseEvent) => {
+          // Set up date navigation after calendar is created if not already done
+          if (!this.dateNavigation && this.fullCalendarView) {
+            this.dateNavigation = createDateNavigation(this.fullCalendarView, calendarEl);
+          }
+          this.dateNavigation?.showDateContextMenu(mouseEvent, date);
+        },
+        viewRightClick: (mouseEvent: MouseEvent, calendar: Calendar) => {
+          // Set up date navigation after calendar is created if not already done
+          if (!this.dateNavigation && this.fullCalendarView) {
+            this.dateNavigation = createDateNavigation(this.fullCalendarView, calendarEl);
+          }
+          this.dateNavigation?.showViewContextMenu(mouseEvent, calendar);
+        },
+        // Enable drag-and-drop from Tasks Backlog
+        drop: async (taskId: string, date: Date) => {
+          try {
+            if (!this.plugin.cache) {
+              throw new Error('Event cache not available');
+            }
+
+            // Guardrail: Validate before scheduling
+            const validation = await this.plugin.cache.validateTaskSchedule(taskId, date);
+            if (!validation.isValid) {
+              new Notice(validation.reason || 'This task cannot be scheduled on this date.');
+              return;
+            }
+
+            await this.plugin.cache.scheduleTask(taskId, date);
+            new Notice(t('ui.view.success.taskScheduled'));
+
+            // Refresh the backlog view to remove the newly scheduled task
+            const backlogLeaves = this.app.workspace.getLeavesOfType(TASKS_BACKLOG_VIEW_TYPE);
+            for (const leaf of backlogLeaves) {
+              if (leaf.view instanceof TasksBacklogView) {
+                void leaf.view.refresh();
+              }
+            }
+
+            // Re-fetch events for the main calendar to show the new event
+            void this.onOpen();
+
+            // COMMENTED OUT: Do not open edit dialog after drop from backlog
+            // if (window.tasksUI && typeof window.tasksUI.showEdit === 'function') {
+            //   window.tasksUI.showEdit(taskId);
+            // }
+          } catch (error) {
+            console.error('Failed to schedule task:', error);
+            const message = error instanceof Error ? error.message : 'Unknown error occurred';
+            new Notice(t('ui.view.errors.taskScheduleFailed', { message }));
+          }
+        }
+      });
+
+      // Initialize shadow events if starting in timeline view
+      currentViewType = this.fullCalendarView?.view?.type || '';
+      if (currentViewType.includes('resourceTimeline')) {
+        if (!this.timelineResources) {
+          this.timelineResources = this.buildTimelineResources();
+          this.fullCalendarView?.setOption('resources', this.timelineResources);
+          this.fullCalendarView?.setOption('resourcesInitiallyExpanded', false);
+        }
+        this.addShadowEventsToView();
+      }
+
+      window.fc = this.fullCalendarView ?? undefined;
+
+      // Initialize date navigation for the "Go To" button
+      if (this.fullCalendarView && !this.dateNavigation) {
+        this.dateNavigation = createDateNavigation(this.fullCalendarView, calendarEl);
+      }
+
+      this.registerDomEvent(this.containerEl, 'mouseenter', () => {
+        this.plugin.providerRegistry.revalidateRemoteCalendars();
+      });
+
+      if (this.callback) {
+        this.plugin.cache.off('update', this.callback);
+        this.callback = null;
+      }
+
+      // MODIFY THE CALLBACK:
+      this.callback = this.plugin.cache.on('update', info => {
+        if (!this.viewEnhancer || !this.fullCalendarView) {
+          return;
+        }
+
+        // handle resync event
+        if (info.type === 'resync') {
+          // DON'T call onOpen() - that resets everything!
+          // Instead, just refresh the event sources from the current cache state
+          this.viewEnhancer.updateSettings(this.plugin.settings);
+          const allCachedSources = this.plugin.cache.getAllEvents();
+          const { sources } = this.viewEnhancer.getEnhancedData(allCachedSources);
+
+          requestAnimationFrame(() => {
+            if (this.fullCalendarView) {
+              this.fullCalendarView.removeAllEventSources();
+              sources.forEach(source => this.fullCalendarView!.addEventSource(source));
+            }
+          });
+          return;
+        }
+
+        // 1. Update manager with latest settings in case they changed.
         this.viewEnhancer.updateSettings(this.plugin.settings);
+        // 2. Get fresh, fully-filtered sources from the manager.
         const allCachedSources = this.plugin.cache.getAllEvents();
         const { sources } = this.viewEnhancer.getEnhancedData(allCachedSources);
 
-        requestAnimationFrame(() => {
-          if (this.fullCalendarView) {
-            this.fullCalendarView.removeAllEventSources();
-            sources.forEach(source => this.fullCalendarView!.addEventSource(source));
-          }
-        });
-        return;
-      }
+        // 3. Resync the entire calendar view.
+        if (this.fullCalendarView) {
+          requestAnimationFrame(() => {
+            // Add a final guard right before using the object to prevent race conditions.
+            if (this.fullCalendarView) {
+              this.fullCalendarView.removeAllEventSources();
+              sources.forEach(source => this.fullCalendarView!.addEventSource(source));
+            }
+          });
+        }
 
-      // 1. Update manager with latest settings in case they changed.
-      this.viewEnhancer.updateSettings(this.plugin.settings);
-      // 2. Get fresh, fully-filtered sources from the manager.
-      const allCachedSources = this.plugin.cache.getAllEvents();
-      const { sources } = this.viewEnhancer.getEnhancedData(allCachedSources);
-
-      // 3. Resync the entire calendar view.
-      if (this.fullCalendarView) {
-        requestAnimationFrame(() => {
-          // Add a final guard right before using the object to prevent race conditions.
-          if (this.fullCalendarView) {
-            this.fullCalendarView.removeAllEventSources();
-            sources.forEach(source => this.fullCalendarView!.addEventSource(source));
-          }
-        });
-      }
-
-      // 4. Re-apply shadow events if needed.
-      const viewType = this.fullCalendarView.view?.type;
-      if (viewType && viewType.includes('resourceTimeline')) {
-        this.addShadowEventsToView();
-      }
-    });
+        // 4. Re-apply shadow events if needed.
+        const viewType = this.fullCalendarView.view?.type;
+        if (viewType && viewType.includes('resourceTimeline')) {
+          this.addShadowEventsToView();
+        }
+      });
+    })();
   }
 
   onResize(): void {
@@ -1018,7 +1043,7 @@ export class CalendarView extends ItemView {
     }
   }
 
-  async onunload() {
+  onunload(): void {
     if (this.fullCalendarView) {
       this.fullCalendarView.destroy();
       this.fullCalendarView = null;

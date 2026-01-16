@@ -4,6 +4,7 @@ import { CalendarInfo, EventLocation, OFCEvent } from '../types';
 import { CalendarProvider } from '../providers/Provider';
 import { DEFAULT_SETTINGS } from '../types/settings';
 import EventCache, { CacheEntry, OFCEventSource, CachedEvent } from './EventCache';
+import type FullCalendarPlugin from '../main';
 
 jest.mock(
   'obsidian',
@@ -19,6 +20,8 @@ jest.mock(
   { virtual: true }
 );
 
+import { TFile } from 'obsidian';
+
 // Mock TimeEngine to prevent real timer/window usage in tests
 jest.mock('./TimeEngine', () => ({
   TimeEngine: jest.fn().mockImplementation(() => ({
@@ -29,7 +32,7 @@ jest.mock('./TimeEngine', () => ({
 }));
 
 jest.mock('../types/schema', () => ({
-  validateEvent: (e: any) => e
+  validateEvent: (e: unknown) => e
 }));
 
 jest.mock('../features/i18n/i18n', () => ({
@@ -49,16 +52,28 @@ const withCounter = <T>(f: (x: string) => T, label?: string) => {
   return () => f(c());
 };
 
-const mockEvent = withCounter((title): OFCEvent => ({ title }) as OFCEvent, 'event');
+const mockEvent = withCounter(
+  (title): OFCEvent =>
+    ({
+      title,
+      uid: title,
+      type: 'single',
+      allDay: true,
+      date: '2022-01-01',
+      endDate: null,
+      skipDates: []
+    }) as unknown as OFCEvent,
+  'event'
+);
 
 // Replace the entire TestReadonlyCalendar class with this function:
 const makeCache = (events: OFCEvent[]) => {
-  const mockProvider: CalendarProvider<any> = {
+  const mockProvider: CalendarProvider<unknown> = {
     type: 'FOR_TEST_ONLY',
     displayName: 'Test Provider',
     isRemote: false,
     loadPriority: 50,
-    getEvents: async () => events.map(e => [e, null] as [OFCEvent, null]),
+    getEvents: () => Promise.resolve(events.map(e => [e, null] as [OFCEvent, null])),
     getCapabilities: () => ({ canCreate: false, canEdit: false, canDelete: false }),
     getEventHandle: (e: OFCEvent) => ({ persistentId: e.title }),
     createEvent: jest.fn(),
@@ -81,22 +96,27 @@ const makeCache = (events: OFCEvent[]) => {
     settings: { ...DEFAULT_SETTINGS, calendarSources: [calendarInfo] },
     providerRegistry: {
       getProvider: () => mockProvider,
-      fetchAllEvents: async () =>
-        events.map(e => ({
-          calendarId: 'test',
-          event: e,
-          location: null
-        })),
-      fetchLocalEvents: async () =>
-        events.map(e => ({
-          calendarId: 'test',
-          event: e,
-          location: null
-        })),
-      fetchRemoteEventsWithPriority: async () => {
+      fetchAllEvents: () =>
+        Promise.resolve(
+          events.map(e => ({
+            calendarId: 'test',
+            event: e,
+            location: null
+          }))
+        ),
+      fetchLocalEvents: () =>
+        Promise.resolve(
+          events.map(e => ({
+            calendarId: 'test',
+            event: e,
+            location: null
+          }))
+        ),
+      fetchRemoteEventsWithPriority: () => {
         // No-op for tests since our mock provider is not remote
+        return Promise.resolve();
       },
-      fetchAllByPriority: async (
+      fetchAllByPriority: (
         onProviderComplete?: (
           calendarId: string,
           events: { event: OFCEvent; location: EventLocation | null }[]
@@ -109,7 +129,7 @@ const makeCache = (events: OFCEvent[]) => {
           calendarId: 'test'
         }));
         // No callback for local providers - they're handled directly
-        return localEvents;
+        return Promise.resolve(localEvents);
       },
       getAllSources: () => [calendarInfo],
       getInstance: () => mockProvider,
@@ -120,7 +140,7 @@ const makeCache = (events: OFCEvent[]) => {
       getSource: () => calendarInfo,
       getCapabilities: () => ({ canCreate: false, canEdit: false, canDelete: false })
     }
-  } as any;
+  } as unknown as FullCalendarPlugin;
 
   const cache = new EventCache(mockPlugin);
   cache.reset();
@@ -129,7 +149,7 @@ const makeCache = (events: OFCEvent[]) => {
 
 const extractEvents = (source: OFCEventSource): OFCEvent[] =>
   source.events.map(({ event }: CachedEvent) => event);
-async function assertFailed(func: () => Promise<any>, message: RegExp) {
+async function assertFailed(func: () => Promise<unknown>, message: RegExp) {
   try {
     await func();
   } catch (e) {
@@ -160,12 +180,12 @@ describe('event cache with readonly calendar', () => {
     const events1 = [mockEvent()];
     const events2 = [mockEvent(), mockEvent()];
 
-    const mockProvider: CalendarProvider<any> = {
+    const mockProvider: CalendarProvider<unknown> = {
       type: 'FOR_TEST_ONLY',
       displayName: 'Test Provider',
       isRemote: false,
       loadPriority: 50,
-      getEvents: async () => events1.map(e => [e, null]),
+      getEvents: () => Promise.resolve(events1.map(e => [e, null])),
       getCapabilities: () => ({ canCreate: false, canEdit: false, canDelete: false }),
       getEventHandle: (e: OFCEvent) => ({ persistentId: e.title }),
       createEvent: jest.fn(),
@@ -196,18 +216,21 @@ describe('event cache with readonly calendar', () => {
       providerRegistry: {
         getProvider: () => mockProvider,
         getAllSources: () => calendarSources,
-        fetchAllEvents: async () => [
-          ...events1.map(e => ({ calendarId: 'cal1', event: e, location: null })),
-          ...events2.map(e => ({ calendarId: 'cal2', event: e, location: null }))
-        ],
-        fetchLocalEvents: async () => [
-          ...events1.map(e => ({ calendarId: 'cal1', event: e, location: null })),
-          ...events2.map(e => ({ calendarId: 'cal2', event: e, location: null }))
-        ],
-        fetchRemoteEventsWithPriority: async () => {
+        fetchAllEvents: () =>
+          Promise.resolve([
+            ...events1.map(e => ({ calendarId: 'cal1', event: e, location: null })),
+            ...events2.map(e => ({ calendarId: 'cal2', event: e, location: null }))
+          ]),
+        fetchLocalEvents: () =>
+          Promise.resolve([
+            ...events1.map(e => ({ calendarId: 'cal1', event: e, location: null })),
+            ...events2.map(e => ({ calendarId: 'cal2', event: e, location: null }))
+          ]),
+        fetchRemoteEventsWithPriority: () => {
           // No-op for tests since our mock providers are not remote
+          return Promise.resolve();
         },
-        fetchAllByPriority: async (
+        fetchAllByPriority: (
           onProviderComplete?: (
             calendarId: string,
             events: { event: OFCEvent; location: EventLocation | null }[]
@@ -227,7 +250,7 @@ describe('event cache with readonly calendar', () => {
             }))
           ];
           // No callback for local providers - they're handled directly
-          return localResults;
+          return Promise.resolve(localResults);
         },
         getSource: (id: string) => calendarSources.find(source => source.id === id),
         getInstance: () => mockProvider,
@@ -236,7 +259,7 @@ describe('event cache with readonly calendar', () => {
         addMapping: jest.fn(),
         removeMapping: jest.fn()
       }
-    } as any;
+    } as unknown as FullCalendarPlugin;
     const cache = new EventCache(mockPlugin);
     cache.reset();
 
@@ -255,7 +278,7 @@ describe('event cache with readonly calendar', () => {
   it.each([
     [
       'addEvent',
-      async (cache: EventCache, id: string) => {
+      async (cache: EventCache, _id: string) => {
         const result = await cache.addEvent('test', mockEvent());
         expect(result).toBe(false);
       },
@@ -306,13 +329,13 @@ type EditableEventResponse = [OFCEvent, EventLocation | null];
 
 // Replace the entire TestEditable class with this function:
 const makeEditableCache = (events: EditableEventResponse[]) => {
-  const calendar: jest.Mocked<CalendarProvider<any>> = {
+  const calendar: jest.Mocked<CalendarProvider<unknown>> = {
     type: 'FOR_TEST_ONLY',
     displayName: 'Editable Test Provider',
     isRemote: false,
     loadPriority: 50,
-    getEvents: jest.fn(async () => events),
-    getEventsInFile: jest.fn(async () => []),
+    getEvents: jest.fn(() => Promise.resolve(events)),
+    getEventsInFile: jest.fn(() => Promise.resolve([])),
     getCapabilities: jest.fn(() => ({
       canCreate: true,
       canEdit: true,
@@ -338,22 +361,27 @@ const makeEditableCache = (events: EditableEventResponse[]) => {
     settings: { ...DEFAULT_SETTINGS, calendarSources: [calendarInfo] },
     providerRegistry: {
       getProvider: () => calendar,
-      fetchAllEvents: async () =>
-        events.map(([event, location]) => ({
-          calendarId: 'test',
-          event,
-          location
-        })),
-      fetchLocalEvents: async () =>
-        events.map(([event, location]) => ({
-          calendarId: 'test',
-          event,
-          location
-        })),
-      fetchRemoteEventsWithPriority: async () => {
+      fetchAllEvents: () =>
+        Promise.resolve(
+          events.map(([event, location]) => ({
+            calendarId: 'test',
+            event,
+            location
+          }))
+        ),
+      fetchLocalEvents: () =>
+        Promise.resolve(
+          events.map(([event, location]) => ({
+            calendarId: 'test',
+            event,
+            location
+          }))
+        ),
+      fetchRemoteEventsWithPriority: () => {
         // No-op for tests since our mock providers are not remote
+        return Promise.resolve();
       },
-      fetchAllByPriority: async (
+      fetchAllByPriority: (
         onProviderComplete?: (
           calendarId: string,
           events: { event: OFCEvent; location: EventLocation | null }[]
@@ -366,7 +394,7 @@ const makeEditableCache = (events: EditableEventResponse[]) => {
           calendarId: 'test'
         }));
         // No callback for local providers - they're handled directly
-        return localResults;
+        return Promise.resolve(localResults);
       },
       getAllSources: () => [calendarInfo],
       getInstance: () => calendar,
@@ -374,26 +402,32 @@ const makeEditableCache = (events: EditableEventResponse[]) => {
       buildMap: jest.fn(),
       addMapping: jest.fn(),
       removeMapping: jest.fn(),
-      createEventInProvider: jest.fn(async (id, event) => calendar.createEvent(event)),
+      createEventInProvider: jest.fn((id: string, event: OFCEvent) => calendar.createEvent(event)),
       // UPDATED MOCK: delegate to provider's updateEvent
-      updateEventInProvider: jest.fn(async (sessionId, calendarId, oldEventData, newEventData) =>
-        calendar.updateEvent(calendar.getEventHandle(oldEventData)!, oldEventData, newEventData)
+      updateEventInProvider: jest.fn(
+        (sessionId: string, calendarId: string, oldEventData: OFCEvent, newEventData: OFCEvent) =>
+          calendar.updateEvent(calendar.getEventHandle(oldEventData)!, oldEventData, newEventData)
       ),
-      deleteEventInProvider: jest.fn(),
+      deleteEventInProvider: jest.fn((id: string) => Promise.resolve()),
       getSource: () => calendarInfo,
       getCapabilities: () => ({ canCreate: true, canEdit: true, canDelete: true }),
-      getGlobalIdentifier: jest.fn(
-        (event, calendarId) => `${calendarId}::/path/to/${event.title}.md`
-      ) // Mock implementation for finding children
+      getGlobalIdentifier: (event: OFCEvent, calendarId: string) => {
+        // Look up the event in the store to get its location path
+        const storedEvents = events.filter(([e]) => e.title === event.title);
+        if (storedEvents.length > 0 && storedEvents[0][1]?.file?.path) {
+          return `${calendarId}::${storedEvents[0][1].file.path}`;
+        }
+        return `${calendarId}::/path/to/${event.title}.md`;
+      }
     }
-  } as any;
+  } as unknown as FullCalendarPlugin;
   const cache = new EventCache(mockPlugin);
 
   // Ensure createEvent returns [event, location] as expected by addEvent, and adds the UID.
-  calendar.createEvent.mockImplementation(async (event: OFCEvent) => {
+  calendar.createEvent.mockImplementation((event: OFCEvent) => {
     const location = mockLocation();
     const finalEvent = { ...event, uid: location.file.path }; // Add the UID
-    return [finalEvent, location];
+    return Promise.resolve([finalEvent, location]);
   });
 
   cache.reset();
@@ -401,7 +435,7 @@ const makeEditableCache = (events: EditableEventResponse[]) => {
 };
 
 // Minimal file-like object; only path is used by store logic.
-const mockFile = withCounter(path => ({ path }) as any, 'file');
+const mockFile = withCounter(path => Object.assign(new TFile(), { path }), 'file');
 const mockLocation = (withLine = false): EventLocation => ({
   file: mockFile(),
   lineNumber: withLine ? Math.floor(Math.random() * 100) : undefined
@@ -421,7 +455,7 @@ const assertCacheContentCounts = (
 describe('editable calendars', () => {
   it('populates a single event', async () => {
     const e1 = mockEventResponse();
-    const [cache, calendar] = makeEditableCache([e1]);
+    const [cache] = makeEditableCache([e1]);
 
     await cache.populate();
 
@@ -443,8 +477,9 @@ describe('editable calendars', () => {
       const loc = mockLocation();
       calendar.createEvent.mockResolvedValue([event, loc]);
       expect(await cache.addEvent('test', event)).toBeTruthy();
-      expect(calendar.createEvent).toHaveBeenCalledTimes(1);
-      expect(calendar.createEvent).toHaveBeenCalledWith(expect.objectContaining(event));
+      const safeCalendar = calendar as unknown as { createEvent: jest.Mock };
+      expect(safeCalendar.createEvent).toHaveBeenCalledTimes(1);
+      expect(safeCalendar.createEvent).toHaveBeenCalledWith(expect.objectContaining(event));
 
       assertCacheContentCounts(cache, {
         calendars: 1,
@@ -463,8 +498,10 @@ describe('editable calendars', () => {
       const loc = { file: event[1]!.file, lineNumber: 102 };
       calendar.createEvent.mockResolvedValue([event2, loc]);
       expect(await cache.addEvent('test', event2)).toBeTruthy();
-      expect(calendar.createEvent).toHaveBeenCalledTimes(1);
-      expect(calendar.createEvent).toHaveBeenCalledWith(expect.objectContaining(event2));
+      const safeCalendar = calendar as unknown as { createEvent: jest.Mock };
+      const mockCreateEvent = safeCalendar.createEvent;
+      expect(mockCreateEvent).toHaveBeenCalledTimes(1);
+      expect(mockCreateEvent).toHaveBeenCalledWith(expect.objectContaining(event2));
 
       assertCacheContentCounts(cache, {
         calendars: 1,
@@ -484,8 +521,10 @@ describe('editable calendars', () => {
 
       calendar.createEvent.mockResolvedValue([event2, loc]);
       expect(await cache.addEvent('test', event2)).toBeTruthy();
-      expect(calendar.createEvent).toHaveBeenCalledTimes(1);
-      expect(calendar.createEvent).toHaveBeenCalledWith(expect.objectContaining(event2));
+      const safeCalendar = calendar as unknown as { createEvent: jest.Mock };
+      const mockCreateEvent = safeCalendar.createEvent;
+      expect(mockCreateEvent).toHaveBeenCalledTimes(1);
+      expect(mockCreateEvent).toHaveBeenCalledWith(expect.objectContaining(event2));
 
       assertCacheContentCounts(cache, {
         calendars: 1,
@@ -511,7 +550,8 @@ describe('editable calendars', () => {
       expect(await cache.addEvent('test', mockEvent())).toBeTruthy();
       expect(await cache.addEvent('test', mockEvent())).toBeTruthy();
 
-      expect(calendar.createEvent).toHaveBeenCalledTimes(3);
+      const safeCalendar = calendar as unknown as { createEvent: jest.Mock };
+      expect(safeCalendar.createEvent).toHaveBeenCalledTimes(3);
 
       assertCacheContentCounts(cache, {
         calendars: 1,
@@ -524,7 +564,7 @@ describe('editable calendars', () => {
   describe('delete events', () => {
     it('delete one', async () => {
       const event = mockEventResponse();
-      const [cache, calendar, mockPlugin] = makeEditableCache([event]);
+      const [cache, , mockPlugin] = makeEditableCache([event]);
 
       await cache.populate();
 
@@ -541,12 +581,12 @@ describe('editable calendars', () => {
       await cache.deleteEvent(id);
 
       // Updated assertion to registry mock
-      expect(mockPlugin.providerRegistry.deleteEventInProvider).toHaveBeenCalledTimes(1);
-      expect(mockPlugin.providerRegistry.deleteEventInProvider).toHaveBeenCalledWith(
-        id,
-        event[0],
-        'test'
-      );
+      const safeRegistry = mockPlugin.providerRegistry as unknown as {
+        deleteEventInProvider: jest.Mock;
+      };
+      const mockDelete = safeRegistry.deleteEventInProvider;
+      expect(mockDelete).toHaveBeenCalledTimes(1);
+      expect(mockDelete).toHaveBeenCalledWith(id, event[0], 'test');
 
       assertCacheContentCounts(cache, {
         calendars: 1, // Calendar source still exists
@@ -568,7 +608,8 @@ describe('editable calendars', () => {
 
       await assertFailed(() => cache.deleteEvent('unknown ID'), /not found for deletion/);
 
-      expect(calendar.deleteEvent).not.toHaveBeenCalled();
+      const safeCalendar = calendar as unknown as { deleteEvent: jest.Mock };
+      expect(safeCalendar.deleteEvent).not.toHaveBeenCalled();
 
       assertCacheContentCounts(cache, {
         calendars: 1,
@@ -612,10 +653,11 @@ describe('editable calendars', () => {
 
       await cache.updateEventWithId(id, newEvent);
 
-      // Updated assertion to registry mock
-      const { updateEventInProvider } = mockPlugin.providerRegistry;
-      expect(updateEventInProvider).toHaveBeenCalledTimes(1);
-      expect(updateEventInProvider).toHaveBeenCalledWith(
+      const safeRegistry = mockPlugin.providerRegistry as unknown as {
+        updateEventInProvider: jest.Mock;
+      };
+      expect(safeRegistry.updateEventInProvider).toHaveBeenCalledTimes(1);
+      expect(safeRegistry.updateEventInProvider).toHaveBeenCalledWith(
         id,
         'test',
         expect.objectContaining(oldEvent[0]), // Corrected line
@@ -656,7 +698,8 @@ describe('editable calendars', () => {
       expect(sources.length).toBe(1);
       const id = sources[0].events[0].id;
 
-      expect(calendar.updateEvent).not.toHaveBeenCalled();
+      const safeCalendar = calendar as unknown as { updateEvent: jest.Mock };
+      expect(safeCalendar.updateEvent).not.toHaveBeenCalled();
       expect(cache.store.getEventById(id)).toEqual(event[0]);
 
       assertCacheContentCounts(cache, {
@@ -668,11 +711,18 @@ describe('editable calendars', () => {
   });
 
   describe('filesystem update callback', () => {
-    const callbackMock = jest.fn();
+    const callbackMock = jest.fn<
+      void,
+      [
+        | { type: 'events'; toRemove: string[]; toAdd: CacheEntry[] }
+        | { type: 'calendar'; calendar: OFCEventSource }
+        | { type: 'resync' }
+      ]
+    >();
     const oldEvent = mockEventResponse();
     const newEvent = mockEventResponse();
     let cache: EventCache;
-    let calendar: jest.Mocked<CalendarProvider<any>>;
+    let calendar: jest.Mocked<CalendarProvider<unknown>>;
 
     beforeEach(async () => {
       [cache, calendar] = makeEditableCache([oldEvent]);
@@ -721,7 +771,8 @@ describe('editable calendars', () => {
         location,
         calendarId: 'test'
       }));
-      await cache.syncFile(file as any, newEventsForSync);
+      if (!(file instanceof TFile)) throw new Error('Expected TFile');
+      await cache.syncFile(file, newEventsForSync);
 
       assertCacheContentCounts(cache, {
         calendars: 1,
@@ -732,10 +783,10 @@ describe('editable calendars', () => {
       if (callback) {
         expect(callbackMock).toHaveBeenCalled();
         const { toRemoveLength, eventsToAddLength } = callback;
-        const callbackInvocation: {
+        const callbackInvocation = callbackMock.mock.calls[0][0] as {
           toRemove: string[];
           toAdd: CacheEntry[];
-        } = callbackMock.mock.calls[0][0];
+        };
 
         expect(callbackInvocation.toAdd).toBeDefined();
         expect(callbackInvocation.toRemove).toBeDefined();
@@ -753,20 +804,17 @@ describe('editable calendars', () => {
   });
 
   describe('Non-blocking remote calendar loading', () => {
-    let mockPlugin: any;
-    let callbackMock: jest.Mock;
+    let mockPlugin: FullCalendarPlugin;
     let cache: EventCache;
 
-    beforeEach(() => {
-      callbackMock = jest.fn();
-    });
+    beforeEach(() => {});
 
     it('should load local providers immediately and remote providers asynchronously', async () => {
       // Create mock local and remote providers
       const localEvent = mockEvent();
       const remoteEvent = mockEvent();
 
-      const localProvider: CalendarProvider<any> = {
+      const localProvider: CalendarProvider<unknown> = {
         type: 'local',
         displayName: 'Local Provider',
         isRemote: false,
@@ -782,7 +830,7 @@ describe('editable calendars', () => {
         getSettingsRowComponent: jest.fn()
       };
 
-      const remoteProvider: CalendarProvider<any> = {
+      const remoteProvider: CalendarProvider<unknown> = {
         type: 'ical',
         displayName: 'Remote ICS Provider',
         isRemote: true,
@@ -844,7 +892,7 @@ describe('editable calendars', () => {
             // 3. Simulate Remote Provider (this was missing causing the test failure)
             // We need to execute the remote provider promise and call callback
             // Note: In real code this happens in background. Here we just trigger it.
-            remoteProvider.getEvents().then(remoteEvents => {
+            void remoteProvider.getEvents().then(remoteEvents => {
               onProviderComplete(
                 'remote1',
                 remoteEvents.map(([e, l]) => ({ event: e, location: l }))
@@ -861,10 +909,10 @@ describe('editable calendars', () => {
           buildMap: jest.fn(),
           addMapping: jest.fn(),
           removeMapping: jest.fn()
-        } as any
-      };
+        }
+      } as unknown as FullCalendarPlugin;
 
-      cache = new EventCache(mockPlugin as any);
+      cache = new EventCache(mockPlugin);
       cache.reset();
       // Spy on syncCalendar to verify when it's called
       cache.syncCalendar = syncCalendarSpy;
@@ -908,14 +956,14 @@ describe('editable calendars', () => {
 
       const loadOrder: string[] = [];
 
-      const createRemoteProvider = (type: string, event: OFCEvent): CalendarProvider<any> => ({
+      const createRemoteProvider = (type: string, event: OFCEvent): CalendarProvider<unknown> => ({
         type,
         displayName: `${type} Provider`,
         isRemote: true,
         loadPriority: type === 'ical' ? 100 : type === 'caldav' ? 110 : 120,
-        getEvents: jest.fn().mockImplementation(async () => {
+        getEvents: jest.fn().mockImplementation(() => {
           loadOrder.push(type);
-          return [[event, null]];
+          return Promise.resolve([[event, null]]);
         }),
         getCapabilities: () => ({ canCreate: false, canEdit: false, canDelete: false }),
         getEventHandle: (e: OFCEvent) => ({ persistentId: e.title }),
@@ -944,90 +992,108 @@ describe('editable calendars', () => {
             return null;
           },
           fetchLocalEvents: jest.fn().mockResolvedValue([]),
-          fetchRemoteEventsWithPriority: jest.fn().mockImplementation(async onProviderComplete => {
-            // Use the real implementation to test priority ordering
-            const instances = new Map([
-              ['google1', createRemoteProvider('google', googleEvent)],
-              ['ics1', createRemoteProvider('ical', icsEvent)],
-              ['caldav1', createRemoteProvider('caldav', caldavEvent)]
-            ]);
+          fetchRemoteEventsWithPriority: jest
+            .fn()
+            .mockImplementation(
+              async (
+                onProviderComplete: (
+                  calId: string,
+                  events: { event: OFCEvent; location: EventLocation | null }[]
+                ) => void
+              ) => {
+                // Use the real implementation to test priority ordering
+                const instances = new Map([
+                  ['google1', createRemoteProvider('google', googleEvent)],
+                  ['ics1', createRemoteProvider('ical', icsEvent)],
+                  ['caldav1', createRemoteProvider('caldav', caldavEvent)]
+                ]);
 
-            const remoteProviders = Array.from(instances.entries()).filter(
-              ([_, instance]) => instance.loadPriority >= 100
-            );
+                const remoteProviders = Array.from(instances.entries()).filter(
+                  ([_, instance]) => instance.loadPriority >= 100
+                );
 
-            const priorityOrder = ['ical', 'caldav', 'google'];
-            const prioritizedProviders = remoteProviders.sort(([, a], [, b]) => {
-              const aPriority = priorityOrder.indexOf(a.type);
-              const bPriority = priorityOrder.indexOf(b.type);
-              return (aPriority === -1 ? 999 : aPriority) - (bPriority === -1 ? 999 : bPriority);
-            });
+                const priorityOrder = ['ical', 'caldav', 'google'];
+                const prioritizedProviders = remoteProviders.sort(([, a], [, b]) => {
+                  const aPriority = priorityOrder.indexOf(a.type);
+                  const bPriority = priorityOrder.indexOf(b.type);
+                  return (
+                    (aPriority === -1 ? 999 : aPriority) - (bPriority === -1 ? 999 : bPriority)
+                  );
+                });
 
-            for (const [settingsId, instance] of prioritizedProviders) {
-              try {
-                const rawEvents = await instance.getEvents();
-                const events = rawEvents.map(([rawEvent, location]) => ({
-                  event: rawEvent,
-                  location
-                }));
+                for (const [settingsId, instance] of prioritizedProviders) {
+                  try {
+                    const rawEvents = await instance.getEvents();
+                    const events = rawEvents.map(([rawEvent, location]) => ({
+                      event: rawEvent,
+                      location
+                    }));
 
-                if (onProviderComplete) {
-                  onProviderComplete(settingsId, events);
+                    onProviderComplete(settingsId, events);
+                  } catch {
+                    // Continue with next provider
+                  }
                 }
-              } catch (e) {
-                // Continue with next provider
               }
-            }
-          }),
-          fetchAllByPriority: jest.fn().mockImplementation(async onProviderComplete => {
-            // Return empty for local (these are all remote providers in this test)
-            const localResults: {
-              event: OFCEvent;
-              location: EventLocation | null;
-              calendarId: string;
-            }[] = [];
+            ),
+          fetchAllByPriority: jest
+            .fn()
+            .mockImplementation(
+              async (
+                onProviderComplete?: (
+                  calId: string,
+                  events: { event: OFCEvent; location: EventLocation | null }[]
+                ) => void
+              ) => {
+                // Return empty for local (these are all remote providers in this test)
+                const localResults: {
+                  event: OFCEvent;
+                  location: EventLocation | null;
+                  calendarId: string;
+                }[] = [];
 
-            // Simulate unified priority-based loading using the new loadPriority values
-            const instances = new Map([
-              ['google1', createRemoteProvider('google', googleEvent)],
-              ['ics1', createRemoteProvider('ical', icsEvent)],
-              ['caldav1', createRemoteProvider('caldav', caldavEvent)]
-            ]);
+                // Simulate unified priority-based loading using the new loadPriority values
+                const instances = new Map([
+                  ['google1', createRemoteProvider('google', googleEvent)],
+                  ['ics1', createRemoteProvider('ical', icsEvent)],
+                  ['caldav1', createRemoteProvider('caldav', caldavEvent)]
+                ]);
 
-            // Sort by loadPriority (lower = higher priority)
-            const prioritizedProviders = Array.from(instances.entries()).sort(
-              ([, a], [, b]) => a.loadPriority - b.loadPriority
-            );
+                // Sort by loadPriority (lower = higher priority)
+                const prioritizedProviders = Array.from(instances.entries()).sort(
+                  ([, a], [, b]) => a.loadPriority - b.loadPriority
+                );
 
-            for (const [settingsId, instance] of prioritizedProviders) {
-              try {
-                const rawEvents = await instance.getEvents();
-                const events = rawEvents.map(([rawEvent, location]) => ({
-                  event: rawEvent,
-                  location
-                }));
+                for (const [settingsId, instance] of prioritizedProviders) {
+                  try {
+                    const rawEvents = await instance.getEvents();
+                    const events = rawEvents.map(([rawEvent, location]) => ({
+                      event: rawEvent,
+                      location
+                    }));
 
-                if (onProviderComplete) {
-                  onProviderComplete(settingsId, events);
+                    if (onProviderComplete) {
+                      onProviderComplete(settingsId, events);
+                    }
+                  } catch {
+                    // Continue with next provider
+                  }
                 }
-              } catch (e) {
-                // Continue with next provider
-              }
-            }
 
-            return localResults;
-          }),
+                return localResults;
+              }
+            ),
           generateId: withCounter(x => x, 'test-id'),
           buildMap: jest.fn(),
           addMapping: jest.fn(),
           removeMapping: jest.fn(),
           getSource: (id: string) => calendarSources.find(s => s.id === id)
         }
-      } as any;
+      } as unknown as FullCalendarPlugin;
 
       cache = new EventCache(mockPlugin);
       cache.reset();
-      const syncCalendarSpy = jest.spyOn(cache, 'syncCalendar').mockImplementation(() => {});
+      jest.spyOn(cache, 'syncCalendar').mockImplementation(() => {});
 
       // Act: Call populate and wait for completion
       await cache.populate();
@@ -1046,10 +1112,7 @@ describe('editable calendars', () => {
         await cache.populate();
 
         // Add a second calendar to move to
-        const calendar2: jest.Mocked<CalendarProvider<any>> = {
-          ...calendar,
-          type: 'FOR_TEST_ONLY_2'
-        };
+        // Note: calendar2 not directly used, but cal2Info is passed through providerRegistry
         const cal2Info: CalendarInfo = {
           type: 'FOR_TEST_ONLY',
           id: 'cal2',
@@ -1059,8 +1122,8 @@ describe('editable calendars', () => {
 
         // We need to patch the registry on the EXISTING mockPlugin
         const { providerRegistry } = mockPlugin;
-        const originalGetSource = providerRegistry.getSource;
-        const originalGetCapabilities = providerRegistry.getCapabilities;
+        const originalGetSource = providerRegistry.getSource.bind(providerRegistry);
+        const originalGetCapabilities = providerRegistry.getCapabilities.bind(providerRegistry);
 
         providerRegistry.getSource = (id: string) => {
           if (id === 'cal2') return cal2Info;
@@ -1073,7 +1136,7 @@ describe('editable calendars', () => {
         };
 
         // Mock createEventInProvider for destination and ensure it returns formatted event
-        providerRegistry.createEventInProvider.mockImplementation(
+        (providerRegistry.createEventInProvider as jest.Mock).mockImplementation(
           async (calId: string, evt: OFCEvent) => {
             if (calId === 'cal2') {
               return [evt, mockLocation()];
@@ -1109,12 +1172,16 @@ describe('editable calendars', () => {
         await cache.moveEventToCalendar(eventId, 'cal2');
 
         // Verify delete was called on old calendar
-        expect(providerRegistry.deleteEventInProvider).toHaveBeenCalledTimes(1);
+        const safeRegistry = providerRegistry as unknown as {
+          deleteEventInProvider: jest.Mock;
+          createEventInProvider: jest.Mock;
+        };
+        expect(safeRegistry.deleteEventInProvider).toHaveBeenCalledTimes(1);
         // The id passed to deleteEventInProvider is the session ID.
 
         // Verify create was called on new calendar
         // We expect createEventInProvider to be called with 'cal2' and the event data
-        expect(providerRegistry.createEventInProvider).toHaveBeenCalledWith(
+        expect(safeRegistry.createEventInProvider).toHaveBeenCalledWith(
           'cal2',
           expect.objectContaining({
             title: eventData.title
@@ -1138,7 +1205,7 @@ describe('editable calendars', () => {
         masterTuple[1]!.file.path = 'folder/Master.md';
 
         const masterEvent = { ...masterTuple[0], type: 'recurring', title: 'Master' } as OFCEvent;
-        const masterSource: any = [masterEvent, masterTuple[1]];
+        const masterSource: EditableEventResponse = [masterEvent, masterTuple[1]];
 
         const childTuple = mockEventResponse();
         const childEvent = {
@@ -1147,34 +1214,53 @@ describe('editable calendars', () => {
           title: 'Master',
           recurringEventId: 'Master.md' // Matches master filename
         } as OFCEvent;
-        const childSource: any = [childEvent, childTuple[1]];
+        const childSource: EditableEventResponse = [childEvent, childTuple[1]];
 
         const [cache, calendar, mockPlugin] = makeEditableCache([masterSource, childSource]);
         await cache.populate();
 
         // Setup Destination Calendar
-        const calendar2: jest.Mocked<CalendarProvider<any>> = {
+        const calendar2: jest.Mocked<CalendarProvider<unknown>> = {
           ...calendar,
           type: 'FOR_TEST_ONLY_2'
         };
         // We need to support `createEventInProvider` returning a location with file path for linking
         const mockLocationWithFile = (filename: string) => ({
-          file: { path: `folder/${filename}` } as any,
+          file: Object.assign(new TFile(), { path: `folder/${filename}` }),
           lineNumber: 1
         });
 
-        // Patch registry
-        const { providerRegistry } = mockPlugin;
+        type MutableProviderRegistry = {
+          getProvider: (id: string) => CalendarProvider<unknown> | undefined;
+          getInstance: (id: string) => CalendarProvider<unknown> | undefined;
+          getSource: (id: string) => CalendarInfo | undefined;
+          createEventInProvider: jest.Mock;
+          deleteEventInProvider: jest.Mock;
+          updateEventInProvider: jest.Mock;
+          getAllSources: () => CalendarInfo[];
+          getCapabilities: (id: string) => {
+            canCreate: boolean;
+            canEdit: boolean;
+            canDelete: boolean;
+          };
+        };
+
+        const providerRegistry = mockPlugin.providerRegistry as unknown as MutableProviderRegistry;
         const originalGetSource = providerRegistry.getSource;
         providerRegistry.getProvider = (id: string) => (id === 'cal2' ? calendar2 : calendar);
         providerRegistry.getInstance = (id: string) => (id === 'cal2' ? calendar2 : calendar);
         // FIX: preserve original getSource behavior for 'test'
         providerRegistry.getSource = (id: string) =>
           id === 'cal2'
-            ? { id: 'cal2', type: 'local', config: { directory: 'folder' } }
+            ? ({
+                id: 'cal2',
+                type: 'local',
+                config: { directory: 'folder' },
+                color: 'green'
+              } as unknown as CalendarInfo)
             : originalGetSource(id);
 
-        // Mock Create for Master to return specific location
+        // Mock createEventInProvider for destination
         providerRegistry.createEventInProvider.mockImplementation(
           async (calId: string, evt: OFCEvent) => {
             if (evt.type === 'recurring') {
@@ -1223,7 +1309,7 @@ describe('editable calendars', () => {
       it('moves a child instance as a detached single event', async () => {
         const masterTuple = mockEventResponse();
         const masterEvent = { ...masterTuple[0], type: 'recurring', title: 'Master' } as OFCEvent;
-        const masterSource: any = [masterEvent, masterTuple[1]];
+        const masterSource: EditableEventResponse = [masterEvent, masterTuple[1]];
 
         const childTuple = mockEventResponse();
         const childEvent = {
@@ -1232,9 +1318,9 @@ describe('editable calendars', () => {
           title: 'Master',
           recurringEventId: 'Master'
         } as OFCEvent;
-        const childSource: any = [childEvent, childTuple[1]];
+        const childSource: EditableEventResponse = [childEvent, childTuple[1]];
 
-        const [cache, calendar, mockPlugin] = makeEditableCache([masterSource, childSource]);
+        const [cache, , mockPlugin] = makeEditableCache([masterSource, childSource]);
         await cache.populate();
 
         const { providerRegistry } = mockPlugin;
@@ -1252,7 +1338,8 @@ describe('editable calendars', () => {
         // 1. Created as Single in New Cal (recurringEventId removed)
         // 1. Created as Single in New Cal (recurringEventId removed)
         // We expect recurringEventId to be missing. expect.objectContaining({ recurringEventId: undefined }) fails if key is missing.
-        expect(providerRegistry.createEventInProvider).toHaveBeenCalledWith(
+        const safeRegistry = providerRegistry as unknown as { createEventInProvider: jest.Mock };
+        expect(safeRegistry.createEventInProvider).toHaveBeenCalledWith(
           'cal2',
           expect.objectContaining({
             title: 'Master',
@@ -1260,7 +1347,9 @@ describe('editable calendars', () => {
           })
         );
         // Verify recurringEventId is NOT present in the call arguments
-        const createCallArgs = (providerRegistry.createEventInProvider as jest.Mock).mock.calls[0];
+        const createCallArgs = (
+          providerRegistry.createEventInProvider as jest.Mock<unknown, unknown[]>
+        ).mock.calls[0];
         expect(createCallArgs[1]).not.toHaveProperty('recurringEventId');
 
         // 2. Old Child Deleted

@@ -9,19 +9,19 @@ export function renderFooter(containerEl: HTMLElement): void {
   const linksContainer = footerEl.createDiv({ cls: 'settings-footer-links' });
 
   linksContainer.createEl('a', {
-    text: '☕ Buy me a coffee',
+    text: 'Buy me a coffee',
     attr: { href: 'https://ko-fi.com/youfoundjk' },
     cls: 'settings-footer-link'
   });
   linksContainer.createEl('a', {
-    text: '💡 Suggest new feature',
+    text: 'Suggest a new feature',
     attr: {
       href: 'https://github.com/YouFoundJK/plugin-full-calendar/discussions/'
     },
     cls: 'settings-footer-link'
   });
   linksContainer.createEl('a', {
-    text: '🐛 Raise an issue',
+    text: 'Raise an issue',
     attr: {
       href: 'https://github.com/YouFoundJK/plugin-full-calendar/issues/new?template=bug_report.yaml'
     },

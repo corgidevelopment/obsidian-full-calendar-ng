@@ -87,16 +87,19 @@ class AutocompleteComponent {
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
-    const suggestions = Array.from(this.suggestionsEl.children) as HTMLElement[];
+    const suggestions = Array.from(this.suggestionsEl.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement
+    );
     if (suggestions.length === 0 && e.key !== 'Enter' && e.key !== 'Escape') return;
 
     switch (e.key) {
-      case 'Enter':
+      case 'Enter': {
         e.preventDefault();
-        const valueToSubmit =
-          this.activeSuggestionIndex > -1 && suggestions[this.activeSuggestionIndex]
-            ? suggestions[this.activeSuggestionIndex].textContent!
-            : this.inputEl.value;
+        const selectedText =
+          this.activeSuggestionIndex > -1
+            ? suggestions[this.activeSuggestionIndex]?.textContent
+            : null;
+        const valueToSubmit = selectedText ?? this.inputEl.value;
 
         this.isSelectionInProgress = true;
         this.onSelectCallback(valueToSubmit);
@@ -105,6 +108,7 @@ class AutocompleteComponent {
         this.inputEl.blur();
         this.isSelectionInProgress = false;
         break;
+      }
       case 'Escape':
         this.suggestionsEl.removeClass('is-visible');
         this.suggestionsEl.addClass('is-hidden');
@@ -264,7 +268,7 @@ export class InsightConfigModal extends Modal {
     }
 
     // Now we can safely assign the migrated config
-    this.config = migratedConfig as InsightsConfig;
+    this.config = migratedConfig;
     // --- END MIGRATION LOGIC ---
   }
 
@@ -346,7 +350,7 @@ export class InsightConfigModal extends Modal {
 
   // --- REPLACE THE ENTIRE renderGroupSetting METHOD ---
   private renderGroupSetting(container: HTMLElement, groupName: string, groupData: InsightGroup) {
-    let currentGroupName = groupName;
+    const currentGroupName = groupName;
     const { rules, persona } = groupData;
     const isExpanded = this.expandedGroupName === currentGroupName;
 

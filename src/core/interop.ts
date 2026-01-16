@@ -58,21 +58,9 @@ const parseTime = (time: string): Duration | null => {
   return Duration.fromISOTime(isoTime);
 };
 
-const normalizeTimeString = (time: string): string | null => {
-  const parsed = parseTime(time);
-  if (!parsed) {
-    return null;
-  }
-  return parsed.toISOTime({
-    suppressMilliseconds: true,
-    includePrefix: false,
-    suppressSeconds: true
-  });
-};
-
 const add = (date: DateTime, time: Duration): DateTime => {
-  let hours = time.hours;
-  let minutes = time.minutes;
+  const hours = time.hours;
+  const minutes = time.minutes;
   return date.set({ hour: hours, minute: minutes });
 };
 
@@ -154,7 +142,7 @@ export function toEventInput(
     ? `${frontmatter.subCategory} - ${frontmatter.title}`
     : frontmatter.title;
 
-  let baseEvent: EventInput = {
+  const baseEvent: EventInput = {
     id,
     title: displayTitle,
     allDay: frontmatter.allDay,
@@ -297,7 +285,7 @@ export function toEventInput(
       const endTime = parseTime(frontmatter.endTime);
       if (startTime && endTime) {
         // Use Luxon to handle date math correctly, accounting for potential day crossing
-        let startDt = DateTime.fromISO(
+        const startDt = DateTime.fromISO(
           combineDateTimeStrings(frontmatter.startRecur || '2025-01-01', frontmatter.startTime)!
         );
         let endDt = DateTime.fromISO(
@@ -328,14 +316,18 @@ export function toEventInput(
     // Tell FullCalendar it’s all-day when relevant
     baseEvent.allDay = !!frontmatter.allDay;
   } else if (frontmatter.type === 'rrule') {
-    const fm = frontmatter as any;
+    const fm = frontmatter as unknown as {
+      startDate: string;
+      startTime: string;
+      skipDates?: string[];
+    };
 
     // DEBUG: Log rrule event processing for the 123123 event
     const isDebugEvent = frontmatter.title === '123123';
     if (isDebugEvent) {
-      console.log('[FC DEBUG] toEventInput processing rrule event "123123"');
-      console.log('[FC DEBUG] Input frontmatter:', JSON.stringify(frontmatter, null, 2));
-      console.log('[FC DEBUG] Settings displayTimezone:', settings.displayTimezone);
+      console.debug('[FC DEBUG] toEventInput processing rrule event "123123"');
+      console.debug('[FC DEBUG] Input frontmatter:', JSON.stringify(frontmatter, null, 2));
+      console.debug('[FC DEBUG] Settings displayTimezone:', settings.displayTimezone);
     }
 
     // Determine source and display timezones
@@ -344,8 +336,8 @@ export function toEventInput(
       settings.displayTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     if (isDebugEvent) {
-      console.log('[FC DEBUG] sourceZone:', sourceZone);
-      console.log('[FC DEBUG] displayZone:', displayZone);
+      console.debug('[FC DEBUG] sourceZone:', sourceZone);
+      console.debug('[FC DEBUG] displayZone:', displayZone);
     }
 
     // Parse the event time in its source timezone first
@@ -387,11 +379,11 @@ export function toEventInput(
       dtInDisplay.ordinal - dtInSource.ordinal + (dtInDisplay.year - dtInSource.year) * 365; // Approximate, but works for small offsets
 
     if (isDebugEvent) {
-      console.log('[FC DEBUG] dtInSource:', dtInSource.toString());
-      console.log('[FC DEBUG] dtInSource weekday:', dtInSource.weekdayLong);
-      console.log('[FC DEBUG] dtInDisplay:', dtInDisplay.toString());
-      console.log('[FC DEBUG] dtInDisplay weekday:', dtInDisplay.weekdayLong);
-      console.log('[FC DEBUG] dayOffset:', dayOffset);
+      console.debug('[FC DEBUG] dtInSource:', dtInSource.toString());
+      console.debug('[FC DEBUG] dtInSource weekday:', dtInSource.weekdayLong);
+      console.debug('[FC DEBUG] dtInDisplay:', dtInDisplay.toString());
+      console.debug('[FC DEBUG] dtInDisplay weekday:', dtInDisplay.weekdayLong);
+      console.debug('[FC DEBUG] dayOffset:', dayOffset);
     }
 
     // Adjust BYDAY rules if the timezone conversion shifts the day
@@ -415,9 +407,9 @@ export function toEventInput(
         adjustedRrule = adjustedRrule.replace(/BYDAY=[A-Z,]+/, `BYDAY=${adjustedDays.join(',')}`);
 
         if (isDebugEvent) {
-          console.log('[FC DEBUG] Original BYDAY:', originalDays);
-          console.log('[FC DEBUG] Adjusted BYDAY:', adjustedDays);
-          console.log('[FC DEBUG] Adjusted rrule:', adjustedRrule);
+          console.debug('[FC DEBUG] Original BYDAY:', originalDays);
+          console.debug('[FC DEBUG] Adjusted BYDAY:', adjustedDays);
+          console.debug('[FC DEBUG] Adjusted rrule:', adjustedRrule);
         }
       }
     }
@@ -427,8 +419,8 @@ export function toEventInput(
     const dtstart = dtInDisplay;
 
     if (isDebugEvent) {
-      console.log('[FC DEBUG] Final dtstart:', dtstart.toString());
-      console.log('[FC DEBUG] dtstart weekday:', dtstart.weekdayLong);
+      console.debug('[FC DEBUG] Final dtstart:', dtstart.toString());
+      console.debug('[FC DEBUG] dtstart weekday:', dtstart.weekdayLong);
     }
 
     // Construct exdates - these need to be in "fake UTC" format where the local time
@@ -512,13 +504,13 @@ export function toEventInput(
     const rruleString = adjustedRrule;
 
     if (isDebugEvent) {
-      console.log('[FC DEBUG] dtstartString:', dtstartString);
-      console.log('[FC DEBUG] rruleString (adjusted):', rruleString);
-      console.log(
+      console.debug('[FC DEBUG] dtstartString:', dtstartString);
+      console.debug('[FC DEBUG] rruleString (adjusted):', rruleString);
+      console.debug(
         '[FC DEBUG] Combined rrule for FullCalendar:',
         [dtstartString, rruleString].join('\n')
       );
-      console.log('[FC DEBUG] exdates:', exdate);
+      console.debug('[FC DEBUG] exdates:', exdate);
     }
 
     baseEvent.rrule = [dtstartString, rruleString].join('\n');
@@ -532,7 +524,7 @@ export function toEventInput(
         const endTime = parseTime(frontmatter.endTime);
         if (endTime) {
           // Parse in source timezone to get correct duration
-          let startDt = DateTime.fromISO(
+          const startDt = DateTime.fromISO(
             combineDateTimeStrings(frontmatter.startDate, frontmatter.startTime)!,
             { zone: sourceZone }
           );
@@ -557,9 +549,9 @@ export function toEventInput(
             });
 
             if (isDebugEvent) {
-              console.log('[FC DEBUG] startDt (source):', startDt.toString());
-              console.log('[FC DEBUG] endDt (source):', endDt.toString());
-              console.log('[FC DEBUG] Calculated duration:', baseEvent.duration);
+              console.debug('[FC DEBUG] startDt (source):', startDt.toString());
+              console.debug('[FC DEBUG] endDt (source):', endDt.toString());
+              console.debug('[FC DEBUG] Calculated duration:', baseEvent.duration);
             }
           }
         }
@@ -567,7 +559,7 @@ export function toEventInput(
     }
 
     if (isDebugEvent) {
-      console.log(
+      console.debug(
         '[FC DEBUG] Final baseEvent for FullCalendar:',
         JSON.stringify(baseEvent, null, 2)
       );
@@ -626,8 +618,9 @@ export function toEventInput(
  * @returns An `OFCEvent` object.
  */
 export function fromEventApi(event: EventApi, newResource?: string): OFCEvent {
-  let category: string | undefined = event.extendedProps.category;
-  let subCategory: string | undefined = event.extendedProps.subCategory;
+  let category: string | undefined = (event.extendedProps as { category?: string }).category;
+  let subCategory: string | undefined = (event.extendedProps as { subCategory?: string })
+    .subCategory;
 
   // Check for resource ID safely - resource property may be added by FullCalendar resource plugin
   const resourceId =
@@ -656,37 +649,49 @@ export function fromEventApi(event: EventApi, newResource?: string): OFCEvent {
   // FullCalendar's end date is exclusive, so we might need to subtract a day.
   const endDate = event.end ? getDate(new Date(event.end.getTime() - 1)) : startDate;
 
+  const extendedProps = (event.extendedProps || {}) as Record<string, unknown>;
+  const taskCompleted = extendedProps.taskCompleted as string | boolean | null | undefined;
   return {
-    uid: event.extendedProps.uid,
-    title: event.extendedProps.cleanTitle || event.title,
+    uid: extendedProps.uid as string | undefined,
+    title: (extendedProps.cleanTitle as string | undefined) || event.title,
     category,
     subCategory, // Add subCategory here
-    recurringEventId: event.extendedProps.recurringEventId,
+    recurringEventId: extendedProps.recurringEventId as string | undefined,
     ...(event.allDay
       ? { allDay: true }
       : {
           allDay: false,
-          startTime: getTime(event.start as Date),
-          endTime: getTime(event.end as Date)
+          startTime: getTime(event.start!),
+          endTime: getTime(event.end!)
         }),
 
     ...(isRecurring
       ? {
           type: 'recurring' as const,
           endDate: null,
-          daysOfWeek: event.extendedProps.daysOfWeek.map((i: number) => DAYS[i]),
-          startRecur: event.extendedProps.startRecur && getDate(event.extendedProps.startRecur),
-          endRecur: event.extendedProps.endRecur && getDate(event.extendedProps.endRecur),
+          daysOfWeek: (extendedProps.daysOfWeek as number[]).map((i: number) => DAYS[i]) as (
+            | 'U'
+            | 'M'
+            | 'T'
+            | 'W'
+            | 'R'
+            | 'F'
+            | 'S'
+          )[],
+          startRecur: extendedProps.startRecur
+            ? getDate(extendedProps.startRecur as Date)
+            : undefined,
+          endRecur: extendedProps.endRecur ? getDate(extendedProps.endRecur as Date) : undefined,
           skipDates: [], // Default to empty as exception info is unavailable
-          isTask: event.extendedProps.isTask
+          isTask: extendedProps.isTask as boolean | undefined
         }
       : {
           type: 'single',
           date: startDate,
           ...(startDate !== endDate ? { endDate } : { endDate: null }),
-          completed: event.extendedProps.isTask
-            ? (event.extendedProps.taskCompleted ?? false)
-            : event.extendedProps.taskCompleted
+          completed: extendedProps.isTask
+            ? ((taskCompleted as unknown as string | false | null | undefined) ?? false)
+            : (taskCompleted as unknown as string | false | null | undefined)
         })
   };
 }

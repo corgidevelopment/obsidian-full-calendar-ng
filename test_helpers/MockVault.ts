@@ -7,7 +7,26 @@ import {
     TFolder,
     Vault,
 } from "obsidian";
-import { basename, dirname, join, normalize } from "path";
+
+const normalizeSlashes = (value: string): string => value.replace(/\\/g, "/");
+const joinPath = (...parts: string[]): string => {
+    const joined = parts
+        .map(normalizeSlashes)
+        .filter((part, index) => (part !== "" && part !== ".") || index === 0)
+        .join("/")
+        .replace(/\/+/, "/");
+    return joined === "" ? "." : joined;
+};
+const dirName = (path: string): string => {
+    const normalized = normalizeSlashes(path);
+    const lastSlash = normalized.lastIndexOf("/");
+    return lastSlash > 0 ? normalized.slice(0, lastSlash) : "";
+};
+const baseName = (path: string): string => {
+    const normalized = normalizeSlashes(path);
+    const lastSlash = normalized.lastIndexOf("/");
+    return lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized;
+};
 
 /**
  * Return all files that exist under a given folder.
@@ -69,13 +88,13 @@ export class MockVault implements Vault {
         return current || null;
     }
 
-    async read(file: TFile): Promise<string> {
-        const p = join("/", file.path);
+    read(file: TFile): Promise<string> {
+        const p = joinPath("/", file.path);
         const contents = this.contents.get(p);
         if (!contents) {
             throw new Error(`File at path ${p} does not have contents`);
         }
-        return contents;
+        return Promise.resolve(contents);
     }
     
     getFileByPath(path: string): TFile | null {
@@ -112,43 +131,38 @@ export class MockVault implements Vault {
     }
 
     private setParent(path: string, f: TAbstractFile) {
-        const parentPath = dirname(path);
+        const parentPath = dirName(path);
         const folder = this.getAbstractFileByPath(parentPath);
         if (folder instanceof TFolder) {
             f.parent = folder;
             folder.children.push(f);
+            return;
         }
         throw new Error("Parent path is not folder.");
     }
 
-    async create(
-        path: string,
-        data: string,
-        options?: DataWriteOptions | undefined
-    ): Promise<TFile> {
+    create(path: string, data: string, options?: DataWriteOptions): Promise<TFile> {
         if (this.getAbstractFileByPath(path)) {
             throw new Error("File already exists.");
         }
         let file = new TFile();
-        file.name = basename(path);
+        file.name = baseName(path);
         this.setParent(path, file);
         this.contents.set(path, data);
-        return file;
+        return Promise.resolve(file);
     }
-    async createFolder(path: string): Promise<TFolder> {
+    createFolder(path: string): Promise<TFolder> {
         let folder = new TFolder();
-        folder.name = basename(path);
+        folder.name = baseName(path);
         this.setParent(path, folder);
-        return folder;
+        return Promise.resolve(folder);
     }
 
-    async delete(
-        file: TAbstractFile,
-        force?: boolean | undefined
-    ): Promise<void> {
+    delete(file: TAbstractFile, force?: boolean): Promise<void> {
         if (file.parent) {
             file.parent.children.remove(file);
         }
+        return Promise.resolve();
     }
     trash(file: TAbstractFile, system: boolean): Promise<void> {
         return this.delete(file);
@@ -160,8 +174,8 @@ export class MockVault implements Vault {
     getAllFolders(): TFolder[] {
         return this.getAllLoadedFiles().filter((f): f is TFolder => f instanceof TFolder);
     }
-    async rename(file: TAbstractFile, newPath: string): Promise<void> {
-        const newParentPath = dirname(newPath);
+    rename(file: TAbstractFile, newPath: string): Promise<void> {
+        const newParentPath = dirName(newPath);
         const newParent = this.getAbstractFileByPath(newParentPath);
         if (!(newParent instanceof TFolder)) {
             throw new Error(`No such folder: ${newParentPath}`);
@@ -180,7 +194,7 @@ export class MockVault implements Vault {
             // NOTE: This relies on using the included mock that derives the path
             // from the parent and filename as a getter property.
             file.parent = newParent;
-            file.name = basename(newPath);
+            file.name = baseName(newPath);
             this.contents.set(file.path, contents);
         } else if (file instanceof TFolder) {
             // If we're renaming a folder, we need to update the content map for
@@ -203,7 +217,7 @@ export class MockVault implements Vault {
 
             // Update the parent and name for this folder.
             file.parent = newParent;
-            file.name = basename(newPath);
+            file.name = baseName(newPath);
 
             // Re-add all the paths to the content dir.
             for (const [f, contents] of filesAndContents) {
@@ -212,14 +226,12 @@ export class MockVault implements Vault {
         } else {
             throw new Error(`File is not a file or folder: ${file.path}`);
         }
+        return Promise.resolve();
     }
 
-    async modify(
-        file: TFile,
-        data: string,
-        options?: DataWriteOptions | undefined
-    ): Promise<void> {
+    modify(file: TFile, data: string, options?: DataWriteOptions): Promise<void> {
         this.contents.set(file.path, data);
+        return Promise.resolve();
     }
     loadLocalStorage(): void {
         // No-op mock
@@ -279,7 +291,7 @@ export class MockVault implements Vault {
     append(
         file: TFile,
         data: string,
-        options?: DataWriteOptions | undefined
+        options?: DataWriteOptions
     ): Promise<void> {
         throw new Error("Method not implemented.");
     }
@@ -287,7 +299,7 @@ export class MockVault implements Vault {
     createBinary(
         path: string,
         data: ArrayBuffer,
-        options?: DataWriteOptions | undefined
+        options?: DataWriteOptions
     ): Promise<TFile> {
         throw new Error("Method not implemented.");
     }
@@ -298,7 +310,7 @@ export class MockVault implements Vault {
     modifyBinary(
         file: TFile,
         data: ArrayBuffer,
-        options?: DataWriteOptions | undefined
+        options?: DataWriteOptions
     ): Promise<void> {
         throw new Error("Method not implemented.");
     }

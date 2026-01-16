@@ -73,7 +73,7 @@ export class DetailPopup {
         this.statsEl.appendChild(wrapper);
         return;
       }
-      const card = this.statsEl.createDiv({ cls: 'summary-stat' })!;
+      const card = this.statsEl.createDiv({ cls: 'summary-stat' });
       card.createDiv?.({ cls: 'summary-stat-value', text: value });
       card.createDiv?.({ cls: 'summary-stat-label', text: label });
     };

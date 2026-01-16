@@ -21,9 +21,10 @@ export class InsightsRenderer {
   ) {}
 
   public render(): void {
-    this.containerEl.innerHTML = '';
+    this.containerEl.replaceChildren();
     if (this.insights.length === 0) {
-      this.containerEl.innerHTML = `<div class="insights-placeholder">No specific insights found for the current period.</div>`;
+      const placeholder = this.containerEl.createDiv({ cls: 'insights-placeholder' });
+      placeholder.appendText('No specific insights found for the current period.');
       return;
     }
 
@@ -158,8 +159,9 @@ export class InsightsRenderer {
     if (!action) return null;
     const button = document.createElement('button');
     button.className = 'insight-action-button clickable-icon';
-    button.setAttribute('aria-label', 'View in Chart');
-    button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon lucide-bar-chart-horizontal"><path d="M3 3v18h18"/><path d="M7 16h8"/><path d="M7 11h12"/><path d="M7 6h4"/></svg>`;
+
+    button.setAttribute('aria-label', 'View in chart');
+    setIcon(button, 'bar-chart-horizontal');
     button.addEventListener('click', e => {
       e.stopPropagation();
       this.onActionClick(action);

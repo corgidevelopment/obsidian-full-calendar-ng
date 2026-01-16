@@ -36,13 +36,15 @@ export class LazySettingsTab extends PluginSettingTab {
     return this.actualTab;
   }
 
-  async display(): Promise<void> {
-    const tab = await this.ensureActualTab();
-    // Use the container provided by Obsidian for this (lazy) tab
-    // so the heavy tab renders into the correct element.
-    // FullCalendarSettingTab extends PluginSettingTab which provides containerEl
-    (tab as PluginSettingTab).containerEl = this.containerEl;
-    return tab.display();
+  display(): void {
+    void (async () => {
+      const tab = await this.ensureActualTab();
+      // Use the container provided by Obsidian for this (lazy) tab
+      // so the heavy tab renders into the correct element.
+      // FullCalendarSettingTab extends PluginSettingTab which provides containerEl
+      (tab as PluginSettingTab).containerEl = this.containerEl;
+      void tab.display();
+    })();
   }
 
   hide(): void {
@@ -50,10 +52,12 @@ export class LazySettingsTab extends PluginSettingTab {
     this.actualTab?.hide();
   }
 
-  async showChangelog(): Promise<void> {
-    const tab = await this.ensureActualTab();
-    // Ensure container is linked (though display() usually handles this from Obsidian)
-    (tab as PluginSettingTab).containerEl = this.containerEl;
-    tab.showChangelog();
+  showChangelog(): void {
+    void (async () => {
+      const tab = await this.ensureActualTab();
+      // Ensure container is linked (though display() usually handles this from Obsidian)
+      (tab as PluginSettingTab).containerEl = this.containerEl;
+      tab.showChangelog();
+    })();
   }
 }

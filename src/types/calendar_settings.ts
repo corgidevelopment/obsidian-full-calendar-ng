@@ -17,15 +17,6 @@ import { OFCEvent } from './schema';
 import { getNextColor } from '../ui/components/colors';
 import { t } from '../features/i18n/i18n';
 
-// New schema for Google Auth object, now local to each Google source
-const GoogleAuthSchema = z
-  .object({
-    refreshToken: z.string().nullable(),
-    accessToken: z.string().nullable(),
-    expiryDate: z.number().nullable()
-  })
-  .nullable();
-
 // New flattened schemas for each calendar type
 const calendarOptionsSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('local'), id: z.string(), name: z.string(), directory: z.string() }),

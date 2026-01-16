@@ -3,7 +3,7 @@ import { getEventsFromICS } from '../ics/ics';
 import { eventToIcs, createOverrideVEvent } from '../ics/formatter';
 import ical from 'ical.js';
 import { CalendarProvider, CalendarProviderCapabilities } from '../Provider';
-import { EventHandle, FCReactComponent } from '../typesProvider';
+import { EventHandle, FCReactComponent, ProviderConfigContext } from '../typesProvider';
 import { CalDAVProviderConfig } from './typesCalDAV';
 import FullCalendarPlugin from '../../main';
 import { CalDAVConfigComponent } from './CalDAVConfigComponent';
@@ -163,7 +163,7 @@ async function fetchCalendarObjects(
       if (authHeader) {
         getHeaders['Authorization'] = authHeader;
       }
-      console.log(`[CalDAV] Fetching individual event from ${getUrl}`);
+      console.debug(`[CalDAV] Fetching individual event from ${getUrl}`);
       return obsidianFetch(getUrl, { method: 'GET', headers: getHeaders }).then(res => res.text());
     });
 
@@ -180,8 +180,8 @@ async function fetchCalendarObjects(
 const CalDAVSettingRow: React.FC<{ source: Partial<import('../../types').CalendarInfo> }> = ({
   source
 }) => {
-  const url = (source as any)?.url || '';
-  const username = (source as any)?.username || '';
+  const url = (source as unknown as { url?: string })?.url || '';
+  const username = (source as unknown as { username?: string })?.username || '';
 
   return React.createElement(
     React.Fragment,
@@ -209,11 +209,31 @@ const CalDAVSettingRow: React.FC<{ source: Partial<import('../../types').Calenda
   );
 };
 
+type CalDAVConfigProps = {
+  config: Partial<CalDAVProviderConfig>;
+  onConfigChange: (newConfig: Partial<CalDAVProviderConfig>) => void;
+  context: ProviderConfigContext;
+  onSave: (finalConfig: CalDAVProviderConfig | CalDAVProviderConfig[]) => void;
+  onClose: () => void;
+};
+
+const CalDAVConfigWrapper: React.FC<CalDAVConfigProps> = props => {
+  const { config, onSave, onClose } = props;
+  const handleSave = (configs: CalDAVProviderConfig[]) => onSave(configs);
+
+  return React.createElement(CalDAVConfigComponent, {
+    config,
+    onSave: handleSave,
+    onClose
+  });
+};
+
 export class CalDAVProvider implements CalendarProvider<CalDAVProviderConfig> {
   static readonly type = 'caldav';
   static readonly displayName = 'CalDAV';
-  static getConfigurationComponent(): FCReactComponent<any> {
-    return CalDAVConfigComponent;
+
+  static getConfigurationComponent(): FCReactComponent<CalDAVConfigProps> {
+    return CalDAVConfigWrapper;
   }
 
   private source: CalDAVProviderConfig;
@@ -382,7 +402,8 @@ export class CalDAVProvider implements CalendarProvider<CalDAVProviderConfig> {
     vcalendar.addSubcomponent(overrideVEvent);
 
     // 5. Update: PUT the new ICS back
-    const newIcsContent = vcalendar.toString();
+    // ical.Component properly implements toString(), cast to satisfy lint
+    const newIcsContent = (vcalendar as unknown as { toString(): string }).toString();
 
     await this.doRequest(url, {
       method: 'PUT',
@@ -415,9 +436,12 @@ export class CalDAVProvider implements CalendarProvider<CalDAVProviderConfig> {
   }
 
   // Boilerplate methods for the provider interface.
-  async revalidate(): Promise<void> {}
-  getConfigurationComponent(): FCReactComponent<any> {
-    return () => null;
+  revalidate(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  getConfigurationComponent(): FCReactComponent<CalDAVConfigProps> {
+    return CalDAVConfigWrapper;
   }
   getSettingsRowComponent(): FCReactComponent<{
     source: Partial<import('../../types').CalendarInfo>;

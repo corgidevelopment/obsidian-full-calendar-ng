@@ -649,7 +649,7 @@ describe('rrule type events with exdate/skipDates handling', () => {
         timezone: 'Europe/Prague',
         skipDates: ['2025-01-13'],
         endDate: null
-      } as OFCEvent;
+      } as unknown as OFCEvent;
 
       const settings: FullCalendarSettings = {
         ...baseSettings,
@@ -683,7 +683,7 @@ describe('rrule type events with exdate/skipDates handling', () => {
         timezone: 'Europe/Prague',
         skipDates: [],
         endDate: null
-      } as OFCEvent;
+      } as unknown as OFCEvent;
 
       const result = toEventInput('no-skips-id', event, baseSettings);
 
@@ -703,7 +703,7 @@ describe('rrule type events with exdate/skipDates handling', () => {
         timezone: 'Europe/Prague',
         skipDates: ['2025-01-11'],
         endDate: null
-      } as OFCEvent;
+      } as unknown as OFCEvent;
 
       const result = toEventInput('midnight-id', event, baseSettings);
 
@@ -724,7 +724,7 @@ describe('rrule type events with exdate/skipDates handling', () => {
         timezone: 'Europe/Prague',
         skipDates: ['2025-01-10'],
         endDate: null
-      } as OFCEvent;
+      } as unknown as OFCEvent;
 
       const result = toEventInput('late-night-id', event, baseSettings);
 
@@ -745,7 +745,7 @@ describe('rrule type events with exdate/skipDates handling', () => {
         timezone: 'Europe/Prague',
         skipDates: ['2025-01-15'],
         endDate: null
-      } as OFCEvent;
+      } as unknown as OFCEvent;
 
       const result = toEventInput('one-skip-id', event, baseSettings);
 
@@ -770,7 +770,7 @@ describe('rrule type events with exdate/skipDates handling', () => {
         timezone: 'Europe/Prague',
         skipDates: skipDates,
         endDate: null
-      } as OFCEvent;
+      } as unknown as OFCEvent;
 
       const result = toEventInput('many-skips-id', event, baseSettings);
 

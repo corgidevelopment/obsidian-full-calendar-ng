@@ -4,7 +4,7 @@
  * @license See LICENSE.md
  */
 
-import { Setting, ButtonComponent } from 'obsidian';
+import { Setting } from 'obsidian';
 import FullCalendarPlugin from '../../../main';
 import { WorkspaceSettings, createDefaultWorkspace } from '../../../types/settings';
 import { WorkspaceModal } from './WorkspaceModal';
@@ -35,7 +35,7 @@ export function renderWorkspaceSettings(
           const newWorkspace = createDefaultWorkspace(t('settings.workspaces.defaultName'));
           new WorkspaceModal(plugin, newWorkspace, true, workspace => {
             plugin.settings.workspaces.push(workspace);
-            plugin.saveSettings();
+            void plugin.saveSettings();
             rerender();
           }).open();
         });
@@ -58,7 +58,7 @@ export function renderWorkspaceSettings(
             .onClick(() => {
               new WorkspaceModal(plugin, workspace, false, updatedWorkspace => {
                 plugin.settings.workspaces[index] = updatedWorkspace;
-                plugin.saveSettings();
+                void plugin.saveSettings();
                 rerender();
               }).open();
             });
@@ -80,7 +80,7 @@ export function renderWorkspaceSettings(
 
               new WorkspaceModal(plugin, duplicatedWorkspace, true, newWorkspace => {
                 plugin.settings.workspaces.push(newWorkspace);
-                plugin.saveSettings();
+                void plugin.saveSettings();
                 rerender();
               }).open();
             });

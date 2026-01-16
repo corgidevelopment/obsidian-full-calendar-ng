@@ -37,15 +37,19 @@ const createMockApp = (language: string = 'en') => {
   return {
     vault: {
       getConfig: jest.fn().mockReturnValue(language)
-    }
-  } as any;
+    },
+    loadLocalStorage: jest.fn().mockImplementation((key: string) => {
+      if (key === 'language') return language;
+      return null;
+    })
+  } as unknown as import('obsidian').App;
 };
 
 describe('i18n Module', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset i18n state before each test
     if (i18n.isInitialized) {
-      i18n.changeLanguage('en');
+      await i18n.changeLanguage('en');
     }
   });
 
@@ -71,8 +75,9 @@ describe('i18n Module', () => {
       const mockApp = {
         vault: {
           getConfig: jest.fn().mockReturnValue(undefined)
-        }
-      } as any;
+        },
+        loadLocalStorage: jest.fn().mockReturnValue(undefined)
+      } as unknown as import('obsidian').App;
 
       await initializeI18n(mockApp);
 

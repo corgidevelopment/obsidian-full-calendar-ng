@@ -33,6 +33,12 @@ function formatRelativeTime(duration: Duration, prefix: 'starts' | 'ends'): stri
   return `${prefix} in ${Math.floor(duration.as('days'))}d`;
 }
 
+const setCssProps = (element: HTMLElement, props: Record<string, string>): void => {
+  Object.entries(props).forEach(([property, value]) => {
+    element.style.setProperty(property, value);
+  });
+};
+
 export class StatusBarManager {
   private plugin: FullCalendarPlugin;
   private statusBarItemEl: HTMLElement | null = null;
@@ -107,7 +113,7 @@ export class StatusBarManager {
       this.statusBarItemEl.setText(newText);
     }
 
-    this.statusBarItemEl.style.display = newText ? 'block' : 'none';
+    setCssProps(this.statusBarItemEl, { display: newText ? 'block' : 'none' });
   }
 
   private handleClick(ev: MouseEvent): void {
@@ -121,7 +127,11 @@ export class StatusBarManager {
           .setIcon('file-text')
           .onClick(() => {
             if (this.currentState?.current) {
-              openFileForEvent(this.plugin.cache, this.plugin.app, this.currentState.current.id);
+              void openFileForEvent(
+                this.plugin.cache,
+                this.plugin.app,
+                this.currentState.current.id
+              );
             }
           });
       });
@@ -129,14 +139,14 @@ export class StatusBarManager {
 
     if (this.currentState.upcoming.length > 0) {
       menu.addSeparator();
-      menu.addItem(item => item.setTitle('Upcoming Events').setDisabled(true));
+      menu.addItem(item => item.setTitle('Upcoming events').setDisabled(true));
 
       this.currentState.upcoming.slice(0, 5).forEach(eventData => {
         // Show next 5
         menu.addItem(item => {
           const time = eventData.start.toFormat('h:mm a');
           item.setTitle(`${time}: ${eventData.event.title}`).onClick(() => {
-            openFileForEvent(this.plugin.cache, this.plugin.app, eventData.id);
+            void openFileForEvent(this.plugin.cache, this.plugin.app, eventData.id);
           });
         });
       });

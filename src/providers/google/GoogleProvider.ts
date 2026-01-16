@@ -5,7 +5,7 @@ import { fromGoogleEvent, toGoogleEvent, GoogleEventLike } from './parser/parser
 import { makeAuthenticatedRequest, GoogleApiError } from './auth/request';
 
 import { CalendarProvider, CalendarProviderCapabilities } from '../Provider';
-import { EventHandle, FCReactComponent } from '../typesProvider';
+import { EventHandle, FCReactComponent, ProviderConfigContext } from '../typesProvider';
 import { GoogleProviderConfig } from './typesGCal';
 
 import { GoogleConfigComponent } from './ui/GoogleConfigComponent';
@@ -17,7 +17,7 @@ import { GoogleAuthManager } from './auth/GoogleAuthManager';
 const GoogleNameSetting: React.FC<{ source: Partial<import('../../types').CalendarInfo> }> = ({
   source
 }) => {
-  const calendarId = (source as any)?.calendarId || '';
+  const calendarId = (source as unknown as { calendarId?: string })?.calendarId || '';
 
   return React.createElement(
     'div',
@@ -31,12 +31,52 @@ const GoogleNameSetting: React.FC<{ source: Partial<import('../../types').Calend
   );
 };
 
+type GoogleConfigProps = {
+  config: Partial<GoogleProviderConfig>;
+  onConfigChange: (newConfig: Partial<GoogleProviderConfig>) => void;
+  context: ProviderConfigContext;
+  onSave: (finalConfig: GoogleProviderConfig | GoogleProviderConfig[]) => void;
+  onClose: () => void;
+};
+
+const createGoogleConfigWrapper = (
+  pluginFromInstance?: FullCalendarPlugin
+): React.FC<GoogleConfigProps> => {
+  return props => {
+    const plugin =
+      pluginFromInstance || (props as GoogleConfigProps & { plugin?: FullCalendarPlugin }).plugin;
+
+    const forwardOnSave = props.onSave as (
+      configs: GoogleProviderConfig | GoogleProviderConfig[],
+      accountId?: string
+    ) => void;
+
+    const handleSave = (
+      selectedConfigs: Array<{ id: string; name: string; color: string }>,
+      accountId: string
+    ) => {
+      forwardOnSave(selectedConfigs as unknown as GoogleProviderConfig[], accountId);
+    };
+
+    if (!plugin) {
+      throw new Error('Google configuration requires plugin context.');
+    }
+
+    return React.createElement(GoogleConfigComponent, {
+      plugin,
+      onSave: handleSave,
+      onClose: props.onClose
+    });
+  };
+};
+
 export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
   // Static metadata for registry
   static readonly type = 'google';
   static readonly displayName = 'Google Calendar';
-  static getConfigurationComponent(): FCReactComponent<any> {
-    return GoogleConfigComponent;
+
+  static getConfigurationComponent(): FCReactComponent<GoogleConfigProps> {
+    return createGoogleConfigWrapper();
   }
 
   private plugin: FullCalendarPlugin;
@@ -124,7 +164,7 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
       // Remove convertEvent logic; just validate and return events
       const tuples: ([OFCEvent, EventLocation | null] | null)[] = data.items.map(
         (gEvent: GoogleEventLike) => {
-          let rawEvent = fromGoogleEvent(gEvent);
+          const rawEvent = fromGoogleEvent(gEvent);
           if (!rawEvent) return null;
 
           if (
@@ -166,7 +206,7 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
     const body = toGoogleEvent(event);
     const createdGEvent = await makeAuthenticatedRequest<GoogleEventLike>(token, url, 'POST', body);
 
-    const rawEvent = fromGoogleEvent(createdGEvent as GoogleEventLike);
+    const rawEvent = fromGoogleEvent(createdGEvent);
     if (!rawEvent) throw new Error('Could not parse event from Google API after creation.');
 
     return [rawEvent, null];
@@ -316,7 +356,7 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
         body
       );
 
-      const rawEvent = fromGoogleEvent(newGEvent as GoogleEventLike);
+      const rawEvent = fromGoogleEvent(newGEvent);
       if (!rawEvent) {
         throw new Error('Could not parse Google API response after creating instance override.');
       }
@@ -327,19 +367,8 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
     );
   }
 
-  getConfigurationComponent(): FCReactComponent<any> {
-    const WrapperComponent: React.FC<any> = props => {
-      // This logic is now handled inside GoogleConfigComponent, so we can simplify this.
-      // We just need to pass the plugin instance.
-
-      const componentProps = {
-        ...props,
-        plugin: this.plugin // Pass the plugin instance
-      };
-
-      return React.createElement(GoogleConfigComponent, componentProps);
-    };
-    return WrapperComponent;
+  getConfigurationComponent(): FCReactComponent<GoogleConfigProps> {
+    return createGoogleConfigWrapper(this.plugin);
   }
 
   getSettingsRowComponent(): FCReactComponent<{
@@ -348,8 +377,9 @@ export class GoogleProvider implements CalendarProvider<GoogleProviderConfig> {
     return GoogleNameSetting;
   }
 
-  async revalidate(): Promise<void> {
+  revalidate(): Promise<void> {
     // This method's existence signals to the adapter that this is a remote-style provider.
     // The actual fetching is always done in getEvents.
+    return Promise.resolve();
   }
 }

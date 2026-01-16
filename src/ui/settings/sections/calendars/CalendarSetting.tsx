@@ -59,10 +59,6 @@ const CalendarSettingRow = ({
   );
 };
 
-interface BasicProps<T extends Partial<CalendarInfo>> {
-  source: T;
-}
-
 interface CalendarSettingsProps {
   sources: CalendarInfo[];
   submit: (payload: CalendarInfo[]) => void;
@@ -149,7 +145,7 @@ export class CalendarSettings
                   new Notice(t('settings.warnings.oneDailyNote'));
                   return;
                 }
-                this.props.submit(this.state.sources.map(elt => elt as CalendarInfo));
+                this.props.submit(this.state.sources.map(elt => elt));
                 this.setState({ dirty: false });
               }}
             >
@@ -160,12 +156,6 @@ export class CalendarSettings
       </div>
     );
   }
-}
-
-interface CalendarSettingsRowProps {
-  setting: Partial<CalendarInfo>;
-  onColorChange: (s: string) => void;
-  deleteCalendar: () => void;
 }
 
 // Provider-Aware Calendar Setting Row - the main component
@@ -203,7 +193,7 @@ export const ProviderAwareCalendarSettingRow = ({
       );
 
       // Fallback rendering - display basic info about the calendar source
-      const displayName = (setting as any).name || setting.type || 'Unknown';
+      const displayName = setting.name || setting.type || 'Unknown';
       return (
         <CalendarSettingRow {...rowProps}>
           <div className="setting-item-control">

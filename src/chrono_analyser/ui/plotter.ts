@@ -25,6 +25,17 @@ type ShowDetailPopupFn = (
   context?: DetailPopupContextBase
 ) => void;
 
+type PlotlyPoint = {
+  label?: string | number;
+  value?: number | string;
+  id?: string | number;
+  x?: string | number;
+  y?: string | number;
+  z?: number | string;
+};
+
+type PlotlyEvent = { points?: PlotlyPoint[] } | null | undefined;
+
 // Type guard for Obsidian HTMLElement extensions
 interface ObsidianHTMLElement extends HTMLElement {
   empty(): void;
@@ -79,6 +90,23 @@ function safeCreateDiv(element: HTMLElement, options?: CreateOptions): HTMLDivEl
   return safeCreateEl(element, 'div', options) as HTMLDivElement;
 }
 
+function formatCategoryValue(value: TimeRecord[keyof TimeRecord], label: string): string {
+  if (value === undefined || value === null || value === '') {
+    return `(No ${label})`;
+  }
+
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      console.error('[ChronoAnalyzer] Failed to stringify category value:', error);
+      return `(No ${label})`;
+    }
+  }
+
+  return String(value);
+}
+
 function setupPlotlyEvents(
   element: HTMLElement,
   eventType: string,
@@ -92,10 +120,10 @@ function setupPlotlyEvents(
   maybe.on?.(eventType, handler);
 }
 
-function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
+function debounce<A extends unknown[]>(fn: (...args: A) => void, delay: number) {
   let timeout: number | null = null;
-  return (...args: Parameters<T>): void => {
-    if (timeout) {
+  return (...args: A): void => {
+    if (timeout !== null) {
       window.clearTimeout(timeout);
     }
     timeout = window.setTimeout(() => fn(...args), delay);
@@ -153,9 +181,9 @@ function plotChart(
 ) {
   const finalLayout = getThemedLayout(layout);
   if (useReact) {
-    Plotly.react(mainChartEl, data, finalLayout, { responsive: true });
+    void Plotly.react(mainChartEl, data, finalLayout, { responsive: true });
   } else {
-    Plotly.newPlot(mainChartEl, data, finalLayout, { responsive: true });
+    void Plotly.newPlot(mainChartEl, data, finalLayout, { responsive: true });
   }
   manageChartResizeObserver(mainChartEl);
 }
@@ -204,10 +232,10 @@ export function renderPieChartDisplay(
 
   // Set up event handling with proper typing
   setupPlotlyEvents(mainChartEl, 'plotly_click', (eventData: unknown) => {
-    const points = (eventData as { points?: Array<any> } | null)?.points;
+    const points = (eventData as PlotlyEvent)?.points;
     const point = points?.[0];
-    if (!point) return;
-    const categoryName: string = point.label;
+    if (!point || point.label === undefined) return;
+    const categoryName = String(point.label);
     if (pieData.recordsByCategory.has(categoryName)) {
       showDetailPopup(categoryName, pieData.recordsByCategory.get(categoryName)!, {
         type: 'pie',
@@ -268,11 +296,11 @@ export function renderSunburstChartDisplay(
   }
 
   setupPlotlyEvents(chartEl, 'plotly_sunburstclick', (eventData: unknown) => {
-    const points = (eventData as { points?: Array<any> } | null)?.points;
+    const points = (eventData as PlotlyEvent)?.points;
     const point = points?.[0];
-    if (!point || !point.id) return;
-    if (sunburstData.recordsByLabel.has(point.id)) {
-      showDetailPopup(point.label, sunburstData.recordsByLabel.get(point.id)!, {
+    if (!point || point.id === undefined || point.label === undefined) return;
+    if (sunburstData.recordsByLabel.has(String(point.id))) {
+      showDetailPopup(String(point.label), sunburstData.recordsByLabel.get(String(point.id))!, {
         type: 'sunburst',
         value: typeof point.value === 'number' ? point.value : Number(point.value) || null
       });
@@ -328,7 +356,7 @@ export function renderTimeSeriesChart(
     periodData.total += value;
 
     if (chartType === 'stackedArea') {
-      const category = String(record[stackingLevel] || `(No ${stackingLevel})`);
+      const category = formatCategoryValue(record[stackingLevel], stackingLevel);
       periodData.categories[category] = (periodData.categories[category] || 0) + value;
     }
   });
@@ -346,7 +374,7 @@ export function renderTimeSeriesChart(
   if (chartType === 'line') {
     traces.push({
       x: sortedPeriods,
-      y: sortedPeriods.map(p => dataByPeriod.get(p)!.total.toFixed(2)),
+      y: sortedPeriods.map(p => Number(dataByPeriod.get(p)!.total.toFixed(2))),
       type: 'scatter',
       mode: 'lines+markers',
       name: metric === 'count' ? 'Total Events' : 'Total Hours'
@@ -362,7 +390,9 @@ export function renderTimeSeriesChart(
       .forEach(category => {
         traces.push({
           x: sortedPeriods,
-          y: sortedPeriods.map(p => (dataByPeriod.get(p)!.categories[category] || 0).toFixed(2)),
+          y: sortedPeriods.map(p =>
+            Number((dataByPeriod.get(p)!.categories[category] || 0).toFixed(2))
+          ),
           type: 'scatter',
           mode: 'lines',
           stackgroup: 'one',
@@ -427,7 +457,7 @@ export function renderActivityPatternChart(
   const activityLayoutMargin = { t: 50, b: 60, l: 70, r: 30 };
 
   if (patternType === 'dayOfWeek') {
-    const hoursByDay = Array(7).fill(0);
+    const hoursByDay: number[] = Array.from({ length: 7 }, () => 0);
     // REFACTORED: Simple, unified loop.
     filteredRecords.forEach(record => {
       if (record.date && !isNaN(record.date.getTime())) {
@@ -436,14 +466,14 @@ export function renderActivityPatternChart(
         hoursByDay[dayIndex] += value;
       }
     });
-    data = [{ x: daysOfWeekLabels, y: hoursByDay.map(h => h.toFixed(2)), type: 'bar' }];
+    data = [{ x: daysOfWeekLabels, y: hoursByDay.map(h => Number(h.toFixed(2))), type: 'bar' }];
     layout = {
       title: { text: `Total ${metric === 'count' ? 'Events' : 'Hours'} by Day of Week` },
       yaxis: { title: { text: metric === 'count' ? 'Count' : 'Hours' } },
       margin: activityLayoutMargin
     };
   } else if (patternType === 'hourOfDay') {
-    const hoursByHour = Array(24).fill(0);
+    const hoursByHour: number[] = Array.from({ length: 24 }, () => 0);
     // REFACTORED: Simple, unified loop.
     filteredRecords.forEach(record => {
       const startTime = 'startTime' in record.metadata ? record.metadata.startTime : null;
@@ -453,7 +483,7 @@ export function renderActivityPatternChart(
         hoursByHour[startHour] += value;
       }
     });
-    data = [{ x: hourLabels, y: hoursByHour.map(h => h.toFixed(2)), type: 'bar' }];
+    data = [{ x: hourLabels, y: hoursByHour.map(h => Number(h.toFixed(2))), type: 'bar' }];
     layout = {
       title: { text: `Total ${metric === 'count' ? 'Events' : 'Hours'} by Task Start Hour` },
       xaxis: { title: { text: 'Hour of Day (0-23)' } },
@@ -462,9 +492,9 @@ export function renderActivityPatternChart(
     };
   } else if (patternType === 'heatmapDOWvsHOD') {
     plotType = 'heatmap';
-    const heatmapData = Array(7)
-      .fill(null)
-      .map(() => Array(24).fill(0));
+    const heatmapData: number[][] = Array.from({ length: 7 }, () =>
+      Array.from({ length: 24 }, () => 0)
+    );
     // REFACTORED: Simple, unified loop.
     filteredRecords.forEach(record => {
       const startTime = 'startTime' in record.metadata ? record.metadata.startTime : null;
@@ -478,7 +508,7 @@ export function renderActivityPatternChart(
     });
     data = [
       {
-        z: heatmapData.map(row => row.map(val => (val > 0 ? val.toFixed(2) : null))),
+        z: heatmapData.map(row => row.map(val => (val > 0 ? Number(val.toFixed(2)) : null))),
         x: hourLabels,
         y: daysOfWeekLabels,
         type: 'heatmap',
@@ -520,7 +550,7 @@ export function renderActivityPatternChart(
   plotChart(mainChartEl, data as Plotly.Data[], layout, useReact);
 
   setupPlotlyEvents(mainChartEl, 'plotly_click', (eventData: unknown) => {
-    const points = (eventData as { points?: Array<any> } | null)?.points;
+    const points = (eventData as PlotlyEvent)?.points;
     if (!points || points.length === 0) return;
     const point = points[0];
     let recordsForPopup: TimeRecord[] = [];
@@ -528,7 +558,9 @@ export function renderActivityPatternChart(
     let clickedValue: number | null = null;
 
     if (plotType === 'bar') {
-      const categoryClicked = point.x;
+      const categoryClickedRaw = point.x;
+      if (categoryClickedRaw === undefined || categoryClickedRaw === null) return;
+      const categoryClicked = String(categoryClickedRaw);
       clickedValue = typeof point.y === 'number' ? point.y : parseFloat(String(point.y));
 
       if (patternType === 'dayOfWeek') {
@@ -548,11 +580,16 @@ export function renderActivityPatternChart(
         });
       }
     } else if (plotType === 'heatmap') {
-      const clickedHour = parseInt(point.x, 10);
-      const clickedDayIndex = daysOfWeekLabels.indexOf(point.y);
+      const clickedHour = typeof point.x === 'number' ? point.x : parseInt(String(point.x), 10);
+      const clickedDayIndex = daysOfWeekLabels.indexOf(String(point.y));
       clickedValue = typeof point.z === 'number' ? point.z : parseFloat(String(point.z));
 
-      if (isNaN(clickedHour) || clickedDayIndex === -1 || !clickedValue || clickedValue === 0)
+      if (
+        Number.isNaN(clickedHour) ||
+        clickedDayIndex === -1 ||
+        !clickedValue ||
+        clickedValue === 0
+      )
         return;
       const nextHour = (clickedHour + 1) % 24;
       categoryNameForPopup = `Activity: ${point.y}, ${String(clickedHour).padStart(2, '0')}:00 - ${String(nextHour).padStart(2, '0')}:00`;
@@ -588,7 +625,7 @@ export function renderErrorLog(
 
   if (processingErrors.length === 0) {
     errorLogSummary.textContent =
-      'No processing issues found. All data is sourced from the main Full Calendar cache.';
+      'No processing issues found; all data is sourced from the main cache.';
     errorLogContainer.addClass('is-hidden');
     errorLogContainer.removeClass('is-visible');
     return;
@@ -603,13 +640,13 @@ export function renderErrorLog(
     const summary = safeCreateEl(details, 'summary');
     const content = safeCreateDiv(details, { cls: 'log-entry-content' });
 
-    summary.textContent = `⚠️ ${err.file || 'Unknown File'}`;
+    summary.textContent = `⚠️ ${err.file || 'Unknown file'}`;
 
-    const pathLabel = safeCreateEl(content, 'strong', { text: 'Path: ' });
+    safeCreateEl(content, 'strong', { text: 'Path: ' });
     content.appendChild(document.createTextNode(err.path || 'N/A'));
     safeCreateEl(content, 'br');
 
-    const reasonLabel = safeCreateEl(content, 'strong', { text: 'Reason: ' });
+    safeCreateEl(content, 'strong', { text: 'Reason: ' });
     content.appendChild(document.createTextNode(err.reason || 'No specific reason provided.'));
   });
   errorLogContainer.removeClass('is-hidden');

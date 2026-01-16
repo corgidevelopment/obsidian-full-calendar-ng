@@ -6,7 +6,7 @@
 
 import { Setting } from 'obsidian';
 import * as ReactDOM from 'react-dom/client';
-import { createElement, RefObject } from 'react';
+import React, { createElement, RefObject } from 'react';
 import FullCalendarPlugin from '../../../main';
 import { addCalendarButton } from '../SettingsTab';
 import { CalendarSettings, CalendarSettingsRef } from './calendars/CalendarSetting';
@@ -27,16 +27,18 @@ export function renderCalendarManagement(
       ref: calendarSettingsRef as React.Ref<CalendarSettings>,
       sources: plugin.providerRegistry.getAllSources(),
       plugin: plugin,
-      submit: async (settings: CalendarInfo[]) => {
-        plugin.settings.calendarSources = settings;
-        await plugin.saveSettings();
+      submit: (settings: CalendarInfo[]): void => {
+        void (async () => {
+          plugin.settings.calendarSources = settings;
+          await plugin.saveSettings();
+        })();
       }
     })
   );
   addCalendarButton(
     plugin,
     containerEl,
-    async (source: CalendarInfo) => {
+    (source: CalendarInfo): void => {
       calendarSettingsRef.current?.addSource(source);
     },
     () => calendarSettingsRef.current?.getUsedDirectories() ?? []

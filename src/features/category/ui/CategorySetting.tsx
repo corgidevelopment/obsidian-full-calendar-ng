@@ -126,7 +126,7 @@ export const CategorySettingsManager = ({
       {dirty && (
         <div className="setting-item">
           <div className="setting-item-control">
-            <button onClick={handleSave} className="mod-cta">
+            <button onClick={() => void handleSave()} className="mod-cta">
               Save Category Settings
             </button>
           </div>

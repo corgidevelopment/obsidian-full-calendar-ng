@@ -52,19 +52,21 @@ export class TimeEngine {
     this.cache = cache;
   }
 
-  async start() {
+  start(): Promise<void> {
     if (this.intervalId !== null) {
       this.stop();
     }
 
-    // 1. Await the initial, critical build of the occurrence cache.
-    await this.rebuildOccurrenceCache();
+    return (async () => {
+      // 1. Await the initial, critical build of the occurrence cache.
+      await this.rebuildOccurrenceCache();
 
-    // 2. Immediate tick so subscribers receive initial state without waiting a minute.
-    this.tick();
+      // 2. Immediate tick so subscribers receive initial state without waiting a minute.
+      this.tick();
 
-    // 3. Begin regular ticking.
-    this.intervalId = window.setInterval(() => this.tick(), CHECK_INTERVAL_MS);
+      // 3. Begin regular ticking.
+      this.intervalId = window.setInterval(() => this.tick(), CHECK_INTERVAL_MS);
+    })();
   }
 
   stop() {
@@ -88,11 +90,11 @@ export class TimeEngine {
       window.clearTimeout(this.rebuildTimeout);
     }
     this.rebuildTimeout = window.setTimeout(() => {
-      this.rebuildOccurrenceCache();
+      void this.rebuildOccurrenceCache();
     }, 500); // 500ms debounce to batch rapid changes.
   }
 
-  private async tick() {
+  private tick() {
     const now = DateTime.now();
 
     // Prune past events from the cache that are no longer relevant.
@@ -126,8 +128,8 @@ export class TimeEngine {
     return { current, upcoming, recentlyFinished: [] };
   }
 
-  private async rebuildOccurrenceCache() {
-    if (this.isBuildingCache) return;
+  private rebuildOccurrenceCache(): Promise<void> {
+    if (this.isBuildingCache) return Promise.resolve();
     this.isBuildingCache = true;
 
     try {
@@ -190,9 +192,7 @@ export class TimeEngine {
               };
               if (event.daysOfWeek) {
                 ruleOptions.freq = RRule.WEEKLY;
-                ruleOptions.byweekday = event.daysOfWeek.map(
-                  c => weekdays[c as keyof typeof weekdays]
-                );
+                ruleOptions.byweekday = event.daysOfWeek.map(c => weekdays[c]);
               } else if (event.dayOfMonth) {
                 ruleOptions.freq = RRule.MONTHLY;
                 ruleOptions.bymonthday = event.dayOfMonth;
@@ -242,5 +242,7 @@ export class TimeEngine {
     } finally {
       this.isBuildingCache = false;
     }
+
+    return Promise.resolve();
   }
 }

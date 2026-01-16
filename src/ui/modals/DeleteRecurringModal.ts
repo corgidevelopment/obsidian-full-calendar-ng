@@ -35,7 +35,9 @@ export class DeleteRecurringModal extends Modal {
             .setCta()
             .onClick(() => {
               this.close();
-              this.onDeleteInstance && this.onDeleteInstance();
+              if (this.onDeleteInstance) {
+                this.onDeleteInstance();
+              }
             })
         );
     }

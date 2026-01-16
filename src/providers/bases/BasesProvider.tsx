@@ -1,11 +1,11 @@
-import { TFile, App, Notice, parseYaml, getAllTags, normalizePath } from 'obsidian';
+import { TFile, parseYaml, getAllTags } from 'obsidian';
 import * as React from 'react';
 import { CalendarProvider, CalendarProviderCapabilities } from '../Provider';
 import { OFCEvent, EventLocation, CalendarInfo, validateEvent } from '../../types';
-import { FCReactComponent, ProviderConfigContext, EventHandle } from '../typesProvider';
+import { FCReactComponent, EventHandle } from '../typesProvider';
 import FullCalendarPlugin from '../../main';
 import { ObsidianInterface } from '../../ObsidianAdapter';
-import { BasesConfigComponent } from './BasesConfigComponent';
+import { BasesConfigComponent, BasesConfigComponentProps } from './BasesConfigComponent';
 
 export interface BasesProviderConfig {
   type: 'bases';
@@ -22,14 +22,14 @@ interface BaseFilter {
 
 interface BaseFile {
   filters?: BaseFilter;
-  views?: any[];
-  properties?: any;
+  views?: unknown[];
+  properties?: unknown;
 }
 
 export class BasesProvider implements CalendarProvider<BasesProviderConfig> {
   static type = 'bases';
   static displayName = 'Obsidian Bases';
-  static getConfigurationComponent(): FCReactComponent<any> {
+  static getConfigurationComponent(): FCReactComponent<BasesConfigComponentProps> {
     return BasesConfigComponent;
   }
 
@@ -118,7 +118,10 @@ export class BasesProvider implements CalendarProvider<BasesProviderConfig> {
     const events: [OFCEvent, EventLocation | null][] = [];
 
     // Check if Bases plugin is enabled
-    const app = this.plugin.app as any;
+    const app = this.plugin.app as unknown as {
+      internalPlugins?: { getPluginById: (id: string) => unknown };
+      plugins?: { getPlugin: (id: string) => unknown };
+    };
     const basesPlugin =
       app.internalPlugins?.getPluginById('bases') || app.plugins?.getPlugin('bases');
     if (!basesPlugin) {
@@ -135,7 +138,7 @@ export class BasesProvider implements CalendarProvider<BasesProviderConfig> {
       const content = await this.plugin.app.vault.read(baseFile);
       let baseData: BaseFile;
       try {
-        baseData = parseYaml(content);
+        baseData = parseYaml(content) as BaseFile;
       } catch (e) {
         console.warn('Failed to parse Base file as YAML', e);
         return [];
@@ -165,14 +168,26 @@ export class BasesProvider implements CalendarProvider<BasesProviderConfig> {
     if (!metadata) return null;
 
     // Heuristic to find date fields
-    const date = metadata.date || metadata.start || metadata.startTime || metadata.due;
+    const date: unknown = metadata.date || metadata.start || metadata.startTime || metadata.due;
     if (!date) return null;
 
-    const title = metadata.title || file.basename;
-    const category = metadata.category || metadata.Category;
-    const subCategory = metadata['sub category'] || metadata.SubCategory || metadata.subCategory;
+    const title: string = typeof metadata.title === 'string' ? metadata.title : file.basename;
+    const category: string | undefined =
+      typeof metadata.category === 'string'
+        ? metadata.category
+        : typeof metadata.Category === 'string'
+          ? metadata.Category
+          : undefined;
+    const subCategory: string | undefined =
+      typeof metadata['sub category'] === 'string'
+        ? metadata['sub category']
+        : typeof metadata.SubCategory === 'string'
+          ? metadata.SubCategory
+          : typeof metadata.subCategory === 'string'
+            ? metadata.subCategory
+            : undefined;
 
-    let finalTitle = title;
+    let finalTitle: string = title;
     if (category && subCategory) {
       finalTitle = `${category} - ${subCategory} - ${title}`;
     } else if (category) {
@@ -182,12 +197,14 @@ export class BasesProvider implements CalendarProvider<BasesProviderConfig> {
     }
 
     // Construct a raw object to pass to validateEvent for standard processing
-    const rawEvent = {
+    const metadataType = typeof metadata.type === 'string' ? metadata.type : 'single';
+    const metadataAllDay = typeof metadata.allDay === 'boolean' ? metadata.allDay : true;
+    const rawEvent: Record<string, unknown> = {
       ...metadata,
       title: finalTitle,
       date: date,
-      type: metadata.type || 'single', // Default to single if not specified
-      allDay: metadata.allDay !== undefined ? metadata.allDay : true, // Default to all day
+      type: metadataType, // Default to single if not specified
+      allDay: metadataAllDay, // Default to all day
       category: category,
       subCategory: subCategory
     };
@@ -209,32 +226,32 @@ export class BasesProvider implements CalendarProvider<BasesProviderConfig> {
     return null;
   }
 
-  async createEvent(event: OFCEvent): Promise<[OFCEvent, EventLocation | null]> {
-    throw new Error('Not implemented');
+  createEvent(event: OFCEvent): Promise<[OFCEvent, EventLocation | null]> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async updateEvent(
+  updateEvent(
     handle: EventHandle,
     oldEvent: OFCEvent,
     newEvent: OFCEvent
   ): Promise<EventLocation | null> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async deleteEvent(handle: EventHandle): Promise<void> {
-    throw new Error('Not implemented');
+  deleteEvent(handle: EventHandle): Promise<void> {
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  async createInstanceOverride(
+  createInstanceOverride(
     masterEvent: OFCEvent,
     instanceDate: string,
     newEventData: OFCEvent
   ): Promise<[OFCEvent, EventLocation | null]> {
-    throw new Error('Not implemented');
+    return Promise.reject(new Error('Not implemented'));
   }
 
-  getConfigurationComponent(): FCReactComponent<any> {
-    return BasesConfigComponent as any;
+  getConfigurationComponent(): FCReactComponent<BasesConfigComponentProps> {
+    return BasesConfigComponent;
   }
 
   getSettingsRowComponent(): FCReactComponent<{ source: Partial<CalendarInfo> }> {

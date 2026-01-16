@@ -1,5 +1,4 @@
 import { CachedMetadata, ListItemCache, Loc, Pos } from "obsidian";
-import { start } from "repl";
 
 type ListItem = {
     type: "item";
@@ -168,7 +167,7 @@ export class ListBuilder {
         this.items = items;
     }
 
-    item(text: string, checkbox?: boolean | undefined) {
+    item(text: string, checkbox?: boolean) {
         const i: ListItem = {
             type: "item",
             text,

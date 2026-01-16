@@ -55,12 +55,12 @@ describe('Tasks Provider Lifecycle Management', () => {
   describe('syncBacklogManagerLifecycle', () => {
     it('should load backlog when Tasks provider is available', () => {
       // Mock that a tasks provider exists
-      jest.spyOn(providerRegistry, 'hasProviderOfType').mockReturnValue(true);
+      const spy = jest.spyOn(providerRegistry, 'hasProviderOfType').mockReturnValue(true);
       mockTasksBacklogManager.getIsLoaded.mockReturnValue(false);
 
       providerRegistry.syncBacklogManagerLifecycle();
 
-      expect(providerRegistry.hasProviderOfType).toHaveBeenCalledWith('tasks');
+      expect(spy).toHaveBeenCalledWith('tasks');
       expect(mockTasksBacklogManager.getIsLoaded).toHaveBeenCalled();
       expect(mockTasksBacklogManager.onload).toHaveBeenCalled();
       expect(mockTasksBacklogManager.onunload).not.toHaveBeenCalled();
@@ -68,12 +68,12 @@ describe('Tasks Provider Lifecycle Management', () => {
 
     it('should not load backlog if already loaded', () => {
       // Mock that a tasks provider exists and backlog is already loaded
-      jest.spyOn(providerRegistry, 'hasProviderOfType').mockReturnValue(true);
+      const spy = jest.spyOn(providerRegistry, 'hasProviderOfType').mockReturnValue(true);
       mockTasksBacklogManager.getIsLoaded.mockReturnValue(true);
 
       providerRegistry.syncBacklogManagerLifecycle();
 
-      expect(providerRegistry.hasProviderOfType).toHaveBeenCalledWith('tasks');
+      expect(spy).toHaveBeenCalledWith('tasks');
       expect(mockTasksBacklogManager.getIsLoaded).toHaveBeenCalled();
       expect(mockTasksBacklogManager.onload).not.toHaveBeenCalled();
       expect(mockTasksBacklogManager.onunload).not.toHaveBeenCalled();
@@ -81,12 +81,12 @@ describe('Tasks Provider Lifecycle Management', () => {
 
     it('should unload backlog when no Tasks provider is available', () => {
       // Mock that no tasks provider exists but backlog is loaded
-      jest.spyOn(providerRegistry, 'hasProviderOfType').mockReturnValue(false);
+      const spy = jest.spyOn(providerRegistry, 'hasProviderOfType').mockReturnValue(false);
       mockTasksBacklogManager.getIsLoaded.mockReturnValue(true);
 
       providerRegistry.syncBacklogManagerLifecycle();
 
-      expect(providerRegistry.hasProviderOfType).toHaveBeenCalledWith('tasks');
+      expect(spy).toHaveBeenCalledWith('tasks');
       expect(mockTasksBacklogManager.getIsLoaded).toHaveBeenCalled();
       expect(mockTasksBacklogManager.onunload).toHaveBeenCalled();
       expect(mockTasksBacklogManager.onload).not.toHaveBeenCalled();
@@ -94,12 +94,12 @@ describe('Tasks Provider Lifecycle Management', () => {
 
     it('should not unload backlog if already unloaded', () => {
       // Mock that no tasks provider exists and backlog is already unloaded
-      jest.spyOn(providerRegistry, 'hasProviderOfType').mockReturnValue(false);
+      const spy = jest.spyOn(providerRegistry, 'hasProviderOfType').mockReturnValue(false);
       mockTasksBacklogManager.getIsLoaded.mockReturnValue(false);
 
       providerRegistry.syncBacklogManagerLifecycle();
 
-      expect(providerRegistry.hasProviderOfType).toHaveBeenCalledWith('tasks');
+      expect(spy).toHaveBeenCalledWith('tasks');
       expect(mockTasksBacklogManager.getIsLoaded).toHaveBeenCalled();
       expect(mockTasksBacklogManager.onload).not.toHaveBeenCalled();
       expect(mockTasksBacklogManager.onunload).not.toHaveBeenCalled();
@@ -110,7 +110,6 @@ describe('Tasks Provider Lifecycle Management', () => {
     it('should ensure syncBacklogManagerLifecycle is callable from main.ts', () => {
       // This test ensures the method exists and is public
       expect(typeof providerRegistry.syncBacklogManagerLifecycle).toBe('function');
-      expect(providerRegistry.syncBacklogManagerLifecycle).toBeInstanceOf(Function);
     });
   });
 });

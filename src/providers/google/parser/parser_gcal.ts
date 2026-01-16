@@ -50,8 +50,8 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
   // DEBUG: Log all incoming Google events for debugging recurring event issues
   const isDebugEvent = gEvent.summary === '123123';
   if (isDebugEvent) {
-    console.log('[FC DEBUG] fromGoogleEvent called for "123123"');
-    console.log('[FC DEBUG] Raw Google Event:', JSON.stringify(gEvent, null, 2));
+    console.debug('[FC DEBUG] fromGoogleEvent called for "123123"');
+    console.debug('[FC DEBUG] Raw Google Event:', JSON.stringify(gEvent, null, 2));
   }
 
   if (gEvent.status === 'cancelled') {
@@ -59,7 +59,7 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
     // Its information is already incorporated into the master event's `exdates`.
     // We should not display it as a separate event.
     if (isDebugEvent) {
-      console.log('[FC DEBUG] Event is cancelled, returning null');
+      console.debug('[FC DEBUG] Event is cancelled, returning null');
     }
     return null;
   }
@@ -67,7 +67,7 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
   if (!gEvent.id || !gEvent.summary || (!gEvent.start && !gEvent.end)) {
     // Not a valid event.
     if (isDebugEvent) {
-      console.log(
+      console.debug(
         '[FC DEBUG] Event is invalid (missing id, summary, or start/end), returning null'
       );
     }
@@ -113,10 +113,10 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
     );
 
     if (isDebugEvent) {
-      console.log('[FC DEBUG] Raw dateTime:', gEvent.start.dateTime);
-      console.log('[FC DEBUG] Event timezone:', eventTimezone);
-      console.log('[FC DEBUG] Parsed start in event TZ:', start.toString());
-      console.log('[FC DEBUG] Start time extracted:', start.toFormat('HH:mm'));
+      console.debug('[FC DEBUG] Raw dateTime:', gEvent.start.dateTime);
+      console.debug('[FC DEBUG] Event timezone:', eventTimezone);
+      console.debug('[FC DEBUG] Parsed start in event TZ:', start.toString());
+      console.debug('[FC DEBUG] Start time extracted:', start.toFormat('HH:mm'));
     }
 
     eventData.date = start.toISODate();
@@ -166,13 +166,13 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
 
       // DEBUG: Log the parsed recurring event
       if (isDebugEvent) {
-        console.log('[FC DEBUG] Parsed as rrule event');
-        console.log('[FC DEBUG] eventData:', JSON.stringify(eventData, null, 2));
-        console.log('[FC DEBUG] rruleEvent:', JSON.stringify(rruleEvent, null, 2));
-        console.log('[FC DEBUG] Final OFCEvent:', JSON.stringify(result, null, 2));
-        console.log('[FC DEBUG] Original RRULE string from Google:', rruleString);
-        console.log('[FC DEBUG] Parsed rrule.toString():', rrule.toString());
-        console.log('[FC DEBUG] rrule options:', JSON.stringify(rrule.options, null, 2));
+        console.debug('[FC DEBUG] Parsed as rrule event');
+        console.debug('[FC DEBUG] eventData:', JSON.stringify(eventData, null, 2));
+        console.debug('[FC DEBUG] rruleEvent:', JSON.stringify(rruleEvent, null, 2));
+        console.debug('[FC DEBUG] Final OFCEvent:', JSON.stringify(result, null, 2));
+        console.debug('[FC DEBUG] Original RRULE string from Google:', rruleString);
+        console.debug('[FC DEBUG] Parsed rrule.toString():', rrule.toString());
+        console.debug('[FC DEBUG] rrule options:', JSON.stringify(rrule.options, null, 2));
       }
 
       return result;
@@ -188,8 +188,8 @@ export function fromGoogleEvent(gEvent: GoogleEventLike): OFCEvent | null {
 
   // DEBUG: Log the parsed single event
   if (isDebugEvent) {
-    console.log('[FC DEBUG] Parsed as single event');
-    console.log('[FC DEBUG] Final OFCEvent:', JSON.stringify(result, null, 2));
+    console.debug('[FC DEBUG] Parsed as single event');
+    console.debug('[FC DEBUG] Final OFCEvent:', JSON.stringify(result, null, 2));
   }
 
   return result;
@@ -209,7 +209,7 @@ export function toGoogleEvent(event: OFCEvent): object {
   gEvent.summary = constructTitle(event.category, event.subCategory, event.title);
 
   // 2. Recurrence
-  let recurrence: string[] = [];
+  const recurrence: string[] = [];
   if (event.type === 'rrule' && event.rrule) {
     recurrence.push(`RRULE:${event.rrule}`);
   } else if (event.type === 'recurring') {

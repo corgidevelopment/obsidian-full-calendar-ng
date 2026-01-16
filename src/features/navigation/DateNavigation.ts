@@ -14,7 +14,7 @@
  * @license See LICENSE.md
  */
 
-import { Calendar } from '@fullcalendar/core';
+import { Calendar, ViewApi } from '@fullcalendar/core';
 import { Menu } from 'obsidian';
 import { DatePicker, createHiddenDatePicker } from '../../ui/components/forms/DatePicker';
 import { t } from '../i18n/i18n';
@@ -221,12 +221,12 @@ export class DateNavigation {
         // For other views, return current date
         return view.currentStart;
       }
-    } catch (e) {
+    } catch {
       return null;
     }
   }
 
-  private getDateFromMonthGrid(x: number, y: number, rect: DOMRect, view: any): Date {
+  private getDateFromMonthGrid(x: number, y: number, rect: DOMRect, view: ViewApi): Date {
     // Simple approximation for month view
     // This is a basic implementation - could be enhanced
     const startOfMonth = new Date(view.currentStart);
@@ -244,7 +244,7 @@ export class DateNavigation {
     return targetDate;
   }
 
-  private getDateFromTimeGrid(x: number, y: number, rect: DOMRect, view: any): Date {
+  private getDateFromTimeGrid(x: number, y: number, rect: DOMRect, view: ViewApi): Date {
     // Simple approximation for week/day view
     const startOfView = new Date(view.currentStart);
     const endOfView = new Date(view.currentEnd);
@@ -252,8 +252,8 @@ export class DateNavigation {
       (endOfView.getTime() - startOfView.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    const allDayHeight = 50; // Approximate all-day area height
-    const headerHeight = 30; // Approximate header height
+    // Note: allDayHeight and headerHeight are not currently needed for the calculation
+    // but their approximate values are: allDay=50px, header=30px
     const timeGridX = x;
 
     let dayIndex = 0;

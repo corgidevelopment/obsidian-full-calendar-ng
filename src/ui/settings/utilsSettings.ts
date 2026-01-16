@@ -82,13 +82,13 @@ export function migrateAndSanitizeSettings(settings: unknown): {
       needsSave = true;
       switch (source.type) {
         case 'local':
-          source.name = (source as Extract<CalendarInfo, { type: 'local' }>).directory;
+          source.name = source.directory;
           break;
         case 'dailynote':
           source.name = 'Daily Note';
           break;
         case 'ical':
-          source.name = (source as Extract<CalendarInfo, { type: 'ical' }>).url;
+          source.name = source.url;
           break;
         default:
           source.name = 'Unnamed Calendar';
@@ -101,7 +101,7 @@ export function migrateAndSanitizeSettings(settings: unknown): {
   // googleAccounts already defaulted above
 
   // MIGRATION 1: Global googleAuth to source-specific auth (from previous work, can be removed or kept for safety)
-  const globalGoogleAuth = (raw.googleAuth as LegacyGoogleAuth | undefined) || null;
+  const globalGoogleAuth = raw.googleAuth || null;
   if (globalGoogleAuth) {
     // This logic is technically superseded by the next migration,
     // but we can leave it for robustness during the transition.
@@ -126,7 +126,7 @@ export function migrateAndSanitizeSettings(settings: unknown): {
         if (refreshTokenToAccountId.has(refreshToken)) {
           source.googleAccountId = refreshTokenToAccountId.get(refreshToken);
         } else {
-          const newAccountId = `gcal_${Math.random().toString(36).substr(2, 9)}`;
+          const newAccountId = `gcal_${Math.random().toString(36).slice(2, 11)}`;
           const newAccount: GoogleAccount = {
             id: newAccountId,
             email: 'Migrated Account',

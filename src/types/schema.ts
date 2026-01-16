@@ -12,20 +12,7 @@
  * @license See LICENSE.md
  */
 
-import { DateTime } from 'luxon';
 import { z, ZodError } from 'zod';
-
-const stripTime = (date: DateTime) => {
-  // Strip time from luxon dateTime.
-  return DateTime.fromObject(
-    {
-      year: date.year,
-      month: date.month,
-      day: date.day
-    },
-    { zone: 'utc' }
-  );
-};
 
 export const ParsedDate = z.string();
 // z.string().transform((val, ctx) => {
@@ -205,6 +192,7 @@ export function validateEvent(obj: unknown): OFCEvent | null {
     return parseEvent(obj);
   } catch (e) {
     if (e instanceof ZodError) {
+      // Swallow validation errors and surface null to callers.
     }
     return null;
   }

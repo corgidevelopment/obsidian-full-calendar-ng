@@ -19,11 +19,6 @@ import { FullCalendarSettings } from '../../types/settings';
 // TYPES AND CONSTANTS
 // =================================================================================================
 
-type Line = {
-  text: string;
-  lineNumber: number;
-};
-
 type AddToHeadingProps = {
   heading: HeadingCache | undefined;
   item: OFCEvent;
@@ -31,8 +26,8 @@ type AddToHeadingProps = {
 };
 
 export const fieldRegex = /\s*\[.*?\]\s*/g;
-export const listRegex = /^(\s*)\-\s+(\[(.)\]\s+)?/;
-const checkboxRegex = /^\s*\-\s+\[(.)\]\s+/;
+export const listRegex = /^(\s*)-\s+(\[(.)\]\s+)?/;
+const checkboxRegex = /^\s*-\s+\[(.)\]\s+/;
 const inlineFieldRegex = /\[([^\]]+):: ?([^\]]+)\]/g;
 
 // INTERNAL HELPERS
@@ -85,9 +80,9 @@ export const getListsUnderHeading = (
   );
 };
 
-const generateInlineAttributes = (attrs: Record<string, any>): string => {
+const generateInlineAttributes = (attrs: Record<string, unknown>): string => {
   return Object.entries(attrs)
-    .map(([k, v]) => `[${k}:: ${v}]`)
+    .map(([k, v]) => `[${k}:: ${String(v)}]`)
     .join('  ');
 };
 
@@ -171,13 +166,16 @@ export const getInlineEventFromLine = (
   };
 
   // Handle legacy overnight events if no explicit endDate is provided.
+  const startTimeValue = attrsForValidation.startTime;
+  const endTimeValue = attrsForValidation.endTime;
+
   if (
     !attrsForValidation.endDate &&
     !allDay &&
-    attrsForValidation.startTime &&
-    attrsForValidation.endTime
+    typeof startTimeValue === 'string' &&
+    typeof endTimeValue === 'string'
   ) {
-    if (String(attrsForValidation.endTime) < String(attrsForValidation.startTime)) {
+    if (endTimeValue < startTimeValue) {
       const startDate = attrsForValidation.date as string;
       if (startDate) {
         attrsForValidation.endDate = DateTime.fromISO(startDate).plus({ days: 1 }).toISODate();
@@ -228,7 +226,7 @@ export const addToHeading = (
   { heading, item, headingText }: AddToHeadingProps,
   settings: FullCalendarSettings
 ): { page: string; lineNumber: number } => {
-  let lines = page.split('\n');
+  const lines = page.split('\n');
   const listItem = makeListItem(item, '', settings);
   if (heading) {
     const headingLine = heading.position.start.line;

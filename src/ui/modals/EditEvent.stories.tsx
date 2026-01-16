@@ -1,19 +1,19 @@
 import type { Story } from '@ladle/react';
 import { OFCEvent } from '../../types';
 
-import { EditEvent } from '../modals/components/EditEvent';
+import { EditEvent } from './EditEvent';
 
 const calendars = [
-  { id: 'local::calendar', name: 'local calendar', type: 'local' as 'local' },
+  { id: 'local::calendar', name: 'local calendar', type: 'local' as const },
   {
     id: 'local::calendar2',
     name: 'second calendar',
-    type: 'local' as 'local'
+    type: 'local' as const
   },
   {
     id: 'dailynote::calendar',
     name: 'Daily Note Calendar',
-    type: 'dailynote' as 'dailynote'
+    type: 'dailynote' as const
   }
 ];
 
@@ -29,6 +29,8 @@ const EventModal = ({ initialEvent }: { initialEvent: Partial<OFCEvent> | undefi
         calendars={calendars}
         defaultCalendarIndex={0}
         initialEvent={initialEvent}
+        enableCategory={true}
+        enableReminders={true}
       ></EditEvent>
     </div>
   </div>

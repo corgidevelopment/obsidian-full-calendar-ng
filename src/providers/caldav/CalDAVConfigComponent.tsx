@@ -43,7 +43,12 @@ export const CalDAVConfigComponent: React.FC<CalDAVConfigComponentProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form
+      onSubmit={e => {
+        e.preventDefault();
+        void handleSubmit(e);
+      }}
+    >
       <div className="setting-item">
         <div className="setting-item-info">
           <div className="setting-item-name">{t('settings.calendars.caldav.url.label')}</div>

@@ -5,19 +5,41 @@
  * @license See LICENSE.md
  */
 
-import { DateTime } from 'luxon';
 import { TasksPluginProvider } from '../TasksPluginProvider';
 import { TasksProviderConfig } from '../typesTask';
-import { TFile } from 'obsidian';
+import type { OFCEvent } from '../../../types/schema';
+import type { ObsidianInterface } from '../../../ObsidianAdapter';
+import type FullCalendarPlugin from '../../../main';
 
 // Mock the dependencies
 jest.mock('../../../ObsidianAdapter');
 // NOTE: NOT mocking TasksParser so we can test the real enhanced parsing functionality
 
+type MockApp = {
+  read: jest.Mock;
+  getAbstractFileByPath: jest.Mock;
+  getFileByPath: jest.Mock;
+  getMetadata: jest.Mock;
+  create: jest.Mock;
+  rewrite: jest.Mock;
+  delete: jest.Mock;
+};
+
+type MockPlugin = {
+  app: {
+    vault: { getMarkdownFiles: jest.Mock };
+    workspace: { trigger: jest.Mock };
+  };
+  settings: Record<string, unknown>;
+  providerRegistry: {
+    refreshBacklogViews: jest.Mock;
+  };
+};
+
 describe('TasksPluginProvider', () => {
   let provider: TasksPluginProvider;
-  let mockApp: any;
-  let mockPlugin: any;
+  let mockApp: MockApp;
+  let mockPlugin: MockPlugin;
 
   beforeEach(() => {
     // Mock ObsidianInterface
@@ -38,7 +60,7 @@ describe('TasksPluginProvider', () => {
           getMarkdownFiles: jest.fn().mockReturnValue([])
         },
         workspace: {
-          trigger: jest.fn((eventName, callback) => {
+          trigger: jest.fn((eventName: string, callback: (data: unknown) => void) => {
             if (eventName === 'obsidian-tasks-plugin:request-cache-update') {
               callback({ state: 'Warm', tasks: [] }); // MODIFIED: resolves cache warm promise
             }
@@ -56,7 +78,11 @@ describe('TasksPluginProvider', () => {
       name: 'Test Tasks'
     };
 
-    provider = new TasksPluginProvider(config, mockPlugin, mockApp);
+    provider = new TasksPluginProvider(
+      config,
+      mockPlugin as unknown as FullCalendarPlugin,
+      mockApp as unknown as ObsidianInterface
+    );
   });
 
   describe('basic properties', () => {
@@ -80,7 +106,7 @@ describe('TasksPluginProvider', () => {
 
   describe('Tasks API integration', () => {
     it('should reject creating events directly', async () => {
-      const event: any = { title: 'Test Event', type: 'single', date: '2024-01-01' };
+      const event = { title: 'Test Event', type: 'single', date: '2024-01-01' } as OFCEvent;
 
       await expect(provider.createEvent(event)).rejects.toThrow(
         'Full Calendar cannot create tasks directly. Please use the Tasks plugin modal or commands.'
@@ -89,8 +115,8 @@ describe('TasksPluginProvider', () => {
 
     it('should reject recurring events for update', async () => {
       const handle = { persistentId: 'test::1' };
-      const oldEvent: any = { title: 'Old', type: 'single' };
-      const newEvent: any = { title: 'New', type: 'recurring' };
+      const oldEvent = { title: 'Old', type: 'single' } as OFCEvent;
+      const newEvent = { title: 'New', type: 'recurring' } as OFCEvent;
 
       await expect(provider.updateEvent(handle, oldEvent, newEvent)).rejects.toThrow(
         'Tasks provider can only update single, dated events.'
@@ -106,9 +132,9 @@ describe('TasksPluginProvider', () => {
     });
 
     it('should still reject instance overrides', async () => {
-      const masterEvent: any = { title: 'Master' };
+      const masterEvent = { title: 'Master' } as OFCEvent;
       const instanceDate = '2024-01-15';
-      const newEventData: any = { title: 'Override' };
+      const newEventData = { title: 'Override' } as OFCEvent;
 
       await expect(
         provider.createInstanceOverride(masterEvent, instanceDate, newEventData)
@@ -118,10 +144,10 @@ describe('TasksPluginProvider', () => {
 
   describe('event handle generation', () => {
     it('should generate event handle from UID', () => {
-      const event: any = {
+      const event = {
         uid: 'test-file.md::5',
         title: 'Test Task'
-      };
+      } as OFCEvent;
 
       const handle = provider.getEventHandle(event);
 
@@ -130,9 +156,9 @@ describe('TasksPluginProvider', () => {
     });
 
     it('should return null for event without UID', () => {
-      const event: any = {
+      const event = {
         title: 'Test Task'
-      };
+      } as OFCEvent;
 
       const handle = provider.getEventHandle(event);
 
@@ -145,7 +171,7 @@ describe('TasksPluginProvider', () => {
       const config: TasksProviderConfig = { id: 'tasks_1' };
 
       expect(() => {
-        new TasksPluginProvider(config, mockPlugin);
+        new TasksPluginProvider(config, mockPlugin as unknown as FullCalendarPlugin);
       }).toThrow('TasksPluginProvider requires an Obsidian app interface.');
     });
   });

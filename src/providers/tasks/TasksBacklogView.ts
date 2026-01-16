@@ -38,24 +38,26 @@ export class TasksBacklogView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Tasks Backlog';
+    return 'Tasks backlog';
   }
 
   getIcon(): string {
     return 'list-todo';
   }
 
-  async onOpen(): Promise<void> {
-    // Find the TasksPluginProvider instance
-    this.tasksProvider = this.findTasksProvider();
+  onOpen(): Promise<void> {
+    return (async () => {
+      // Find the TasksPluginProvider instance
+      this.tasksProvider = this.findTasksProvider();
 
-    if (!this.tasksProvider) {
-      this.renderNoTasksProvider();
-      return;
-    }
+      if (!this.tasksProvider) {
+        this.renderNoTasksProvider();
+        return;
+      }
 
-    await this.loadTasks();
-    this.render();
+      await this.loadTasks();
+      this.render();
+    })();
   }
 
   onClose(): Promise<void> {
@@ -111,12 +113,12 @@ export class TasksBacklogView extends ItemView {
     container.empty();
 
     container.createEl('div', {
-      text: 'No Tasks calendar configured.',
+      text: 'No tasks calendar configured.',
       attr: { class: 'tasks-backlog-empty' }
     });
 
     container.createEl('div', {
-      text: 'Add a Tasks calendar source to use the backlog view.',
+      text: 'Add a tasks calendar source to use the backlog view.',
       attr: { class: 'tasks-backlog-help' }
     });
   }
@@ -133,7 +135,7 @@ export class TasksBacklogView extends ItemView {
 
     // Header
     const header = container.createEl('div', { cls: 'tasks-backlog-header' });
-    header.createEl('h3', { text: 'Tasks Backlog' });
+    header.createEl('h3', { text: 'Tasks backlog' });
 
     if (this.undatedTasks.length > 0) {
       header.createEl('div', {
@@ -196,7 +198,7 @@ export class TasksBacklogView extends ItemView {
       }
 
       // Task location info
-      const location = taskItem.createEl('div', {
+      taskItem.createEl('div', {
         text: `${task.location.path}:${task.location.lineNumber}`,
         cls: 'tasks-backlog-location'
       });
@@ -225,7 +227,7 @@ export class TasksBacklogView extends ItemView {
 
     // Previous button
     const prevBtn = pagination.createEl('button', {
-      text: '← Previous',
+      text: '← previous',
       cls: 'tasks-backlog-nav-btn'
     });
     prevBtn.disabled = this.currentPage === 1;

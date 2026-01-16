@@ -316,3 +316,6 @@ plugin.cache.off('time-tick', timeCallback);
 *   **Data Validation**: Zod (`types/schema.ts`) is used for robust parsing and validation of event data.
 *   **Calendar Engine**: [FullCalendar.io](https://fullcalendar.io/) is the core library used for rendering the calendar view.
 *   **Testing**: The project uses Jest for unit testing. The `ObsidianAdapter` is key to making components testable. To run tests, use `npm test`.
+*   **Linting**: The project uses ESLint with `eslint-plugin-obsidianmd` to ensure code quality and compliance with Obsidian plugin guidelines. 
+    *   To run the linter: `npm run lint:eslint` (writes to `lint_report.txt`)
+    *   To verify formatting: `npm run lint`

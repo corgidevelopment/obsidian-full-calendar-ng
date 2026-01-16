@@ -12,8 +12,6 @@
 
 import { Platform, requestUrl, Notice } from 'obsidian';
 import FullCalendarPlugin from '../../../main';
-import * as http from 'http';
-import * as url from 'url';
 import { GoogleAuthManager } from './GoogleAuthManager';
 import { t } from '../../../features/i18n/i18n';
 
@@ -24,7 +22,6 @@ import { t } from '../../../features/i18n/i18n';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'; // Renamed for clarity
 const PROXY_TOKEN_URL = 'https://gcal-proxy-server.vercel.app/api/google/token';
-const PROXY_REFRESH_URL = 'https://gcal-proxy-server.vercel.app/api/google/refresh';
 
 const SCOPES =
   'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events';
@@ -39,8 +36,18 @@ const PUBLIC_CLIENT_ID = '272284435724-ltjbog78np5lnbjhgecudaqhsfba9voi.apps.goo
 // MODULE STATE
 // =================================================================================================
 
+type DesktopRequest = { url?: string };
+type DesktopResponse = { writeHead: (status: number) => void; end: (body?: string) => void };
+type DesktopServer = { close: () => void; listen: (port: number, callback: () => void) => void };
+type DesktopHttpModule = {
+  createServer: (handler: (req: DesktopRequest, res: DesktopResponse) => void) => DesktopServer;
+};
+type DesktopUrlModule = {
+  parse: (input: string, parseQueryString?: boolean) => { query?: Record<string, unknown> };
+};
+
 let pkce: { verifier: string; state: string } | null = null;
-let server: http.Server | null = null;
+let server: DesktopServer | null = null;
 
 // =================================================================================================
 // PKCE HELPER FUNCTIONS
@@ -74,42 +81,55 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 }
 
 function startDesktopLogin(plugin: FullCalendarPlugin, authUrl: string): void {
+  const http = window.require('http') as DesktopHttpModule;
+  const url = window.require('url') as DesktopUrlModule;
   if (server) {
     window.open(authUrl);
     return;
   }
-  server = http.createServer(async (req, res) => {
-    try {
-      if (!req.url || !req.url.startsWith('/callback')) {
-        res.writeHead(204).end();
-        return;
-      }
+  server = http.createServer(
+    (
+      req: { url?: string },
+      res: { writeHead: (status: number) => void; end: (body?: string) => void }
+    ) => {
+      void (async () => {
+        try {
+          if (!req.url || !req.url.startsWith('/callback')) {
+            res.writeHead(204);
+            res.end();
+            return;
+          }
 
-      const { code, state } = url.parse(req.url, true).query;
+          const parsed = url.parse(req.url, true);
+          const query = parsed.query || {};
+          const code = query.code;
+          const state = query.state;
 
-      if (typeof code !== 'string' || typeof state !== 'string') {
-        throw new Error('Invalid callback parameters');
-      }
+          if (typeof code !== 'string' || typeof state !== 'string') {
+            throw new Error('Invalid callback parameters');
+          }
 
-      res.end('Authentication successful! Please return to Obsidian.');
+          res.end('Authentication successful! Please return to Obsidian.');
 
-      if (server) {
-        server.close();
-        server = null;
-      }
+          if (server) {
+            server.close();
+            server = null;
+          }
 
-      await exchangeCodeForToken(code, state, plugin);
-      // Refresh the settings tab if it's open
-      await plugin.settingsTab?.display();
-    } catch (e) {
-      console.error('Error handling Google Auth callback:', e);
-      res.end('Authentication failed. Please check the console in Obsidian and try again.');
-      if (server) {
-        server.close();
-        server = null;
-      }
+          await exchangeCodeForToken(code, state, plugin);
+          // Refresh the settings tab if it's open
+          plugin.settingsTab?.display();
+        } catch (e) {
+          console.error('Error handling Google Auth callback:', e);
+          res.end('Authentication failed. Please check the console in Obsidian and try again.');
+          if (server) {
+            server.close();
+            server = null;
+          }
+        }
+      })();
     }
-  });
+  );
   server.listen(42813, () => {
     window.open(authUrl);
   });
@@ -237,7 +257,11 @@ export async function exchangeCodeForToken(
       console.error('Token exchange failed:', response.text);
       throw new Error(`Google API returned status ${response.status}: ${response.text}`);
     }
-    const data = response.json;
+    const data = response.json as {
+      refresh_token?: string;
+      access_token: string;
+      expires_in: number;
+    };
 
     if (!data.refresh_token) {
       throw new Error(

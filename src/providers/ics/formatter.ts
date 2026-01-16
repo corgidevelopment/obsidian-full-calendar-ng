@@ -74,8 +74,8 @@ function createVEventComponent(event: OFCEvent, isOverride = false): ical.Compon
     }
   } else {
     // Not all day
-    const startTime = (event as any).startTime || '00:00';
-    const endTime = (event as any).endTime || '00:00';
+    const startTime = (event as unknown as { startTime?: string }).startTime || '00:00';
+    const endTime = (event as unknown as { endTime?: string }).endTime || '00:00';
     const opts = event.timezone ? { zone: event.timezone } : {};
 
     startDt = DateTime.fromISO(`${datePart}T${startTime}`, opts);
@@ -102,7 +102,9 @@ function createVEventComponent(event: OFCEvent, isOverride = false): ical.Compon
   if (!isOverride && event.type === 'rrule' && event.rrule) {
     try {
       const ruleStr = event.rrule.replace(/^RRULE:/i, '');
-      const recur = (ical.Recur as any).fromString ? (ical.Recur as any).fromString(ruleStr) : null;
+      const recur = (ical.Recur as unknown as { fromString?: (s: string) => unknown }).fromString
+        ? (ical.Recur as unknown as { fromString: (s: string) => unknown }).fromString(ruleStr)
+        : null;
       if (recur) {
         vevent.addPropertyWithValue('rrule', recur);
       } else {
@@ -128,7 +130,7 @@ function createVEventComponent(event: OFCEvent, isOverride = false): ical.Compon
         const dt = DateTime.fromISO(skipDate);
         exTime = new ical.Time({ year: dt.year, month: dt.month, day: dt.day, isDate: true });
       } else {
-        const startTime = (event as any).startTime || '00:00';
+        const startTime = (event as unknown as { startTime?: string }).startTime || '00:00';
         const opts = event.timezone ? { zone: event.timezone } : {};
         const dt = DateTime.fromISO(`${skipDate}T${startTime}`, opts);
         exTime = formatDateTime(dt, false);
@@ -151,7 +153,7 @@ export function eventToIcs(event: OFCEvent): string {
   const vevent = createVEventComponent(event);
   component.addSubcomponent(vevent);
 
-  return component.toString();
+  return (component as unknown as { toString(): string }).toString();
 }
 
 /**

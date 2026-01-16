@@ -6,11 +6,7 @@
 
 import { Modal, Setting, DropdownComponent, TextComponent, ToggleComponent } from 'obsidian';
 import FullCalendarPlugin from '../../../main';
-import {
-  WorkspaceSettings,
-  generateWorkspaceId,
-  BusinessHoursSettings
-} from '../../../types/settings';
+import { WorkspaceSettings, generateWorkspaceId } from '../../../types/settings';
 import { CalendarInfo } from '../../../types/calendar_settings';
 import { t } from '../../i18n/i18n';
 
@@ -201,7 +197,7 @@ export class WorkspaceModal extends Modal {
         case 'ical':
           try {
             displayName = `${t('modals.workspace.calendarTypes.ics')} ${new URL(calendar.url).hostname}`;
-          } catch (_) {
+          } catch {
             displayName = t('modals.workspace.calendarTypes.ics').replace(':', '');
           }
           break;
@@ -450,8 +446,8 @@ export class WorkspaceModal extends Modal {
             this.workspace.hiddenDays = undefined;
           } else {
             try {
-              this.workspace.hiddenDays = JSON.parse(value);
-            } catch (e) {
+              this.workspace.hiddenDays = JSON.parse(value) as number[];
+            } catch {
               // Invalid JSON, keep current value
             }
           }

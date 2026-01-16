@@ -31,7 +31,7 @@ jest.mock('../../core/EventCache');
 describe('RecurringEventManager', () => {
   let manager: RecurringEventManager;
   let mockCache: jest.Mocked<EventCache>;
-  let mockProvider: jest.Mocked<CalendarProvider<any>>;
+  let mockProvider: jest.Mocked<CalendarProvider<unknown>>;
 
   const mockPlugin = {
     app: {},
@@ -51,7 +51,7 @@ describe('RecurringEventManager', () => {
       type: 'test',
       displayName: 'Test Provider',
       getEventHandle: jest.fn((event: OFCEvent) => ({ persistentId: event.title }))
-    } as any;
+    } as unknown as jest.Mocked<CalendarProvider<unknown>>;
 
     // Create mock cache
     mockCache = {
@@ -69,7 +69,7 @@ describe('RecurringEventManager', () => {
         getEventDetails: jest.fn(),
         getAllEvents: jest.fn().mockReturnValue([])
       },
-      calendars: new Map([['test-calendar', mockProvider as any]]),
+      calendars: new Map([['test-calendar', mockProvider as CalendarProvider<unknown>]]),
       plugin: mockPlugin
     } as unknown as jest.Mocked<EventCache>;
 
@@ -135,8 +135,12 @@ describe('RecurringEventManager', () => {
       await manager.toggleRecurringInstance('child-event-id', '2023-11-20', false);
 
       // Assert: should delete the override
-      expect(mockCache.deleteEvent).toHaveBeenCalledWith('child-event-id');
-      expect(mockCache.updateEventWithId).not.toHaveBeenCalled();
+      const safeMockCache = mockCache as unknown as {
+        deleteEvent: jest.Mock;
+        updateEventWithId: jest.Mock;
+      };
+      expect(safeMockCache.deleteEvent).toHaveBeenCalledWith('child-event-id');
+      expect(safeMockCache.updateEventWithId).not.toHaveBeenCalled();
     });
 
     it('should preserve override and change completion status when timing is modified', async () => {
@@ -155,8 +159,12 @@ describe('RecurringEventManager', () => {
       await manager.toggleRecurringInstance('child-event-id', '2023-11-20', false);
 
       // Assert: should preserve override but change completion status
-      expect(mockCache.deleteEvent).not.toHaveBeenCalled();
-      expect(mockCache.updateEventWithId).toHaveBeenCalledWith(
+      const safeMockCache = mockCache as unknown as {
+        deleteEvent: jest.Mock;
+        updateEventWithId: jest.Mock;
+      };
+      expect(safeMockCache.deleteEvent).not.toHaveBeenCalled();
+      expect(safeMockCache.updateEventWithId).toHaveBeenCalledWith(
         'child-event-id',
         expect.objectContaining({
           completed: false
@@ -185,8 +193,12 @@ describe('RecurringEventManager', () => {
       await manager.toggleRecurringInstance('child-event-id', '2023-11-20', false);
 
       // Assert: should preserve override
-      expect(mockCache.deleteEvent).not.toHaveBeenCalled();
-      expect(mockCache.updateEventWithId).toHaveBeenCalledWith(
+      const safeMockCache = mockCache as unknown as {
+        deleteEvent: jest.Mock;
+        updateEventWithId: jest.Mock;
+      };
+      expect(safeMockCache.deleteEvent).not.toHaveBeenCalled();
+      expect(safeMockCache.updateEventWithId).toHaveBeenCalledWith(
         'child-event-id',
         expect.objectContaining({
           completed: false
@@ -219,8 +231,12 @@ describe('RecurringEventManager', () => {
       await manager.toggleRecurringInstance('child-event-id', '2023-11-20', false);
 
       // Assert: should preserve override
-      expect(mockCache.deleteEvent).not.toHaveBeenCalled();
-      expect(mockCache.updateEventWithId).toHaveBeenCalledWith(
+      const safeMockCache = mockCache as unknown as {
+        deleteEvent: jest.Mock;
+        updateEventWithId: jest.Mock;
+      };
+      expect(safeMockCache.deleteEvent).not.toHaveBeenCalled();
+      expect(safeMockCache.updateEventWithId).toHaveBeenCalledWith(
         'child-event-id',
         expect.objectContaining({
           completed: false

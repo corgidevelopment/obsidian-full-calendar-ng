@@ -10,11 +10,11 @@ import { TasksProviderConfig } from './typesTask';
 import { ProviderConfigContext } from '../typesProvider';
 import { t } from '../../features/i18n/i18n';
 
-interface TasksConfigComponentProps {
+export interface TasksConfigComponentProps {
   config: Partial<TasksProviderConfig>;
   onConfigChange: (newConfig: Partial<TasksProviderConfig>) => void;
   context: ProviderConfigContext;
-  onSave: (finalConfig: TasksProviderConfig) => void;
+  onSave: (finalConfig: TasksProviderConfig | TasksProviderConfig[]) => void;
   onClose: () => void;
 }
 

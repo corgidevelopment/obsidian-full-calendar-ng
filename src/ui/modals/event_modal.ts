@@ -127,18 +127,20 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
         plugin.app,
         t('modals.event.confirmations.editParentTitle'),
         t('modals.event.confirmations.editParentMessage'),
-        async () => {
-          if (eventToEdit.type === 'single' && eventToEdit.recurringEventId) {
-            const parentLocalId = eventToEdit.recurringEventId;
-            const parentGlobalId = `${calId}::${parentLocalId}`; // <-- CHANGE calendarId to calId
-            const parentSessionId = await plugin.cache.getSessionId(parentGlobalId);
-            if (parentSessionId) {
-              closeModal();
-              launchEditModal(plugin, parentSessionId);
-            } else {
-              new Notice(t('modals.event.errors.parentNotFound'));
+        () => {
+          void (async () => {
+            if (eventToEdit.type === 'single' && eventToEdit.recurringEventId) {
+              const parentLocalId = eventToEdit.recurringEventId;
+              const parentGlobalId = `${calId}::${parentLocalId}`; // <-- CHANGE calendarId to calId
+              const parentSessionId = await plugin.cache.getSessionId(parentGlobalId);
+              if (parentSessionId) {
+                closeModal();
+                launchEditModal(plugin, parentSessionId);
+              } else {
+                new Notice(t('modals.event.errors.parentNotFound'));
+              }
             }
-          }
+          })();
         }
       ).open();
     };
@@ -170,7 +172,7 @@ export function launchEditModal(plugin: FullCalendarPlugin, eventId: string) {
         closeModal();
       },
       open: async () => {
-        openFileForEvent(plugin.cache, plugin.app, eventId);
+        await openFileForEvent(plugin.cache, plugin.app, eventId);
         closeModal();
       },
       deleteEvent: async () => {
@@ -214,9 +216,11 @@ export function launchEventDetailsModal(plugin: FullCalendarPlugin, eventId: str
       location,
       onClose: () => closeModal(),
       onOpenNote: location
-        ? async () => {
-            await openFileForEvent(plugin.cache, plugin.app, eventId);
-            closeModal();
+        ? () => {
+            void (async () => {
+              await openFileForEvent(plugin.cache, plugin.app, eventId);
+              closeModal();
+            })();
           }
         : undefined
     });

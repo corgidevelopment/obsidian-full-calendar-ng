@@ -1,4 +1,3 @@
-import * as path from 'path';
 import { TFile } from 'obsidian';
 import { MockAppBuilder } from './AppBuilder';
 import { FileBuilder, ListBuilder } from './FileBuilder';

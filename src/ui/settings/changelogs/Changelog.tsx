@@ -10,7 +10,7 @@
  * @license See LICENSE.md
  */
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { changelogData } from './changelogData';
 import { Version } from './changelogData';
 import { Setting } from 'obsidian';

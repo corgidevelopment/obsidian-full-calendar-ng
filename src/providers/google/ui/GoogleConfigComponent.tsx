@@ -215,7 +215,7 @@ export const GoogleConfigComponent: React.FC<GoogleConfigComponentProps> = ({
         <div className="setting-item setting-item-heading">
           <div className="setting-item-info">
             <div className="setting-item-name">
-              {t('google.selectCalendars.title', { email: selectedAccount?.email })}
+              {t('google.selectCalendars.title', { email: selectedAccount?.email ?? '' })}
             </div>
             <div className="setting-item-description">
               {availableCalendars.length === 0

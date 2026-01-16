@@ -246,29 +246,31 @@ export class RecurringEventManager {
       const { DeleteRecurringModal } = await import('../../ui/modals/DeleteRecurringModal');
       new DeleteRecurringModal(
         this.cache.plugin.app,
-        () => this.promoteRecurringChildren(eventId),
-        () => this.deleteAllRecurring(eventId),
+        () => void this.promoteRecurringChildren(eventId),
+        () => void this.deleteAllRecurring(eventId),
         options?.instanceDate
-          ? async () => {
-              const updated = await this.cache.processEvent(eventId, e => {
-                if (e.type !== 'recurring' && e.type !== 'rrule') return e;
-                const skipDates = e.skipDates?.includes(options.instanceDate!)
-                  ? e.skipDates
-                  : [...(e.skipDates || []), options.instanceDate!];
-                return { ...e, skipDates };
-              });
+          ? () => {
+              void (async () => {
+                const updated = await this.cache.processEvent(eventId, e => {
+                  if (e.type !== 'recurring' && e.type !== 'rrule') return e;
+                  const skipDates = e.skipDates?.includes(options.instanceDate!)
+                    ? e.skipDates
+                    : [...(e.skipDates || []), options.instanceDate!];
+                  return { ...e, skipDates };
+                });
 
-              if (updated) {
-                const details = this.cache.store.getEventDetails(eventId);
-                if (details) {
-                  const calendarSource = this.cache
-                    .getAllEvents()
-                    .find(s => s.id === details.calendarId);
-                  if (calendarSource) {
-                    this.cache.updateCalendar(calendarSource);
+                if (updated) {
+                  const details = this.cache.store.getEventDetails(eventId);
+                  if (details) {
+                    const calendarSource = this.cache
+                      .getAllEvents()
+                      .find(s => s.id === details.calendarId);
+                    if (calendarSource) {
+                      this.cache.updateCalendar(calendarSource);
+                    }
                   }
                 }
-              }
+              })();
             }
           : undefined,
         options?.instanceDate,
@@ -620,7 +622,7 @@ export class RecurringEventManager {
     if (!providerResult) {
       return false;
     }
-    const { provider, config } = providerResult;
+    const { provider } = providerResult;
 
     const oldHandle = provider.getEventHandle(oldEvent);
     const newHandle = provider.getEventHandle(newEvent);
@@ -655,7 +657,7 @@ export class RecurringEventManager {
       if (!providerResult) {
         throw new Error(`Provider for calendar ${calendarId} not found during rename.`);
       }
-      const { provider, config } = providerResult;
+      const { provider } = providerResult;
 
       // 1. Find the parent's session ID in the cache before doing anything.
       const parentGlobalId = this.cache.getGlobalIdentifier(oldEvent, calendarId);

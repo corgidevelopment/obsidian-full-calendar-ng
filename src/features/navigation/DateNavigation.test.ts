@@ -41,8 +41,9 @@ const createMockApp = () => {
   return {
     vault: {
       getConfig: jest.fn().mockReturnValue('en')
-    }
-  } as any;
+    },
+    loadLocalStorage: jest.fn().mockReturnValue('en')
+  } as unknown as import('obsidian').App;
 };
 
 describe('DateNavigation', () => {

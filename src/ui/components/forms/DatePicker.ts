@@ -16,6 +16,12 @@
 import flatpickr from 'flatpickr';
 import { Instance as FlatpickrInstance } from 'flatpickr/dist/types/instance';
 
+const setCssProps = (element: HTMLElement, props: Record<string, string>): void => {
+  Object.entries(props).forEach(([key, value]) => {
+    element.style.setProperty(key, value);
+  });
+};
+
 export interface DatePickerOptions {
   /** Mode: 'single' for single date selection, 'range' for date range selection */
   mode?: 'single' | 'range';
@@ -166,6 +172,6 @@ export function createHiddenDatePicker(
     cls: 'hidden-date-picker-input',
     attr: { type: 'text' }
   });
-  input.style.display = 'none';
+  setCssProps(input, { display: 'none' });
   return new DatePicker(input, options);
 }

@@ -20,7 +20,8 @@ import { PLUGIN_SLUG } from './types';
 import EventCache from './core/EventCache';
 import { toEventInput } from './core/interop';
 import { manageTimezone } from './features/Timezone';
-import { Notice, Plugin, TFile, App } from 'obsidian';
+import { Notice, Plugin, TFile, App, EventRef } from 'obsidian';
+import type { Workspace } from 'obsidian';
 import { initializeI18n, t } from './features/i18n/i18n';
 import './styles.css';
 
@@ -124,15 +125,19 @@ export default class FullCalendarPlugin extends Plugin {
     this.notificationManager.update(this.settings);
     this.statusBarManager = new StatusBarManager(this);
     this.statusBarManager.update(this.settings);
-    const workspaceEvents = this.app.workspace as unknown as {
-      // Keep `any` here because Obsidian's internal event system passes heterogeneous arguments.
-      // Localising the unsafeness avoids polluting the rest of the codebase.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      on: (name: string, cb: (...args: any[]) => unknown) => any;
+    type WorkspaceEvents = Workspace & {
+      on: Workspace['on'] &
+        ((
+          name: 'full-calendar:settings-updated',
+          cb: (settings: FullCalendarSettings) => unknown,
+          ctx?: unknown
+        ) => EventRef) &
+        ((name: string, cb: (...args: unknown[]) => unknown, ctx?: unknown) => EventRef);
+      trigger: (name: string, ...data: unknown[]) => void;
       registerHoverLinkSource?: (id: string, def: { display: string; defaultMod: boolean }) => void;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      trigger: (name: string, ...data: any[]) => void;
     };
+
+    const workspaceEvents = this.app.workspace as WorkspaceEvents;
     this.registerEvent(
       workspaceEvents.on(
         'full-calendar:settings-updated',
@@ -155,7 +160,7 @@ export default class FullCalendarPlugin extends Plugin {
     // Respond to obsidian events
     this.registerEvent(
       this.app.metadataCache.on('changed', file => {
-        this.providerRegistry.handleFileUpdate(file);
+        void this.providerRegistry.handleFileUpdate(file);
       })
     );
     this.registerEvent(
@@ -163,29 +168,25 @@ export default class FullCalendarPlugin extends Plugin {
         if (file instanceof TFile) {
           // A rename is a delete at the old path.
           // The 'changed' event will pick up the creation at the new path.
-          this.providerRegistry.handleFileDelete(oldPath);
+          void this.providerRegistry.handleFileDelete(oldPath);
         }
       })
     );
     this.registerEvent(
       this.app.vault.on('delete', file => {
         if (file instanceof TFile) {
-          this.providerRegistry.handleFileDelete(file.path);
+          void this.providerRegistry.handleFileDelete(file.path);
         }
       })
     );
 
     window.cache = this.cache;
 
-    this.registerView(
-      FULL_CALENDAR_VIEW_TYPE,
-      leaf => new (require('./ui/view').CalendarView)(leaf, this, false)
-    );
+    const { CalendarView } = await import('./ui/view');
 
-    this.registerView(
-      FULL_CALENDAR_SIDEBAR_VIEW_TYPE,
-      leaf => new (require('./ui/view').CalendarView)(leaf, this, true)
-    );
+    this.registerView(FULL_CALENDAR_VIEW_TYPE, leaf => new CalendarView(leaf, this, false));
+
+    this.registerView(FULL_CALENDAR_SIDEBAR_VIEW_TYPE, leaf => new CalendarView(leaf, this, true));
 
     if (!this.isMobile) {
       // Lazily import the view to avoid loading plotly on mobile.
@@ -237,7 +238,7 @@ export default class FullCalendarPlugin extends Plugin {
       id: 'full-calendar-open',
       name: t('commands.openCalendar'),
       callback: () => {
-        this.activateView();
+        void this.activateView();
       }
     });
 
@@ -260,10 +261,10 @@ export default class FullCalendarPlugin extends Plugin {
         }
         const targetLeaf = this.app.workspace.getRightLeaf(false);
         if (targetLeaf) {
-          targetLeaf.setViewState({
+          void targetLeaf.setViewState({
             type: FULL_CALENDAR_SIDEBAR_VIEW_TYPE
           });
-          this.app.workspace.revealLeaf(targetLeaf);
+          void this.app.workspace.revealLeaf(targetLeaf);
         } else {
           console.warn('Right leaf not found for calendar view!');
         }
@@ -281,7 +282,7 @@ export default class FullCalendarPlugin extends Plugin {
         const { exchangeCodeForToken } = await import('./providers/google/auth/auth');
         await exchangeCodeForToken(params.code, params.state, this);
         if (this.settingsTab) {
-          await this.settingsTab.display();
+          this.settingsTab.display();
         }
       } else {
         new Notice(t('notices.googleAuthFailed'));
@@ -316,7 +317,7 @@ export default class FullCalendarPlugin extends Plugin {
    * Loads plugin settings from disk, merging them with default values.
    */
   async loadSettings() {
-    let loadedData = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loadedData = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()) as unknown);
 
     // All migration and sanitization logic is now encapsulated in this utility function.
     const { settings: migratedSettings, needsSave } = migrateAndSanitizeSettings(loadedData);
@@ -333,7 +334,7 @@ export default class FullCalendarPlugin extends Plugin {
 
     // Check if we need to show the changelog
     const { checkAndShowWhatsNew } = await import('./ui/settings/changelogs/renderWhatsNew');
-    await checkAndShowWhatsNew(this);
+    checkAndShowWhatsNew(this);
   }
 
   /**
@@ -343,7 +344,7 @@ export default class FullCalendarPlugin extends Plugin {
    */
   async saveSettings() {
     // Deep copy of settings BEFORE any modifications.
-    const oldSettings = JSON.parse(JSON.stringify(this.settings));
+    const oldSettings = JSON.parse(JSON.stringify(this.settings)) as FullCalendarSettings;
 
     // Create a mutable copy to work with.
     const newSettings = { ...this.settings };
@@ -365,7 +366,9 @@ export default class FullCalendarPlugin extends Plugin {
     const newSettingsString = JSON.stringify(this.settings);
 
     // Parse both to objects to compare specific fields without worrying about property order
-    const oldSettingsObj = this._loadedSettings ? JSON.parse(this._loadedSettings) : oldSettings;
+    const oldSettingsObj: FullCalendarSettings = this._loadedSettings
+      ? (JSON.parse(this._loadedSettings) as FullCalendarSettings)
+      : oldSettings;
     const newSettingsObj = this.settings;
 
     const newSourcesString = JSON.stringify(newSettingsObj.calendarSources);

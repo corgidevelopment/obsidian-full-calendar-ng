@@ -3,12 +3,12 @@ import { BasesProviderConfig } from './BasesProvider';
 import { ProviderConfigContext } from '../typesProvider';
 import FullCalendarPlugin from '../../main';
 
-interface BasesConfigComponentProps {
-  plugin: FullCalendarPlugin;
+export interface BasesConfigComponentProps {
+  plugin?: FullCalendarPlugin;
   config: Partial<BasesProviderConfig>;
   onConfigChange: (newConfig: Partial<BasesProviderConfig>) => void;
   context: ProviderConfigContext;
-  onSave: (finalConfig: BasesProviderConfig) => void;
+  onSave: (finalConfig: BasesProviderConfig | BasesProviderConfig[]) => void;
   onClose: () => void;
 }
 
@@ -23,6 +23,7 @@ export const BasesConfigComponent: React.FC<BasesConfigComponentProps> = ({
   const [baseFiles, setBaseFiles] = React.useState<string[]>([]);
 
   React.useEffect(() => {
+    if (!plugin) return;
     const files = plugin.app.vault.getFiles().filter(f => f.extension === 'base');
     setBaseFiles(files.map(f => f.path));
   }, [plugin]);

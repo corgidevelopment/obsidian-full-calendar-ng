@@ -42,9 +42,8 @@ export type LanguageCode = keyof typeof resources;
  * @returns The current language code (e.g., 'en', 'de', 'zh-cn')
  */
 function getObsidianLanguage(app: App): string {
-  const language = localStorage.getItem('language') || 'en';
-
-  return language;
+  const language = (app.loadLocalStorage as (key: string) => unknown)('language');
+  return typeof language === 'string' ? language : 'en';
 }
 /**
  * Initialize the i18n system
@@ -77,6 +76,6 @@ export const i18n = i18next;
  * Type-safe translation function
  * Usage: t('commands.newEvent')
  */
-export const t = (key: string, options?: any): string => {
-  return i18next.t(key, options) as string;
+export const t = (key: string, options?: Record<string, string | number | null>): string => {
+  return i18next.t(key, options);
 };

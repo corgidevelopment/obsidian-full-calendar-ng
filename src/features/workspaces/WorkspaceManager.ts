@@ -172,8 +172,10 @@ export class WorkspaceManager {
     const knownCategories = new Set(this.settings.categorySettings?.map(c => c.name) ?? []);
 
     return events.filter(event => {
-      const fromExtended =
-        event.extendedProps?.category || event.extendedProps?.originalEvent?.category;
+      const props = event.extendedProps as
+        | { category?: string; originalEvent?: { category?: string } }
+        | undefined;
+      const fromExtended = props?.category || props?.originalEvent?.category;
       let category: string | undefined = fromExtended;
 
       if (!category && typeof event.resourceId === 'string') {

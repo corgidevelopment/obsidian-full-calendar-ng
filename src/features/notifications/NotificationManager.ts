@@ -2,7 +2,6 @@ import { DateTime } from 'luxon';
 import { Notice } from 'obsidian';
 import { OFCEvent } from '../../types';
 import { FullCalendarSettings } from '../../types/settings';
-import { openFileForEvent } from '../../utils/eventActions';
 import FullCalendarPlugin from '../../main';
 import { TimeState, EnrichedOFCEvent } from '../../core/TimeEngine';
 import { t } from '../i18n/i18n';
@@ -52,9 +51,6 @@ export class NotificationManager {
     // Combine current and upcoming for processing
     const candidates = [...(state.current ? [state.current] : []), ...state.upcoming];
 
-    // DEBUG: Log candidates count
-    // console.log(`[NotificationManager] Checking ${candidates.length} candidates at ${now.toFormat('HH:mm:ss')}`);
-
     for (const occurrence of candidates) {
       // Optimization check
       if (occurrence.start > lookaheadLimit) continue;
@@ -64,7 +60,7 @@ export class NotificationManager {
   }
 
   private checkAndNotify(occurrence: EnrichedOFCEvent, now: DateTime) {
-    const { id: sessionId, event, start } = occurrence;
+    const { event, start } = occurrence;
     const { enableDefaultReminder, defaultReminderMinutes } = this.plugin.settings;
     const recencyCutoff = { minutes: 5 }; // Don't notify if the trigger point was more than 5 mins ago (e.g. at startup)
 
@@ -77,11 +73,7 @@ export class NotificationManager {
       const isTooLate = customTriggered.plus(recencyCutoff) < now;
 
       if (isDue && !isTooLate) {
-        // console.log(`[NotificationManager] Triggering Custom for ${event.title}`);
         this.tryTrigger(occurrence, 'custom', customTriggered);
-      } else {
-        // if (isDue && isTooLate)
-        // console.log(`[NotificationManager] Custom missed (too late) for ${event.title}`);
       }
     }
 
@@ -92,15 +84,7 @@ export class NotificationManager {
       // Avoid triggering for events way in the past if we just started up
       const isTooLate = defaultTriggerTime.plus(recencyCutoff) < now;
 
-      // console.log(`[NotificationManager] Default Check for ${event.title}:`, {
-      //   triggerTime: defaultTriggerTime.toFormat('HH:mm:ss'),
-      //   now: now.toFormat('HH:mm:ss'),
-      //   isDue,
-      //   isTooLate
-      // });
-
       if (isDue && !isTooLate) {
-        // console.log(`[NotificationManager] Triggering Default for ${event.title}`);
         this.tryTrigger(occurrence, 'default', defaultTriggerTime);
       }
     }

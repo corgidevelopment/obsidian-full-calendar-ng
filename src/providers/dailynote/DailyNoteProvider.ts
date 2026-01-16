@@ -1,5 +1,4 @@
-import moment from 'moment';
-import { TFile } from 'obsidian';
+import { moment as obsidianMoment, TFile } from 'obsidian';
 import * as React from 'react';
 import {
   appHasDailyNotesPluginLoaded,
@@ -24,9 +23,11 @@ import { OFCEvent, EventLocation } from '../../types';
 import { constructTitle } from '../../features/category/categoryParser';
 
 import { CalendarProvider, CalendarProviderCapabilities } from '../Provider';
-import { EventHandle, FCReactComponent } from '../typesProvider';
+import { EventHandle, FCReactComponent, ProviderConfigContext } from '../typesProvider';
 import { DailyNoteProviderConfig } from './typesDaily';
 import { DailyNoteConfigComponent } from './DailyNoteConfigComponent';
+
+const moment = obsidianMoment as unknown as typeof import('moment');
 
 export type EditableEventResponse = [OFCEvent, EventLocation | null];
 
@@ -55,12 +56,31 @@ const DailyNoteHeadingSetting: React.FC<{
   );
 };
 
+type DailyNoteConfigProps = {
+  config: Partial<DailyNoteProviderConfig>;
+  onConfigChange: (newConfig: Partial<DailyNoteProviderConfig>) => void;
+  context: ProviderConfigContext;
+  onSave: (finalConfig: DailyNoteProviderConfig | DailyNoteProviderConfig[]) => void;
+  onClose: () => void;
+};
+
+const DailyNoteConfigWrapper: React.FC<DailyNoteConfigProps> = props => {
+  const { onSave, ...rest } = props;
+  const handleSave = (finalConfig: DailyNoteProviderConfig) => onSave(finalConfig);
+
+  return React.createElement(DailyNoteConfigComponent, {
+    ...rest,
+    onSave: handleSave
+  });
+};
+
 export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConfig> {
   // Static metadata for registry
   static readonly type = 'dailynote';
   static readonly displayName = 'Daily Note';
-  static getConfigurationComponent(): FCReactComponent<any> {
-    return DailyNoteConfigComponent;
+
+  static getConfigurationComponent(): FCReactComponent<DailyNoteConfigProps> {
+    return DailyNoteConfigWrapper;
   }
 
   private app: ObsidianInterface;
@@ -170,7 +190,7 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
     // if (!headingInfo) {
     //   throw new Error(`Could not find heading ${this.source.heading} in daily note ${file.path}.`);
     // }
-    let lineNumber = await this.app.rewrite(file, (contents: string) => {
+    const lineNumber = await this.app.rewrite(file, (contents: string) => {
       const { page, lineNumber } = addToHeading(
         contents,
         { heading: headingInfo, item: event, headingText: this.source.heading },
@@ -209,7 +229,7 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
 
       // First, delete the line from the old file.
       await this.app.rewrite(file, oldFileContents => {
-        let lines = oldFileContents.split('\n');
+        const lines = oldFileContents.split('\n');
         lines.splice(lineNumber, 1);
         return lines.join('\n');
       });
@@ -257,14 +277,14 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
     const lineNumber = await this._findEventLineNumber(file, handle.persistentId);
 
     await this.app.rewrite(file, (contents: string) => {
-      let lines = contents.split('\n');
+      const lines = contents.split('\n');
       lines.splice(lineNumber, 1);
       return lines.join('\n');
     });
   }
 
-  getConfigurationComponent(): FCReactComponent<any> {
-    return DailyNoteConfigComponent;
+  getConfigurationComponent(): FCReactComponent<DailyNoteConfigProps> {
+    return DailyNoteConfigWrapper;
   }
 
   getSettingsRowComponent(): FCReactComponent<{
@@ -273,7 +293,7 @@ export class DailyNoteProvider implements CalendarProvider<DailyNoteProviderConf
     return DailyNoteHeadingSetting;
   }
 
-  async createInstanceOverride(
+  createInstanceOverride(
     masterEvent: OFCEvent,
     instanceDate: string,
     newEventData: OFCEvent

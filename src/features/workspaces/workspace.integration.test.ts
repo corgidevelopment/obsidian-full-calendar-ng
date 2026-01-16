@@ -2,13 +2,47 @@
  * Integration test for workspace functionality
  */
 
-import { WorkspaceSettings, createDefaultWorkspace, DEFAULT_SETTINGS } from '../../types/settings';
+import {
+  WorkspaceSettings,
+  createDefaultWorkspace,
+  DEFAULT_SETTINGS,
+  FullCalendarSettings
+} from '../../types/settings';
+
+type CategorySetting = { name: string; color?: string };
+
+type MockSettings = Omit<FullCalendarSettings, 'categorySettings'> & {
+  categorySettings: CategorySetting[];
+};
+
+interface MockPlugin {
+  settings: MockSettings;
+}
+
+interface CalendarSourceLike {
+  id: string | number;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface EventExtendedProps {
+  category?: string;
+  originalEvent?: { category?: string };
+  [key: string]: unknown;
+}
+
+interface CalendarEventLike {
+  id?: string | number;
+  extendedProps?: EventExtendedProps;
+  resourceId?: string | number;
+  [key: string]: unknown;
+}
 
 // Mock CalendarView methods for testing
 class MockCalendarView {
-  plugin: any;
+  plugin: MockPlugin;
 
-  constructor(plugin: any) {
+  constructor(plugin: MockPlugin) {
     this.plugin = plugin;
   }
 
@@ -21,7 +55,7 @@ class MockCalendarView {
     );
   }
 
-  applyWorkspaceSettings(settings: any) {
+  applyWorkspaceSettings(settings: MockSettings): MockSettings {
     const workspace = this.getActiveWorkspace();
     if (!workspace) return settings;
 
@@ -43,7 +77,7 @@ class MockCalendarView {
     return workspaceSettings;
   }
 
-  filterCalendarSources(sources: any[]) {
+  filterCalendarSources(sources: CalendarSourceLike[]): CalendarSourceLike[] {
     const workspace = this.getActiveWorkspace();
     if (!workspace) return sources;
 
@@ -57,7 +91,7 @@ class MockCalendarView {
     return filtered.length === 0 ? sources : filtered;
   }
 
-  filterEventsByCategory(events: any[]): any[] {
+  filterEventsByCategory(events: CalendarEventLike[]): CalendarEventLike[] {
     // Only apply when advanced categorization is enabled
     if (!this.plugin.settings.enableAdvancedCategorization) {
       return events;
@@ -74,7 +108,7 @@ class MockCalendarView {
     }
 
     const knownCategories = new Set(
-      this.plugin.settings.categorySettings?.map((c: any) => c.name) ?? []
+      this.plugin.settings.categorySettings?.map(category => category.name) ?? []
     );
 
     return events.filter(event => {
@@ -109,7 +143,7 @@ class MockCalendarView {
 }
 
 describe('Workspace Integration Tests', () => {
-  let mockPlugin: any;
+  let mockPlugin: MockPlugin;
   let mockView: MockCalendarView;
 
   beforeEach(() => {

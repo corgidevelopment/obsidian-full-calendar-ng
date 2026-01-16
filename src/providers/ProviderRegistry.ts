@@ -11,25 +11,17 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const MILLICONDS_BETWEEN_REVALIDATIONS = 5 * MINUTE;
 
-// Keep the generic constructor loose because individual providers have distinct
-// config types (FullNoteProviderConfig, DailyNoteProviderConfig, etc.). Enforcing
-// a single CalendarInfo arg caused incompatibilities. We instead type the
-// instance side via CalendarProvider<unknown> while still avoiding pervasive `any`.
-// eslint-disable-next-line @typescript-eslint/ban-types
-// NOTE: We intentionally keep the constructor param typed as `any` here.
-// Each concrete provider has a distinct config type; using a union or unknown
-// causes incompatibilities (construct signature variance) when dynamically
-// importing modules. Keeping `any` localised here avoids leaking it elsewhere
-// while preserving flexibility for heterogeneous provider configs.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Keep the constructor signature broad: each provider has its own config
+// shape, but all concrete configs extend the validated CalendarInfo payload
+// loaded from settings. Using CalendarInfo here preserves flexibility for
+// dynamic imports without resorting to `any`.
 export type CalendarProviderClass = new (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config: any,
+  config: CalendarInfo,
   plugin: FullCalendarPlugin,
   app?: ObsidianInterface
 ) => CalendarProvider<unknown>;
 
-type ProviderLoader = () => Promise<{ [key: string]: CalendarProviderClass }>;
+type ProviderLoader = () => Promise<Record<string, unknown>>;
 
 export class ProviderRegistry {
   /**
@@ -97,10 +89,16 @@ export class ProviderRegistry {
     return this.sources;
   }
 
-  public getConfig(id: string): unknown | undefined {
+  public getConfig(id: string): Record<string, unknown> | undefined {
     const source = this.getSource(id);
     if (!source) return undefined;
-    return 'config' in source ? (source as Record<string, unknown>).config : undefined;
+    if ('config' in source) {
+      const config = (source as Record<string, unknown>).config;
+      return typeof config === 'object' && config !== null
+        ? (config as Record<string, unknown>)
+        : undefined;
+    }
+    return undefined;
   }
 
   public async getProviderForType(type: string): Promise<CalendarProviderClass | undefined> {
@@ -200,8 +198,8 @@ export class ProviderRegistry {
         // Call initialize() if provider supports it
         if (instance.initialize) {
           instance.initialize();
-        } else {
         }
+        // else: Provider does not require initialization
       } else {
         // Warning is already logged in getProviderForType
       }
@@ -238,7 +236,7 @@ export class ProviderRegistry {
   }): void {
     // store is EventStore
     if (!this.cache) return;
-    this.identifierMapPromise = (async () => {
+    this.identifierMapPromise = (() => {
       this.identifierToSessionIdMap.clear();
       for (const storedEvent of store.getAllEvents()) {
         const globalIdentifier = this.getGlobalIdentifier(
@@ -249,6 +247,7 @@ export class ProviderRegistry {
           this.identifierToSessionIdMap.set(globalIdentifier, storedEvent.id);
         }
       }
+      return Promise.resolve();
     })();
   }
 
@@ -312,7 +311,7 @@ export class ProviderRegistry {
     ) => void,
     onAllComplete?: () => void
   ): Promise<{ event: OFCEvent; location: EventLocation | null; calendarId: string }[]> {
-    const startTime = performance.now();
+    // Performance timing available if needed: performance.now()
     if (!this.cache) {
       throw new Error('Cache not set on ProviderRegistry');
     }
@@ -489,9 +488,20 @@ export class ProviderRegistry {
     if (!this.cache) return;
     // For a delete, the new state of the file is "no events".
     // The cache will diff this against its old state and remove everything.
-    // Provide a minimal file-like object; syncFile only requires a .path property via TFile shape.
-    // Create minimal TFile-like object for cache sync
-    await this.cache.syncFile({ path } as unknown as TFile, []);
+    // Try to get the actual file from vault, or pass a minimal object if not found
+    const abstractFile = this.plugin.app.vault.getAbstractFileByPath(path);
+    if (abstractFile instanceof TFile) {
+      await this.cache.syncFile(abstractFile, []);
+    } else {
+      // File doesn't exist (already deleted), call with a minimal file-like object
+      // Use syncCalendar instead to clear events for this path
+      // Since file is deleted, find and remove all events with this file path
+      const eventsToRemove = this.cache.store.getEventsInFile({ path });
+      for (const event of eventsToRemove) {
+        await this.cache.deleteEvent(event.id, { force: true, silent: true });
+      }
+      this.cache.flushUpdateQueue([], []);
+    }
   }
 
   // Add these properties for remote revalidation
@@ -526,7 +536,7 @@ export class ProviderRegistry {
         .then(events => {
           this.cache!.syncCalendar(settingsId, events);
         })
-        .catch(err => {
+        .catch((err: Error) => {
           const source = this.getSource(settingsId);
           const name =
             source && 'name' in source ? (source as { name: string }).name : instance.type;
@@ -534,10 +544,12 @@ export class ProviderRegistry {
         });
     });
 
-    Promise.allSettled(promises).then(results => {
+    void Promise.allSettled(promises).then(results => {
       this.revalidating = false;
       this.lastRevalidation = Date.now();
-      const errors = results.flatMap(result => (result.status === 'rejected' ? result.reason : []));
+      const errors = results.flatMap(result =>
+        result.status === 'rejected' ? [result.reason as Error] : []
+      );
       if (errors.length > 0) {
         new Notice(t('notices.revalidationFailed'));
         errors.forEach(reason => {
@@ -549,7 +561,7 @@ export class ProviderRegistry {
     });
   }
 
-  public getInstance(id: string): CalendarProvider<any> | undefined {
+  public getInstance(id: string): CalendarProvider<unknown> | undefined {
     return this.instances.get(id);
   }
 
@@ -575,25 +587,27 @@ export class ProviderRegistry {
   }
 
   // Add pub/sub event bus logic for settings changes
-  private onSourcesChanged = async (): Promise<void> => {
-    if (!this.cache) return;
+  private onSourcesChanged = (): void => {
+    void (async () => {
+      if (!this.cache) return;
 
-    // This is the "nuclear reset" logic moved from main.ts
-    await this.initializeInstances();
+      // This is the "nuclear reset" logic moved from main.ts
+      await this.initializeInstances();
 
-    // Use the centralized backlog lifecycle management
-    this.syncBacklogManagerLifecycle();
+      // Use the centralized backlog lifecycle management
+      this.syncBacklogManagerLifecycle();
 
-    this.cache.reset();
-    await this.cache.populate();
-    this.revalidateRemoteCalendars();
-    // Note: resync is now triggered automatically by populate's onAllComplete callback
-    // when all async providers finish loading, so we don't need to call it here
+      this.cache.reset();
+      await this.cache.populate();
+      this.revalidateRemoteCalendars();
+      // Note: resync is now triggered automatically by populate's onAllComplete callback
+      // when all async providers finish loading, so we don't need to call it here
 
-    // Refresh backlog views if they exist
-    if (this.tasksBacklogManager.getIsLoaded()) {
-      this.tasksBacklogManager.refreshViews();
-    }
+      // Refresh backlog views if they exist
+      if (this.tasksBacklogManager.getIsLoaded()) {
+        this.tasksBacklogManager.refreshViews();
+      }
+    })();
   };
 
   /**

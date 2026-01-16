@@ -12,10 +12,23 @@ import {
     UserEvent,
     Workspace,
 } from "obsidian";
-import { join } from "path";
 import { FileBuilder } from "./FileBuilder";
 import { MockVault } from "./MockVault";
-import { basename } from "path";
+
+const normalizeSlashes = (value: string): string => value.replace(/\\/g, "/");
+const joinPath = (...parts: string[]): string => {
+    const joined = parts
+        .map(normalizeSlashes)
+        .filter((part, index) => part !== "" || index === 0)
+        .join("/")
+        .replace(/\/+/g, "/");
+    return joined === "" ? "." : joined;
+};
+const baseName = (path: string): string => {
+    const normalized = normalizeSlashes(path);
+    const lastSlash = normalized.lastIndexOf("/");
+    return lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized;
+};
 
 export class MockCache implements MetadataCache {
     private cache: Map<string, CachedMetadata>;
@@ -25,7 +38,7 @@ export class MockCache implements MetadataCache {
     }
 
     getCache(path: string): CachedMetadata | null {
-        return this.cache.get(join("/", path)) || null;
+        return this.cache.get(joinPath("/", path)) || null;
     }
 
     getFileCache(file: TFile): CachedMetadata | null {
@@ -40,7 +53,7 @@ export class MockCache implements MetadataCache {
     fileToLinktext(
         file: TFile,
         sourcePath: string,
-        omitMdExtension?: boolean | undefined
+        omitMdExtension?: boolean
     ): string {
         throw new Error("Method not implemented.");
     }
@@ -109,8 +122,8 @@ function toPathMap<T>(tree: FileTree<T>): Map<string, T> {
     const recurse = (t: FileTree<T>, path: string): [string, T][] =>
         Object.entries(t).flatMap(([name, v]) =>
             v.t === "file"
-                ? [[join(path, name), v.v]]
-                : recurse(v.v, join(path, name))
+                ? [[joinPath(path, name), v.v]]
+                : recurse(v.v, joinPath(path, name))
         );
     return new Map(recurse(tree, "/"));
 }
@@ -131,7 +144,7 @@ export class MockAppBuilder {
         contents: FileTree<string> = {},
         metadata: FileTree<CachedMetadata> = {}
     ) {
-        this.path = join("/", path);
+        this.path = joinPath("/", path);
         this.children = children;
         this.metadata = metadata;
         this.contents = contents;
@@ -162,7 +175,7 @@ export class MockAppBuilder {
 
     private makeFolder(): TFolder {
         let folder = new TFolder();
-        folder.name = this.path === "/" ? "" : basename(this.path);
+        folder.name = this.path === "/" ? "" : baseName(this.path);
         if (folder.name === "") {
             (folder as any).isRootVal = true;
         }

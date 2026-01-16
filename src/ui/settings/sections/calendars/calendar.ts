@@ -29,8 +29,29 @@ import { createDateNavigation } from '../../../../features/navigation/DateNaviga
 let didPatchRRule = false;
 
 // Minimal shape for the rrule plugin we monkeypatch.
+interface RRuleDateEnvLike {
+  toDate: (input: Date | string | number) => Date;
+}
+
+interface RRuleFrameRange {
+  start: Date | string | number;
+  end: Date | string | number;
+}
+
+interface RRuleSetLike {
+  tzid: () => string | null | undefined;
+  _dtstart: Date | null | undefined;
+  between: (start: Date, end: Date, include: boolean) => Date[];
+}
+
+interface RRuleExpandData {
+  rruleSet: RRuleSetLike;
+}
+
+type RRuleExpand = (errd: RRuleExpandData, fr: RRuleFrameRange, de: RRuleDateEnvLike) => Date[];
+
 interface RRulePluginLike {
-  recurringTypes: { expand: (...args: unknown[]) => unknown }[];
+  recurringTypes: { expand: RRuleExpand }[];
 }
 
 interface ExtraRenderProps {
@@ -101,11 +122,16 @@ export async function renderCalendar(
   //
   // For floating-time events (no TZID), we use a similar approach with getHours().
   if (!didPatchRRule) {
-    const rrulePlugin = ((rrule as unknown as { default?: RRulePluginLike }).default ||
-      (rrule as unknown as RRulePluginLike)) as RRulePluginLike;
+    const rrulePlugin =
+      (rrule as unknown as { default?: RRulePluginLike }).default ||
+      (rrule as unknown as RRulePluginLike);
     const originalExpand = rrulePlugin.recurringTypes[0].expand;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rrulePlugin.recurringTypes[0].expand = function (errd: any, fr: any, de: any) {
+
+    rrulePlugin.recurringTypes[0].expand = function (
+      errd: RRuleExpandData,
+      fr: RRuleFrameRange,
+      de: RRuleDateEnvLike
+    ) {
       const tzid = errd.rruleSet.tzid();
       const dtstart = errd.rruleSet._dtstart;
 
@@ -119,7 +145,7 @@ export async function renderCalendar(
         const localMinutes = dtstart ? dtstart.getUTCMinutes() : 0;
 
         // Get occurrences from the original expand
-        const result = originalExpand.call(this, errd, fr, de) as Date[];
+        const result = originalExpand.call(this, errd, fr, de);
 
         // Map each occurrence to use the correct local time
         // The result dates have the local time in UTC components, which is correct
@@ -180,7 +206,7 @@ export async function renderCalendar(
     });
   const modifyEventCallback =
     modifyEvent &&
-    (async ({
+    (({
       event,
       oldEvent,
       revert,
@@ -190,17 +216,15 @@ export async function renderCalendar(
       oldEvent: EventApi;
       revert: () => void;
       newResource?: { id: string };
-    }) => {
-      // Extract the string ID from the newResource object
-      const success = await modifyEvent(event, oldEvent, newResource?.id);
-      if (!success) {
-        revert();
-      }
+    }): void => {
+      void (async () => {
+        // Extract the string ID from the newResource object
+        const success = await modifyEvent(event, oldEvent, newResource?.id);
+        if (!success) {
+          revert();
+        }
+      })();
     });
-
-  // Only show resource timeline views if category coloring is enabled
-  const enableAdvancedCategorization = settings?.enableAdvancedCategorization;
-  // already computed showResourceViews above
 
   // Group the standard and timeline views together with a space.
   // This tells FullCalendar to render them as a single, connected button group.
@@ -255,12 +279,12 @@ export async function renderCalendar(
     views.resourceTimelineDay = {
       type: 'resourceTimeline',
       duration: { days: 1 },
-      buttonText: 'Timeline Day'
+      buttonText: 'Timeline day'
     };
     views.resourceTimelineWeek = {
       type: 'resourceTimeline',
       duration: { weeks: 1 },
-      buttonText: 'Timeline Week',
+      buttonText: 'Timeline week',
       slotMinWidth: 100
     };
   }
@@ -288,7 +312,7 @@ export async function renderCalendar(
             listWeek: 'List'
           };
 
-      for (const [viewName, viewLabel] of Object.entries(views)) {
+      for (const [viewName, viewLabel] of Object.entries(views) as [string, string][]) {
         menu.addItem(item =>
           item.setTitle(viewLabel).onClick(() => {
             cal.changeView(viewName);
@@ -314,12 +338,12 @@ export async function renderCalendar(
       click: (ev: MouseEvent) => {
         const menu = new Menu();
         menu.addItem(item =>
-          item.setTitle('Timeline Week').onClick(() => {
+          item.setTitle('Timeline week').onClick(() => {
             cal.changeView('resourceTimelineWeek');
           })
         );
         menu.addItem(item =>
-          item.setTitle('Timeline Day').onClick(() => {
+          item.setTitle('Timeline day').onClick(() => {
             cal.changeView('resourceTimelineDay');
           })
         );
@@ -414,9 +438,11 @@ export async function renderCalendar(
     selectMirror: select && true,
     select:
       select &&
-      (async info => {
-        await select(info.start, info.end, info.allDay, info.view.type);
-        info.view.calendar.unselect();
+      ((info): void => {
+        void (async () => {
+          await select(info.start, info.end, info.allDay, info.view.type);
+          info.view.calendar.unselect();
+        })();
       }),
 
     // Handle date clicks (including right-clicks for navigation menu)
@@ -443,7 +469,9 @@ export async function renderCalendar(
 
       el.addEventListener('contextmenu', e => {
         e.preventDefault();
-        openContextMenuForEvent && openContextMenuForEvent(event, e);
+        if (openContextMenuForEvent) {
+          void openContextMenuForEvent(event, e);
+        }
       });
       if (toggleTask) {
         if (event.extendedProps.isTask) {
@@ -453,7 +481,7 @@ export async function renderCalendar(
           checkbox.onclick = async e => {
             e.stopPropagation();
             if (e.target) {
-              let ret = await toggleTask(event, (e.target as HTMLInputElement).checked);
+              const ret = await toggleTask(event, (e.target as HTMLInputElement).checked);
               if (!ret) {
                 (e.target as HTMLInputElement).checked = !(e.target as HTMLInputElement).checked;
               }
@@ -492,7 +520,7 @@ export async function renderCalendar(
         // Get the task ID from the dragged element's data transfer
         const taskId = info.draggedEl.getAttribute('data-task-id');
         if (taskId) {
-          drop(taskId, info.date);
+          void drop(taskId, info.date);
         }
       }),
 

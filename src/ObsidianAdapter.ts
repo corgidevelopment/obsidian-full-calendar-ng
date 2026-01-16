@@ -125,7 +125,7 @@ export class ObsidianIO implements ObsidianInterface {
   }
 
   delete(file: TFile): Promise<void> {
-    return this.vault.trash(file, this.systemTrash);
+    return this.fileManager.trashFile(file);
   }
 
   rename(file: TFile, newPath: string): Promise<void> {

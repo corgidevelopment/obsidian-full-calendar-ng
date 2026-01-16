@@ -138,7 +138,7 @@ export const EditEvent = ({
             : ''
       : ''
   );
-  const [endDate, setEndDate] = useState(
+  const [endDate] = useState(
     initialEvent && initialEvent.type === 'single' ? initialEvent.endDate : undefined
   );
   const [startTime, setStartTime] = useState(
@@ -200,9 +200,6 @@ export const EditEvent = ({
   const [display, setDisplay] = useState<
     'auto' | 'block' | 'list-item' | 'background' | 'inverse-background' | 'none'
   >(initialEvent?.display || 'auto');
-
-  // Add state for endReminder
-  const [endReminder, setEndReminder] = useState(initialEvent?.endReminder || false);
 
   const titleRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -307,7 +304,7 @@ export const EditEvent = ({
 
   return (
     <div className="full-calendar-edit-modal">
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={e => void handleSubmit(e)}>
         <div className="modal-header">
           <h2>
             {initialEvent?.title
@@ -315,7 +312,7 @@ export const EditEvent = ({
               : t('modals.editEvent.title.new')}
           </h2>
           {open && (
-            <button type="button" className="mod-subtle" onClick={open}>
+            <button type="button" className="mod-subtle" onClick={() => void open()}>
               {t('modals.editEvent.buttons.openNote')}
             </button>
           )}
@@ -701,7 +698,7 @@ export const EditEvent = ({
         <div className="modal-footer">
           <div className="footer-actions-left">
             {deleteEvent && (
-              <button type="button" className="mod-warning" onClick={deleteEvent}>
+              <button type="button" className="mod-warning" onClick={() => void deleteEvent()}>
                 Delete
               </button>
             )}

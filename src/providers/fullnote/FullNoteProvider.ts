@@ -8,7 +8,7 @@ import FullCalendarPlugin from '../../main';
 import { constructTitle } from '../../features/category/categoryParser';
 import { newFrontmatter, modifyFrontmatterString, replaceFrontmatter } from './frontmatter';
 import { CalendarProvider, CalendarProviderCapabilities } from '../Provider';
-import { EventHandle, FCReactComponent } from '../typesProvider';
+import { EventHandle, FCReactComponent, ProviderConfigContext } from '../typesProvider';
 import { FullNoteProviderConfig } from './typesLocal';
 import { ObsidianInterface } from '../../ObsidianAdapter';
 import { FullNoteConfigComponent } from './FullNoteConfigComponent';
@@ -83,6 +83,24 @@ const filenameForEvent = (event: OFCEvent, settings: TitleSettingsLike) =>
 
 const SUFFIX_PATTERN = '-_-_-';
 
+type FullNoteConfigProps = {
+  config: Partial<FullNoteProviderConfig>;
+  onConfigChange: (newConfig: Partial<FullNoteProviderConfig>) => void;
+  context: ProviderConfigContext;
+  onSave: (finalConfig: FullNoteProviderConfig | FullNoteProviderConfig[]) => void;
+  onClose: () => void;
+};
+
+const FullNoteConfigWrapper: React.FC<FullNoteConfigProps> = props => {
+  const { onSave, ...rest } = props;
+  const handleSave = (finalConfig: FullNoteProviderConfig) => onSave(finalConfig);
+
+  return React.createElement(FullNoteConfigComponent, {
+    ...rest,
+    onSave: handleSave
+  });
+};
+
 /**
  * Finds an available file path in the vault. If the desired path already exists,
  * it appends a suffix (e.g., "-_-_1") until an unused path is found.
@@ -91,11 +109,7 @@ const SUFFIX_PATTERN = '-_-_-';
  * @param baseFilename The desired filename, without extension or suffix.
  * @returns A promise that resolves to the first available, unique file path.
  */
-async function findUniquePath(
-  app: ObsidianInterface,
-  directory: string,
-  baseFilename: string
-): Promise<string> {
+function findUniquePath(app: ObsidianInterface, directory: string, baseFilename: string): string {
   let path = normalizePath(`${directory}/${baseFilename}.md`);
   if (!app.getAbstractFileByPath(path)) {
     return path;
@@ -119,8 +133,9 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
   // Static metadata for registry
   static readonly type = 'local';
   static readonly displayName = 'Local Notes';
-  static getConfigurationComponent(): FCReactComponent<any> {
-    return FullNoteConfigComponent;
+
+  static getConfigurationComponent(): FCReactComponent<FullNoteConfigProps> {
+    return FullNoteConfigWrapper;
   }
 
   private app: ObsidianInterface;
@@ -162,10 +177,10 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
     return !!directory && file.path.startsWith(directory + '/');
   }
 
-  public async getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {
+  public getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {
     const metadata = this.app.getMetadata(file);
     if (!metadata?.frontmatter) {
-      return [];
+      return Promise.resolve([]);
     }
 
     const rawEventData = {
@@ -175,14 +190,14 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
 
     const event = validateEvent(rawEventData);
     if (!event) {
-      return [];
+      return Promise.resolve([]);
     }
 
     // Populate UID from the file path.
     event.uid = file.path;
 
     // The raw event is returned as-is. The EventEnhancer will handle timezone conversion.
-    return [[event, { file, lineNumber: undefined }]];
+    return Promise.resolve([[event, { file, lineNumber: undefined }]]);
   }
 
   async getEvents(): Promise<EditableEventResponse[]> {
@@ -203,7 +218,7 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
 
   async createEvent(event: OFCEvent): Promise<[OFCEvent, EventLocation]> {
     const baseFilename = basenameFromEvent(event, this.plugin.settings);
-    const path = await findUniquePath(this.app, this.source.directory, baseFilename);
+    const path = findUniquePath(this.app, this.source.directory, baseFilename);
 
     // The frontmatter is generated from the clean `event` object, so the title remains unsuffixed.
     const newPage = replaceFrontmatter('', newFrontmatter(event));
@@ -234,7 +249,7 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
 
     if (oldBaseFilename !== newBaseFilename) {
       // It's a rename. We must find a new unique path for the new base name.
-      finalPath = await findUniquePath(this.app, this.source.directory, newBaseFilename);
+      finalPath = findUniquePath(this.app, this.source.directory, newBaseFilename);
       await this.app.rename(file, finalPath);
     }
 
@@ -255,7 +270,7 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
     return this.app.delete(file);
   }
 
-  async createInstanceOverride(
+  createInstanceOverride(
     masterEvent: OFCEvent,
     instanceDate: string,
     newEventData: OFCEvent
@@ -279,8 +294,8 @@ export class FullNoteProvider implements CalendarProvider<FullNoteProviderConfig
     return this.createEvent(overrideEventData);
   }
 
-  getConfigurationComponent(): FCReactComponent<any> {
-    return FullNoteConfigComponent;
+  getConfigurationComponent(): FCReactComponent<FullNoteConfigProps> {
+    return FullNoteConfigWrapper;
   }
 
   getSettingsRowComponent(): FCReactComponent<{

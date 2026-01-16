@@ -47,7 +47,7 @@ export function parseTitle(
         return { category, subCategory, title };
       } else {
         // Category detected but not defined - log and return full title
-        console.log(
+        console.debug(
           `[Full Calendar] Category "${category}" detected in title but not defined. Showing full title: "${fullTitle}"`
         );
         return { category: undefined, subCategory: undefined, title: fullTitle };
@@ -67,7 +67,7 @@ export function parseTitle(
         return { category, subCategory: undefined, title };
       } else {
         // Category detected but not defined - log and return full title
-        console.log(
+        console.debug(
           `[Full Calendar] Category "${category}" detected in title but not defined. Showing full title: "${fullTitle}"`
         );
         return { category: undefined, subCategory: undefined, title: fullTitle };

@@ -53,13 +53,14 @@ describe('Tasks Backlog Drag and Drop Integration', () => {
       );
 
       expect(draggable).toBeDefined();
-      expect(draggable.destroy).toBeDefined();
       expect(typeof draggable.destroy).toBe('function');
     });
 
     it('should support destroy method call', () => {
       const mockDestroy = jest.fn();
-      MockedDraggable.mockReturnValue({ destroy: mockDestroy } as any);
+      MockedDraggable.mockReturnValue({ destroy: mockDestroy } as unknown as InstanceType<
+        typeof Draggable
+      >);
 
       const mockContainer = {} as HTMLElement;
       const draggable = new Draggable(mockContainer, {
@@ -114,7 +115,9 @@ describe('Tasks Backlog Drag and Drop Integration', () => {
   describe('Integration Pattern Testing', () => {
     it('should follow the destroy-then-create pattern for re-initialization', () => {
       const mockDestroy = jest.fn();
-      MockedDraggable.mockReturnValue({ destroy: mockDestroy } as any);
+      MockedDraggable.mockReturnValue({ destroy: mockDestroy } as unknown as InstanceType<
+        typeof Draggable
+      >);
 
       const mockContainer = {} as HTMLElement;
 
@@ -142,7 +145,9 @@ describe('Tasks Backlog Drag and Drop Integration', () => {
 
     it('should handle cleanup on view close', () => {
       const mockDestroy = jest.fn();
-      MockedDraggable.mockReturnValue({ destroy: mockDestroy } as any);
+      MockedDraggable.mockReturnValue({ destroy: mockDestroy } as unknown as InstanceType<
+        typeof Draggable
+      >);
 
       const mockContainer = {} as HTMLElement;
       let draggable: Draggable | null = new Draggable(mockContainer, {

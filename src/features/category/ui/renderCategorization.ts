@@ -39,11 +39,13 @@ export function renderCategorizationSettings(
           // Logic for turning ON
           // LAZY LOAD MODAL
           const { BulkCategorizeModal } = await import('./BulkCategorizeModal');
-          new BulkCategorizeModal(plugin.app, async (choice, defaultCategory) => {
-            plugin.settings.enableAdvancedCategorization = true;
-            await plugin.saveData(plugin.settings);
-            await bulkUpdateCategories(plugin, choice, defaultCategory);
-            rerender();
+          new BulkCategorizeModal(plugin.app, (choice, defaultCategory) => {
+            void (async () => {
+              plugin.settings.enableAdvancedCategorization = true;
+              await plugin.saveData(plugin.settings);
+              await bulkUpdateCategories(plugin, choice, defaultCategory);
+              rerender();
+            })();
           }).open();
         } else {
           // Logic for turning OFF

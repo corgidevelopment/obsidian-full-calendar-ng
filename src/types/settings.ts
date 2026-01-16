@@ -1,7 +1,7 @@
 import { CalendarInfo } from './calendar_settings';
 // Import lazily-referenced type for chrono analyser configuration.
 // Placed inside a type-only import to avoid pulling heavy modules at runtime here.
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+
 import type { InsightsConfig } from '../chrono_analyser/ui/ui';
 
 export interface BusinessHoursSettings {
@@ -130,7 +130,7 @@ export const DEFAULT_SETTINGS: FullCalendarSettings = {
 
 // Utility functions for workspace management
 export function generateWorkspaceId(): string {
-  return 'workspace_' + Math.random().toString(36).substr(2, 9);
+  return 'workspace_' + Math.random().toString(36).slice(2, 11);
 }
 
 export function createDefaultWorkspace(name: string): WorkspaceSettings {

@@ -1,4 +1,23 @@
-import { basename, extname, join as pathJoin } from "path";
+const toForwardSlashes = (value: string): string => value.replace(/\\/g, "/");
+const joinPath = (...parts: string[]): string => {
+    const normalizedParts = parts
+        .map(toForwardSlashes)
+        .filter((part) => part !== "" && part !== ".");
+    const joined = normalizedParts.join("/").replace(/\/+/g, "/");
+    return joined === "" ? "." : joined;
+};
+const extname = (fileName: string): string => {
+    const base = toForwardSlashes(fileName).split("/").pop() || "";
+    const dotIndex = base.lastIndexOf(".");
+    return dotIndex >= 0 ? base.slice(dotIndex) : "";
+};
+const basename = (fileName: string, ext?: string): string => {
+    const base = toForwardSlashes(fileName).split("/").pop() || "";
+    if (ext && base.endsWith(ext)) {
+        return base.slice(0, -ext.length);
+    }
+    return base;
+};
 
 /** Basic obsidian abstraction for any file or folder in a vault. */
 export abstract class TAbstractFile {
@@ -7,7 +26,7 @@ export abstract class TAbstractFile {
      */
     get path(): string {
         const parentPath = this.parent?.path || "";
-        const path = pathJoin(parentPath, this.name);
+        const path = joinPath(parentPath, this.name);
         if (path.startsWith("/") && path.length > 1) {
             return path.slice(1);
         } else {

@@ -2,7 +2,7 @@ import { App, Notice } from 'obsidian';
 import FullCalendarPlugin from '../main';
 import * as Plotter from './ui/plotter';
 import { DataManager } from './data/DataManager';
-import { UIService, ChartType, ChartSpecificFilter } from './ui/UIService';
+import { UIService, ChartType } from './ui/UIService';
 import { DataService } from './data/DataService';
 import { TimeRecord } from './data/types';
 import { InsightsEngine } from './data/InsightsEngine';
@@ -39,7 +39,9 @@ export class AnalysisController {
       rootEl,
       plugin,
       () => this.updateAnalysis(),
-      () => this.handleGenerateInsights(),
+      () => {
+        void this.handleGenerateInsights();
+      },
       () => this.openInsightsConfigModal()
     );
 
@@ -81,7 +83,7 @@ export class AnalysisController {
       this.dataManager.getKnownProjects(),
       (newConfig: InsightsConfig) => {
         this.plugin.settings.chrono_analyser_config = newConfig;
-        this.plugin.saveSettings();
+        void this.plugin.saveSettings();
         this.uiService.insightsConfig = newConfig;
         new Notice(t('notices.chronoAnalyserInsightsSaved'));
       }
@@ -229,11 +231,11 @@ export class AnalysisController {
       const totalCount = records.length;
       this.uiService.renderStats(totalCount, fileCount);
       const labelEl = this.rootEl.querySelector('#totalHours + .stat-label');
-      if (labelEl) labelEl.textContent = 'Total Events';
+      if (labelEl) labelEl.textContent = 'Total events';
     } else {
       this.uiService.renderStats(totalHours, fileCount);
       const labelEl = this.rootEl.querySelector('#totalHours + .stat-label');
-      if (labelEl) labelEl.textContent = 'Total Hours (Filtered)';
+      if (labelEl) labelEl.textContent = 'Total hours (filtered)';
     }
 
     const { newChartType } = this.uiService.getFilterState();
@@ -252,7 +254,7 @@ export class AnalysisController {
 
     // Render Chart
     switch (chartSpecificFilters.chart) {
-      case 'pie':
+      case 'pie': {
         const pieData = this.dataManager.preparePieChartData(
           records,
           chartSpecificFilters.breakdownBy,
@@ -267,7 +269,8 @@ export class AnalysisController {
           metric
         );
         break;
-      case 'sunburst':
+      }
+      case 'sunburst': {
         const sunburstData = this.dataManager.prepareSunburstData(
           records,
           chartSpecificFilters.level,
@@ -282,6 +285,7 @@ export class AnalysisController {
           metric
         );
         break;
+      }
       case 'time-series':
         Plotter.renderTimeSeriesChart(this.rootEl, records, useReact, isNewChartType, metric);
         break;

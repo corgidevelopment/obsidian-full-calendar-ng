@@ -42,15 +42,15 @@ export class TasksBacklogManager {
     // Add command to open the backlog view
     this.plugin.addCommand({
       id: 'open-tasks-backlog',
-      name: 'Open Tasks Backlog',
+      name: 'Open tasks backlog',
       callback: () => {
-        this.openBacklogView();
+        void this.openBacklogView();
       }
     });
 
     // Add ribbon icon for quick access
-    this.plugin.addRibbonIcon('list-todo', 'Tasks Backlog', () => {
-      this.openBacklogView();
+    this.plugin.addRibbonIcon('list-todo', 'Tasks backlog', () => {
+      void this.openBacklogView();
     });
   }
 
@@ -79,7 +79,7 @@ export class TasksBacklogManager {
     const existingLeaf = workspace.getLeavesOfType(TASKS_BACKLOG_VIEW_TYPE)[0];
     if (existingLeaf) {
       // Focus the existing view
-      workspace.revealLeaf(existingLeaf);
+      void workspace.revealLeaf(existingLeaf);
       return;
     }
 
@@ -92,7 +92,7 @@ export class TasksBacklogManager {
       });
 
       // Reveal the leaf to make sure it's visible
-      workspace.revealLeaf(leaf);
+      void workspace.revealLeaf(leaf);
     }
   }
 
@@ -119,7 +119,7 @@ export class TasksBacklogManager {
     for (const leaf of leaves) {
       const view = leaf.view;
       if (view instanceof TasksBacklogView) {
-        view.refresh();
+        void view.refresh();
       }
     }
   }

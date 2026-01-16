@@ -24,27 +24,28 @@ export class AnalysisView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Chrono Analyser';
+    return 'Chrono analyser';
   }
 
   getIcon(): string {
     return 'bar-chart-horizontal';
   }
 
-  protected async onOpen() {
+  protected async onOpen(): Promise<void> {
     const container = this.containerEl.children[1];
     container.empty();
     container.addClass('chrono-analyser-view');
     createDOMStructure(container as HTMLElement);
 
-    this.controller = new AnalysisController(this.app, container as HTMLElement, this.plugin);
-    // CORRECTED: Await the async initialize method.
-    await this.controller.initialize();
+    const controller = new AnalysisController(this.app, container as HTMLElement, this.plugin);
+    this.controller = controller;
+    await Promise.resolve(controller.initialize());
   }
 
-  protected async onClose() {
+  protected onClose(): Promise<void> {
     this.controller?.destroy();
     this.controller = null;
+    return Promise.resolve();
   }
 }
 
@@ -59,7 +60,7 @@ export async function activateAnalysisView(app: App): Promise<void> {
 
   const existingLeaves = app.workspace.getLeavesOfType(ANALYSIS_VIEW_TYPE);
   if (existingLeaves.length > 0) {
-    app.workspace.revealLeaf(existingLeaves[0]);
+    await app.workspace.revealLeaf(existingLeaves[0]);
     return;
   }
 

@@ -31,7 +31,7 @@ type CategoryProvider = (file: TFile) => string | undefined;
 /**
  * Gathers all TFile objects from local and daily note calendar sources.
  */
-async function getFilesToProcess(plugin: FullCalendarPlugin): Promise<TFile[]> {
+function getFilesToProcess(plugin: FullCalendarPlugin): TFile[] {
   const files = new Set<TFile>();
 
   // 1. Get files from 'local' (Full Note) providers
@@ -94,7 +94,7 @@ export async function bulkUpdateCategories(
   };
 
   const force = choice !== 'smart';
-  const files = await getFilesToProcess(plugin);
+  const files = getFilesToProcess(plugin);
   if (files.length === 0) {
     new Notice(t('notices.bulkCategorization.noNotesFound'));
     return;
@@ -105,22 +105,25 @@ export async function bulkUpdateCategories(
 
   // Processor for Full Note calendars
   const fullNoteProcessor = async (file: TFile) => {
-    await plugin.app.fileManager.processFrontMatter(file, frontmatter => {
-      const event = validateEvent(frontmatter);
-      if (!event || !event.title) return;
+    await plugin.app.fileManager.processFrontMatter(
+      file,
+      (frontmatter: Record<string, unknown>) => {
+        const event = validateEvent(frontmatter);
+        if (!event || !event.title) return;
 
-      const { category: existingCategory, title: cleanTitle } = parseTitle(
-        event.title,
-        definedCategories
-      );
-      if (existingCategory && !force) return;
+        const { category: existingCategory, title: cleanTitle } = parseTitle(
+          event.title,
+          definedCategories
+        );
+        if (existingCategory && !force) return;
 
-      const newCategory = categoryProvider(file);
-      if (!newCategory) return;
+        const newCategory = categoryProvider(file);
+        if (!newCategory) return;
 
-      const titleToCategorize = force ? event.title : cleanTitle;
-      frontmatter.title = constructTitle(newCategory, undefined, titleToCategorize);
-    });
+        const titleToCategorize = force ? event.title : cleanTitle;
+        frontmatter.title = constructTitle(newCategory, undefined, titleToCategorize);
+      }
+    );
   };
 
   // Processor for Daily Note calendars
@@ -150,7 +153,7 @@ export async function bulkUpdateCategories(
           if (!newCategory) continue;
 
           const rawTitle = line
-            .replace(/^(\s*)\-\s+(\[(.)\]\s+)?/, '')
+            .replace(/^(\s*)-\s+(\[(.)\]\s+)?/, '')
             .replace(/\s*\[.*?\]\s*/g, '')
             .trim();
           const titleToCategorize = force ? rawTitle : existingEvent.title;
@@ -197,7 +200,7 @@ export async function bulkRemoveCategories(plugin: FullCalendarPlugin): Promise<
   const knownCategories = new Set<string>(
     plugin.settings.categorySettings.map((s: { name: string }) => s.name)
   );
-  const files = await getFilesToProcess(plugin);
+  const files = getFilesToProcess(plugin);
   if (files.length === 0) {
     new Notice(t('notices.bulkDecategorization.noNotesFound'));
     return;
@@ -209,13 +212,16 @@ export async function bulkRemoveCategories(plugin: FullCalendarPlugin): Promise<
     const parentDir = file.parent?.name;
     if (parentDir) knownCategories.add(parentDir);
 
-    await plugin.app.fileManager.processFrontMatter(file, frontmatter => {
-      if (!frontmatter.title) return;
-      const { category, title: cleanTitle } = parseTitle(frontmatter.title, knownCategories);
-      if (category && knownCategories.has(category)) {
-        frontmatter.title = cleanTitle;
+    await plugin.app.fileManager.processFrontMatter(
+      file,
+      (frontmatter: Record<string, unknown>) => {
+        if (!frontmatter.title || typeof frontmatter.title !== 'string') return;
+        const { category, title: cleanTitle } = parseTitle(frontmatter.title, knownCategories);
+        if (category && knownCategories.has(category)) {
+          frontmatter.title = cleanTitle;
+        }
       }
-    });
+    );
   };
 
   // Processor for Daily Note calendars
