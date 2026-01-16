@@ -96,7 +96,7 @@ export class MockVault implements Vault {
         }
         return Promise.resolve(contents);
     }
-    
+
     getFileByPath(path: string): TFile | null {
         const file = this.getAbstractFileByPath(path);
         if (file instanceof TFile) {
@@ -167,7 +167,7 @@ export class MockVault implements Vault {
     trash(file: TAbstractFile, system: boolean): Promise<void> {
         return this.delete(file);
     }
-    process(...args: any[]): any {
+    process(file: TFile, fn: (data: string) => string, options?: DataWriteOptions): Promise<string> {
         throw new Error("Method not implemented.");
     }
 
@@ -254,38 +254,38 @@ export class MockVault implements Vault {
     // TODO: Implement callbacks.
     on(
         name: "create",
-        callback: (file: TAbstractFile) => any,
-        ctx?: any
+        callback: (file: TAbstractFile) => unknown,
+        ctx?: unknown
     ): EventRef;
     on(
         name: "modify",
-        callback: (file: TAbstractFile) => any,
-        ctx?: any
+        callback: (file: TAbstractFile) => unknown,
+        ctx?: unknown
     ): EventRef;
     on(
         name: "delete",
-        callback: (file: TAbstractFile) => any,
-        ctx?: any
+        callback: (file: TAbstractFile) => unknown,
+        ctx?: unknown
     ): EventRef;
     on(
         name: "rename",
-        callback: (file: TAbstractFile, oldPath: string) => any,
-        ctx?: any
+        callback: (file: TAbstractFile, oldPath: string) => unknown,
+        ctx?: unknown
     ): EventRef;
-    on(name: "closed", callback: () => any, ctx?: any): EventRef;
+    on(name: "closed", callback: () => unknown, ctx?: unknown): EventRef;
     on(name: unknown, callback: unknown, ctx?: unknown): EventRef {
         throw new Error("Method not implemented.");
     }
-    off(name: string, callback: (...data: any) => any): void {
+    off(name: string, callback: (...data: unknown[]) => unknown): void {
         throw new Error("Method not implemented.");
     }
     offref(ref: EventRef): void {
         throw new Error("Method not implemented.");
     }
-    trigger(name: string, ...data: any[]): void {
+    trigger(name: string, ...data: unknown[]): void {
         throw new Error("Method not implemented.");
     }
-    tryTrigger(evt: EventRef, args: any[]): void {
+    tryTrigger(evt: EventRef, args: unknown[]): void {
         throw new Error("Method not implemented.");
     }
     append(

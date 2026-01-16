@@ -1262,11 +1262,11 @@ describe('editable calendars', () => {
 
         // Mock createEventInProvider for destination
         providerRegistry.createEventInProvider.mockImplementation(
-          async (calId: string, evt: OFCEvent) => {
+          (calId: string, evt: OFCEvent) => {
             if (evt.type === 'recurring') {
-              return [evt, mockLocationWithFile('NewMaster.md')];
+              return Promise.resolve([evt, mockLocationWithFile('NewMaster.md')]);
             }
-            return [evt, mockLocation()];
+            return Promise.resolve([evt, mockLocation()]);
           }
         );
 

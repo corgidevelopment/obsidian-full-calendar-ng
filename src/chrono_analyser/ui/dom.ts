@@ -98,7 +98,7 @@ export function createDOMStructure(rootEl: HTMLElement): void {
     text: '🔍 ' + 'Filter by category (e.g. keyword -exclude)'
   });
   categoryItem.createEl('input', {
-    attr: { id: 'patternInput', type: 'text', placeholder: 'E.g. task.* -review' }
+    attr: { id: 'patternInput', type: 'text', placeholder: 'Example: task.* -review' }
   });
 
   const dateGroup = controls.createDiv({ cls: 'control-group' });

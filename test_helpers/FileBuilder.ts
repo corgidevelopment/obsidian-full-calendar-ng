@@ -50,12 +50,12 @@ const makeListItems = (
 
 type FileBlock =
     | {
-          type: "heading";
-          text: string;
-          level: number;
-      }
+        type: "heading";
+        text: string;
+        level: number;
+    }
     | ListBlock
-    | { type: "frontmatter"; key: string; text: any }
+    | { type: "frontmatter"; key: string; text: unknown }
     | { type: "text"; text: string };
 
 const makeFile = (
@@ -83,13 +83,13 @@ const makeFile = (
     );
 
     if (frontmatter.length > 0) {
-        const data: any = {};
+        const data: Record<string, unknown> = {};
         const { start } = appendLine("---");
         for (const elt of frontmatter) {
             if (Array.isArray(elt.text)) {
-                appendLine(`${elt.key}: [${elt.text}]`);
+                appendLine(`${elt.key}: [${(elt.text as unknown[]).join(',')}]`);
             } else {
-                appendLine(`${elt.key}: ${elt.text}`);
+                appendLine(`${elt.key}: ${String(elt.text)}`);
             }
             data[elt.key] = elt.text;
         }
@@ -126,9 +126,9 @@ const makeFile = (
                     const indent = tabChars.repeat(item.depth);
                     let position = appendLine(
                         indent +
-                            "- " +
-                            (item.checkbox ? `[${item.checkbox}] ` : "") +
-                            item.text
+                        "- " +
+                        (item.checkbox ? `[${item.checkbox}] ` : "") +
+                        item.text
                     );
                     if (indent.length > 0) {
                         position.start.col += indent.length - 2;
@@ -203,7 +203,7 @@ export class FileBuilder {
      * @param frontmatter Dictionary representing YAML frontmatter.
      * @returns an updated FileBuilder
      */
-    frontmatter(frontmatter: Record<string, any>): FileBuilder {
+    frontmatter(frontmatter: Record<string, unknown>): FileBuilder {
         const frontmatterLines = Object.entries(frontmatter).map(
             ([k, v]): FileBlock => ({ type: "frontmatter", key: k, text: v })
         );

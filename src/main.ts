@@ -409,7 +409,7 @@ export default class FullCalendarPlugin extends Plugin {
    * @param processor The async function to apply to each file.
    * @param description A description of the operation for the notice.
    */
-  async nonBlockingProcess(
+  nonBlockingProcess(
     files: TFile[],
     processor: (file: TFile) => Promise<void>,
     description: string
@@ -443,5 +443,6 @@ export default class FullCalendarPlugin extends Plugin {
     };
 
     processBatch();
+    return Promise.resolve();
   }
 }

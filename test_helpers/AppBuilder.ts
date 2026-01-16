@@ -61,16 +61,16 @@ export class MockCache implements MetadataCache {
     unresolvedLinks: Record<string, Record<string, number>> = {};
     on(
         name: "changed",
-        callback: (file: TFile, data: string, cache: CachedMetadata) => any,
-        ctx?: any
+        callback: (file: TFile, data: string, cache: CachedMetadata) => unknown,
+        ctx?: unknown
     ): EventRef;
     on(
         name: "deleted",
-        callback: (file: TFile, prevCache: CachedMetadata | null) => any,
-        ctx?: any
+        callback: (file: TFile, prevCache: CachedMetadata | null) => unknown,
+        ctx?: unknown
     ): EventRef;
-    on(name: "resolve", callback: (file: TFile) => any, ctx?: any): EventRef;
-    on(name: "resolved", callback: () => any, ctx?: any): EventRef;
+    on(name: "resolve", callback: (file: TFile) => unknown, ctx?: unknown): EventRef;
+    on(name: "resolved", callback: () => unknown, ctx?: unknown): EventRef;
     on(
         name: unknown,
         callback: unknown,
@@ -78,16 +78,16 @@ export class MockCache implements MetadataCache {
     ): import("obsidian").EventRef {
         throw new Error("Method not implemented.");
     }
-    off(name: string, callback: (...data: any) => any): void {
+    off(name: string, callback: (...data: unknown[]) => unknown): void {
         throw new Error("Method not implemented.");
     }
     offref(ref: EventRef): void {
         throw new Error("Method not implemented.");
     }
-    trigger(name: string, ...data: any[]): void {
+    trigger(name: string, ...data: unknown[]): void {
         throw new Error("Method not implemented.");
     }
-    tryTrigger(evt: EventRef, args: any[]): void {
+    tryTrigger(evt: EventRef, args: unknown[]): void {
         throw new Error("Method not implemented.");
     }
 }
@@ -177,7 +177,7 @@ export class MockAppBuilder {
         let folder = new TFolder();
         folder.name = this.path === "/" ? "" : baseName(this.path);
         if (folder.name === "") {
-            (folder as any).isRootVal = true;
+            (folder as unknown as { isRootVal: boolean }).isRootVal = true;
         }
         this.children.forEach((f) => (f.parent = folder));
         folder.children = [...this.children];

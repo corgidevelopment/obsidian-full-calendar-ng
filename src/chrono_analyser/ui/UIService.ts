@@ -122,11 +122,12 @@ export class UIService {
     this.detailPopup = new DetailPopup(this.app, this.rootEl);
   }
 
-  public async initialize(): Promise<void> {
+  public initialize(): Promise<void> {
     this.setupEventListeners();
     this.loadFilterState();
     this.loadInsightsConfig();
     this.setupProTips();
+    return Promise.resolve();
   }
 
   private loadInsightsConfig() {

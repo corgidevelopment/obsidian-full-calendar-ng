@@ -467,7 +467,7 @@ export class TasksPluginProvider implements CalendarProvider<TasksProviderConfig
     );
   }
 
-  public async getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {
+  public getEventsInFile(file: TFile): Promise<EditableEventResponse[]> {
     const events: EditableEventResponse[] = [];
     // Filter the live cache for tasks in the specified file. This is very fast.
     const tasksInFile = this.allTasks.filter(task => task.filePath === file.path);
@@ -493,7 +493,7 @@ export class TasksPluginProvider implements CalendarProvider<TasksProviderConfig
         events.push([ofcEvent, location]);
       }
     }
-    return events;
+    return Promise.resolve(events);
   }
 
   // ====================================================================

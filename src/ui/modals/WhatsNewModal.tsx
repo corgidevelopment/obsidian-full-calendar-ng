@@ -22,7 +22,7 @@ export class WhatsNewModal extends Modal {
   }
 
   onOpen() {
-    void (async () => {
+    void (() => {
       const { contentEl } = this;
       contentEl.empty();
       contentEl.addClass('full-calendar-whats-new-modal');
@@ -51,7 +51,7 @@ export class WhatsNewModal extends Modal {
       const footer = contentEl.createDiv('full-calendar-whats-new-footer');
       new Setting(footer)
         .addButton((btn: ButtonComponent) =>
-          btn.setButtonText('See all changelogs').onClick(async () => {
+          btn.setButtonText('See all changelogs').onClick(() => {
             this.close();
             // Open settings to changelog
             const settingsTab = this.plugin.settingsTab;
