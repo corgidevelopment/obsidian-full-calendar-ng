@@ -17,7 +17,6 @@ export default class CalDAVCalendar implements IRemoteCalendar, Omit<IEditableCa
   credentials: Authentication;
   serverUrl: string;
   calendarUrl: string;
-  id: string = `${this.type}${ID_SEPARATOR}${this.identifier}`;
   color: string;
 
   events: AnyEvent[] = [];
@@ -83,6 +82,10 @@ export default class CalDAVCalendar implements IRemoteCalendar, Omit<IEditableCa
     let caldavEvents = await dav.listCalendarObjects(calendar, { xhr });
     this.events = caldavEvents.filter((vevent) => vevent.calendarData).flatMap((vevent) => getEventsFromICS(vevent.calendarData));
   };
+
+  get id(): string {
+    return `${this.type}${ID_SEPARATOR}${this.identifier}`
+  }
 
   get type(): CalendarInfo["type"] {
     return "caldav";

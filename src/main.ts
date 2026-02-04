@@ -32,8 +32,8 @@ export default class FullCalendarPlugin extends Plugin {
           })
         : null,
     ical: (info) => (info.type === "ical" ? new ICSCalendar(info.color, info.url) : null),
-    caldav: (info) =>
-      info.type === "caldav"
+    caldav: (info) => {
+      return info.type === "caldav"
         ? new CalDAVCalendar(
             info.color,
             info.name,
@@ -45,7 +45,8 @@ export default class FullCalendarPlugin extends Plugin {
             info.url,
             info.homeUrl
           )
-        : null
+        : null;
+    }
   });
 
   renderCalendar = renderCalendar;
@@ -66,7 +67,6 @@ export default class FullCalendarPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
-
     this.cache.reset(this.settings.calendarSources);
 
     this.registerEvent(
