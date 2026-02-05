@@ -508,6 +508,9 @@ export default class EventCache {
             calendarId: calendar.id
           }));
           newEvents.forEach(({ event, id, location }) => {
+            if (event.title === 'ITSC Monthly') {
+              console.log(event)
+            }
             this.store.add({
               calendar,
               location,

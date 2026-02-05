@@ -7,6 +7,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import rrulePlugin from "@fullcalendar/rrule";
 import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
+import luxonPlugin from "@fullcalendar/luxon3";
 import googleCalendarPlugin from "@fullcalendar/google-calendar";
 import iCalendarPlugin from "@fullcalendar/icalendar";
 
@@ -39,13 +40,11 @@ export function renderCalendar(containerEl: HTMLElement, eventSources: EventSour
 
   const cal = new Calendar(containerEl, {
     plugins: [
-      // View plugins
+      luxonPlugin,
       dayGridPlugin,
       timeGridPlugin,
       listPlugin,
-      // Drag + drop and editing
       interactionPlugin,
-      // Remote sources
       googleCalendarPlugin,
       iCalendarPlugin,
       rrulePlugin

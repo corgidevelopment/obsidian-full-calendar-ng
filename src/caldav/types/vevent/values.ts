@@ -1,0 +1,2 @@
+export type EVENT_STATUS = "TENTATIVE" | "CONFIRMED" | "CANCELLED";
+
