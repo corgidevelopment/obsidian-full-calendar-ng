@@ -1,25 +1,26 @@
-import { XMLParser } from "fast-xml-parser";
+export type Updater<T> = (target: T, value: any) => T;
+export type Appliance<F> = Record<string, (props: Record<string, any>, target: F) => F>;
 
-export function parseCalendars(body: string) {
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    parseTagValue: true,
-    allowBooleanAttributes: false,
-    isArray: (jtag) => jtag === "cal:supported-calendar-component-set"
-  });
-  const parsed = parser.parse(body)["d:multistatus"]["d:response"];
-  for (let cal of parsed) {
-    const calHref =  cal["d:href"] as string;
-    for (let stat of cal["d:propstat"]) {
-      if (stat["d:status"].includes("200 OK")) {
-        let props = stat["d:prop"]
-        let displayname = tryparse(props, "d:displayname");
-        let displayname = tryparse(props, "d:displayname");
-        let displayname = tryparse(props, "d:displayname");
-      }
+function applier<T>(property: string, props: Record<string, any>, target: T, updater: Updater<T>) {
+  return updater(target, props[property]);
+}
+
+function makeApplier<T>(property: string, updater: Updater<T>) {
+  return (props: Record<string, any>, target: T) => applier(property, props, target, updater);
+}
+
+export function makeAppliance<T>(map: Record<string, Updater<T>>): Appliance<T> {
+  return Object.fromEntries(Object.entries(map).map((entry) => [entry[0], makeApplier(entry[0], entry[1])]));
+}
+
+export function parseProps<T>(props: any, target: T, appliance: Appliance<T>): T {
+  let _target = target;
+  for (let entry of Object.entries(props)) {
+    let x = entry[0];
+    let applier = appliance[x];
+    if (applier) {
+      _target = applier(props, _target);
     }
-    console.log(cal["d:propstat"][0]["d:prop"]);
-    console.log(cal["d:propstat"][0]["d:status"]);
-    console.log(cal["d:propstat"][1]);
   }
+  return _target;
 }

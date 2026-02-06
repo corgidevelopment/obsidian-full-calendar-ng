@@ -2,6 +2,7 @@ import type { HttpRequestInterface } from "./HttpRequestInterface";
 import type { CaldavConfig } from "../types/config/config";
 import { allCalendarsPropfindDocument } from "../xml/payload";
 import type { Calendar } from "../types/calendar/calendar";
+import { parseCalendars } from "../xml/parse/calendar";
 
 export type TRANSP = "OPAQUE" | "TRANSPARENT";
 
@@ -27,5 +28,5 @@ export async function findAllCalendars(requestGateway: HttpRequestInterface, con
   if (body == null) {
     return [];
   }
-  return [];
+  return parseCalendars(body);
 }
